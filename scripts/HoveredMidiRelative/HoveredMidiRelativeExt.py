@@ -12,6 +12,7 @@ class HoveredMidiRelativeExt:
 		self.resetMidi = self.ownerComp.op('midiin_reset')
 		self.currStep = self.evalDefaultstepsize
 		self.websocket : websocketDAT = self.ownerComp.op('websocket1')
+		self._updateScreenAll(0,0,1,'HOVERINIT')
 		
 	@property
 	def seqSteps(self):
@@ -43,6 +44,7 @@ class HoveredMidiRelativeExt:
 			return
 
 		self.hoveredPar = _par
+		self._updateScreenAll(_par.eval(), _par.normMin, _par.normMax, _par.label)
 		
 		pass
 
@@ -151,7 +153,7 @@ class HoveredMidiRelativeExt:
 			_newVal = _val + _step
 			_par.val = _newVal
 			if self.evalVsn1screensupport:
-				self._updateScreenVals(_par, _par.eval())
+				self._updateScreenAll(_par.eval(), _par.normMin, _par.normMax, _par.label)
 
 	def _indexToBlock(self, index):
 		# look for all indexes in all sequence blocks, returns a list always
@@ -203,46 +205,28 @@ class HoveredMidiRelativeExt:
 		
 		return sanitized
 
-	def _updateScreenVals(self, _par, _val):
-		screen_template = """--[[@cb]] if f>0 then f=f-1;local a,xo=gmaps({v1},{v2},{v3},0.1,1),#tostring({v1})/2*s/2-#tostring({v1})-s//32,lcd:ldaf(10,10,310,230,c[1])lcd:ldrr(xc-p//1-1,yc-p//1-1,xc+p//1+1,yc+p//1+1,s,c[2])lcd:ldrrf(xc-p*a//1,yc-p*a//1,xc+p*a//1,yc+p*a//1,s,c[3])lcd:ldft({v1},xc-xo,yc+s,s/2,c[2])local xn=(#ids*(s/2))/2-s//32;lcd:ldft("{text}",xc-xn,yc-1.5*s,s/2,c[2])lcd:ldsw()end"""
-		
-		# Truncate value to 4 characters max, convert to int if whole number
-		if _val == int(_val):
-			val_str = str(int(_val))
+	def _updateScreenAll(self, val, norm_min, norm_max, label):
+		# Process label based on compression setting
+		if self.evalUsecompressedlabels:
+			processed_label = self._compressLabel(label, 10)
 		else:
-			val_str = str(_val)
-		if len(val_str) > 4:
-			val_str = val_str[:4]
+			processed_label = label[:9]
 		
-		# Compress label to maximize meaningful content within 5 character limit
-		label = self._compressLabel(_par.label, 5)
+		# Format numeric values: round if number, truncate all to 9 chars max
+		def format_value(v):
+			if isinstance(v, (int, float)):
+				v = round(v, 6)
+			return str(v)[:9]
 		
-		
-		# Optimize norm_min: convert to int if whole number, then truncate if needed
-		norm_min = _par.normMin
-		if norm_min == int(norm_min):
-			norm_min = str(int(norm_min))
-		else:
-			norm_min = str(norm_min)
-		if len(norm_min) > 3:
-			norm_min = norm_min[:3]
-			
-		# Optimize norm_max: convert to int if whole number, then truncate if needed
-		norm_max = _par.normMax
-		if norm_max == int(norm_max):
-			norm_max = str(int(norm_max))
-		else:
-			norm_max = str(norm_max)
-		if len(norm_max) > 3:
-			norm_max = norm_max[:3]
-		
-		lua_code = screen_template.format(v1=val_str, v2=norm_min, v3=norm_max, text=label)
+		val_formatted = format_value(val)
+		min_formatted = format_value(norm_min)
+		max_formatted = format_value(norm_max)
+		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}')"
 		
 		grid_websocket_package = {
 			'type': 'execute-code',
 			'script': lua_code
 		}
-
 		self.websocket.sendText(json.dumps(grid_websocket_package))
 
 # endregion screen stuff
