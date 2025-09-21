@@ -12,20 +12,14 @@ class HoveredMidiRelativeExt:
 		self.resetMidi = self.ownerComp.op('midiin_reset')
 		self.currStep = self.evalDefaultstepsize
 		self.websocket : websocketDAT = self.ownerComp.op('websocket1')
-		self._updateScreenAll(0,0,1,'HOVERINIT')
+
+		if self.evalVsn1screensupport:
+			self._clearScreen()
+			self._updateScreenAll(0,0,1,'HOVERINIT', force=True)
 		
 	@property
 	def seqSteps(self):
 		return self.ownerComp.seq.Steps
-
-	def onParClear(self):
-		self.seqSteps.numBlocks = 1
-		self.seqSteps[0].par.Index = ''
-		# Set first block step to 1
-		self.seqSteps[0].par.Step.val = 1.0
-		self.parKnobindex.val = ''
-		self.parParpersistindex.val = ''
-		self.parResetparindex.val = ''
 
 	@property
 	def activePar(self):
@@ -38,13 +32,17 @@ class HoveredMidiRelativeExt:
 			return
 		if _op is None or _par is None:
 			return
-		if not (_op := op(_op)) and (_par := _par):
+		if _op == self.ownerComp:
+			return
+		if not (_op := op(_op)):
 			return
 		if (_par := getattr(_op.par, _par)) is None:
 			return
 
 		self.hoveredPar = _par
-		self._updateScreenAll(_par.eval(), _par.normMin, _par.normMax, _par.label)
+
+		if self.evalVsn1screensupport:
+			self._updateScreenPar(_par)
 		
 		pass
 
@@ -52,7 +50,7 @@ class HoveredMidiRelativeExt:
 		if channel != self.evalChannel or not self.evalActive:
 			return
 		index = int(index)
-		blocks = self._indexToBlock(index)
+		blocks = self.__indexToBlock(index)
 
 		if blocks:
 			block = blocks[0]
@@ -99,9 +97,21 @@ class HoveredMidiRelativeExt:
 		if self.activePar is not None:
 			self.activePar.reset()
 
+	
+
 
 # region par callbacks
 
+	def onParClear(self):
+		self.seqSteps.numBlocks = 1
+		self.seqSteps[0].par.Index = ''
+		# Set first block step to 1
+		self.seqSteps[0].par.Step.val = 1.0
+		self.parKnobindex.val = ''
+		self.parParpersistindex.val = ''
+		self.parResetparindex.val = ''
+
+	#TODO: these can be optimized if using Dependency objects
 	def onSeqStepsNIndex(self, _par, idx):
 		self.activeMidi.cook(force=True)
 
@@ -113,6 +123,7 @@ class HoveredMidiRelativeExt:
 
 	def onParResetparindex(self, _par, _val):
 		self.resetMidi.cook(force=True)
+	# end TODO
 
 	def onParPeriststep(self, _par, _val):
 		if not _val:
@@ -145,23 +156,38 @@ class HoveredMidiRelativeExt:
 	def _doStep(self, step, value):
 		midValue = 128/2
 		_par = self.activePar
-		if not _par.isNumber:
+		if _par is None or _par.mode not in [ParMode.CONSTANT, ParMode.BIND]:
 			return
-		if _par is not None and _par.mode in [ParMode.CONSTANT, ParMode.BIND]:
+			
+		_diff = value - midValue
+		_step = step * (_diff)
+		
+		if _par.isNumber:
+			# Handle numeric parameters (float/int)
 			_val = _par.eval()
-			_step = step * (value - midValue)
 			_newVal = _val + _step
 			_par.val = _newVal
-			if self.evalVsn1screensupport:
-				self._updateScreenAll(_par.eval(), _par.normMin, _par.normMax, _par.label)
-
-	def _indexToBlock(self, index):
-		# look for all indexes in all sequence blocks, returns a list always
-		blocks = []
-		for block in self.seqSteps:
-			if tdu.match(block.par.Index.eval(), [index]):
-				blocks.append(block)
-		return blocks
+		elif _par.isMenu:
+			# Handle menu parameters - step through menu options
+			if abs(_diff) >= 1:  # Only change on significant step
+				current_index = _par.menuIndex
+				step_direction = 1 if _step > 0 else -1
+				new_index = current_index + step_direction
+				_par.menuIndex = new_index
+		elif _par.isToggle:
+			# Handle toggle parameters - step through on/off states
+			current_val = _par.eval()
+			if _step > 0 and not current_val:
+				_par.val = True  # Turn on if stepping positive and currently off
+			elif _step < 0 and current_val:
+				_par.val = False  # Turn off if stepping negative and currently on
+		else:
+			# Unsupported parameter type
+			return
+			
+		if self.evalVsn1screensupport:
+			# For menu/toggle, show current selection/state as the "value"
+			self._updateScreenPar(_par)
 
 	def _setStepPar(self, _block):
 		block = _block
@@ -171,6 +197,15 @@ class HoveredMidiRelativeExt:
 		step_value = 1.0 / (10 ** blockIndex)
 		if parStep.eval() == 0:
 			parStep.val = step_value
+
+			
+	def __indexToBlock(self, index):
+		# look for all indexes in all sequence blocks, returns a list always
+		blocks = []
+		for block in self.seqSteps:
+			if tdu.match(block.par.Index.eval(), [index]):
+				blocks.append(block)
+		return blocks
 
 # region screen stuff
 
@@ -205,9 +240,9 @@ class HoveredMidiRelativeExt:
 		
 		return sanitized
 
-	def _updateScreenAll(self, val, norm_min, norm_max, label):
+	def _updateScreenAll(self, val, norm_min, norm_max, label, force=False):
 		# Process label based on compression setting
-		if self.evalUsecompressedlabels:
+		if self.evalUsecompressedlabels and not force:
 			processed_label = self._compressLabel(label, 10)
 		else:
 			processed_label = label[:9]
@@ -222,6 +257,22 @@ class HoveredMidiRelativeExt:
 		min_formatted = format_value(norm_min)
 		max_formatted = format_value(norm_max)
 		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}')"
+		
+		grid_websocket_package = {
+			'type': 'execute-code',
+			'script': lua_code
+		}
+		self.websocket.sendText(json.dumps(grid_websocket_package))
+
+	def _updateScreenPar(self, _par):
+		_min = _par.normMin if not _par.isMenu else 0
+		_max = _par.normMax if not _par.isMenu else len(_par.menuNames)
+		_label = _par.label
+		_val = _par.eval() if not _par.isMenu else _par.menuIndex
+		self._updateScreenAll(_val, _min, _max, _label)
+
+	def _clearScreen(self):
+		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
 		
 		grid_websocket_package = {
 			'type': 'execute-code',
