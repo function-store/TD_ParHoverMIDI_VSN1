@@ -33,7 +33,7 @@ HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by co
 - **For VSN1 display updates**: 
   - Install and activate the [websocket package](https://github.com/intechstudio/package-websocket?tab=readme-ov-file#installation)
   - Grid Editor must be open with exclusive access to port 9834 (no other communication on this port)
-  - Import `TouchDesigner Hover Param Adjustment` from Intech Cloud for VSN1R/L
+  - Import `TouchDesigner Hover Param Adjustment` from the Grid Editor Link [link](grid-editor://?config-link=xRPvAgRRc1AobWO2HtY) or look for it in the Cloud
 
 ## Installation
 
