@@ -209,15 +209,19 @@ class HoveredMidiRelativeExt:
 
 # region screen stuff
 
-	def _compressLabel(self, label, max_length):
-		"""Always compress labels: sanitize, remove whitespace, remove vowels, then truncate"""
+	def _compressLabel(self, label, max_length = 9):
+		"""Compress labels only if longer than max_length"""
 		# Step 0: Sanitize label for Lua safety
 		label = self._sanitizeLabelForLua(label)
 		
-		# Step 1: Always remove whitespace
+		# If label is already short enough, return as is
+		if len(label) <= max_length:
+			return label
+		
+		# Step 1: Remove whitespace
 		compressed = label.replace(' ', '').replace('_', '')
 		
-		# Step 2: Always remove vowels (keep first character and consonants)
+		# Step 2: Remove vowels (keep first character and consonants)
 		vowels = 'aeiouAEIOU'
 		if len(compressed) > 1:
 			# Keep first character, remove vowels from rest
@@ -240,10 +244,10 @@ class HoveredMidiRelativeExt:
 		
 		return sanitized
 
-	def _updateScreenAll(self, val, norm_min, norm_max, label, force=False):
+	def _updateScreenAll(self, val, norm_min, norm_max, label, display_text=None, force=False):
 		# Process label based on compression setting
 		if self.evalUsecompressedlabels and not force:
-			processed_label = self._compressLabel(label, 10)
+			processed_label = self._compressLabel(label)
 		else:
 			processed_label = label[:9]
 		
@@ -256,7 +260,10 @@ class HoveredMidiRelativeExt:
 		val_formatted = format_value(val)
 		min_formatted = format_value(norm_min)
 		max_formatted = format_value(norm_max)
-		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}')"
+		
+		# Use display_text if provided, otherwise format the value
+		display_str = display_text if display_text is not None else str(val_formatted)
+		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}', '{display_str}')"
 		
 		grid_websocket_package = {
 			'type': 'execute-code',
@@ -265,11 +272,22 @@ class HoveredMidiRelativeExt:
 		self.websocket.sendText(json.dumps(grid_websocket_package))
 
 	def _updateScreenPar(self, _par):
-		_min = _par.normMin if not _par.isMenu else 0
-		_max = _par.normMax if not _par.isMenu else len(_par.menuNames)
-		_label = _par.label
-		_val = _par.eval() if not _par.isMenu else _par.menuIndex
-		self._updateScreenAll(_val, _min, _max, _label)
+		if _par.isMenu:
+			_val = _par.menuIndex  # Numeric index for mapping
+			_min, _max = 0, len(_par.menuNames) - 1
+			display_text = str(_par.menuLabels[_par.menuIndex])  # Actual menu option label
+			if self.evalUsecompressedlabels:
+				display_text = self._compressLabel(display_text)
+		elif _par.isToggle:
+			_val = 1 if _par.eval() else 0
+			_min, _max = 0, 1
+			display_text = "On" if _val else "Off"
+		else:
+			_val = _par.eval()  # Numeric value
+			_min, _max = _par.normMin, _par.normMax
+			display_text = None  # Use default formatting
+		
+		self._updateScreenAll(_val, _min, _max, _par.label, display_text)
 
 	def _clearScreen(self):
 		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
