@@ -1,4 +1,5 @@
 import json
+from TDStoreTools import StorageManager
 CustomParHelper: CustomParHelper = next(d for d in me.docked if 'ExtUtils' in d.tags).mod('CustomParHelper').CustomParHelper # import
 ###
 
@@ -6,28 +7,54 @@ class HoveredMidiRelativeExt:
 	def __init__(self, ownerComp):
 		CustomParHelper.Init(self, ownerComp, enable_properties=True, enable_callbacks=True)
 		self.ownerComp = ownerComp
-		self.hoveredPar = None
-		self.persistPar = None
+		
 		self.activeMidi = self.ownerComp.op('midiin_active')
 		self.resetMidi = self.ownerComp.op('midiin_reset')
-		self.currStep = self.evalDefaultstepsize
+		self.slotsLearnMidi = self.ownerComp.op('midiin_slots')
+		
 		self.websocket : websocketDAT = self.ownerComp.op('websocket1')
+		
+		self.hoveredPar = None
+		self.activeSlot = None
+
+		self.currStep = self.evalDefaultstepsize
+
+		storedItems = [
+			{
+				'name': 'slotPars',
+				'default': [],
+				'readOnly': False,
+				'property': True,
+				'dependable': False
+			}
+		]
+
+		self.stored = StorageManager(self, ownerComp, storedItems)
 
 		if self.evalVsn1screensupport:
 			self._clearScreen()
 			self._updateScreenAll(0,0,1,'HOVERINIT', force=True)
 		
+# region properties
+
 	@property
 	def seqSteps(self):
 		return self.ownerComp.seq.Steps
 
 	@property
+	def seqSlots(self):
+		return self.ownerComp.seq.Slots
+
+	@property
 	def activePar(self):
-		if self.persistPar is not None:
-			return self.persistPar
+		# prioritize active slot pars over hovered par
+		if self.activeSlot is not None and self.activeSlot < len(self.slotPars):
+			if self.slotPars[self.activeSlot] is not None:
+				return self.slotPars[self.activeSlot]
 		if self.hoveredPar is not None:
 			return self.hoveredPar
 		return None
+
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
 		self.hoveredPar = None
@@ -44,19 +71,25 @@ class HoveredMidiRelativeExt:
 		self.hoveredPar = _par
 
 		if self.evalVsn1screensupport:
-			self._updateScreenPar(_par)
+			if self.activeSlot is not None:
+				self._updateScreenPar(_par)
 		
 		pass
+
+# endregion properties
+
+# region midi callbacks
 
 	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):		
 		if channel != self.evalChannel or not self.evalActive:
 			return
 		
 		_activePar = self.activePar
+		_hoveredPar = self.hoveredPar
 		index = int(index)
 
 		# check if it belongs to a sequence step
-		if message == 'Note On' and (blocks := self.__indexToBlock(index)):
+		if message == 'Note On' and (blocks := self.__indexToBlocks(index, self.seqSteps)):
 			block = blocks[0]
 			if block:
 				if value == 127:
@@ -81,100 +114,67 @@ class HoveredMidiRelativeExt:
 			# 	if value - 128/2 > 0:
 			# 		if _activePar.owner != self.ownerComp and _activePar.isPulse:
 			# 			_activePar.pulse()
-					
 
-		if int(index) == int(self.evalParpersistindex) and message == 'Note On' and value == 127:
-				if self.hoveredPar is not None:
-					self.persistPar = self.hoveredPar
+		if message == 'Note On' and value == 127 and (blocks := self.__indexToBlocks(index, self.seqSlots)):
+			block = blocks[0]
+			if block:
+				_blockIdx = block.index
+				if _blockIdx < len(self.slotPars):
+					self.activeSlot = _blockIdx
+					self._updateScreenPar(self.slotPars[self.activeSlot])
 				else:
-					self.persistPar = None
+					self.activeSlot = None
+					self._updateScreenAll(0,0,1,'_HOVER_', force=True)
 
 
 	def onReceiveMidiLearn(self, dat, rowIndex, message, channel, index, value, input, byteData):
 		if channel != self.evalChannel or not self.evalActive:
 			return
-		
-		if self.hoveredPar in self.seqSteps.blockPars.Index and message == 'Note On':
-			# Only assign sequence step indices on Note On messages (buttons)
-			currentIdxPar = self.hoveredPar
-			if currentIdxPar.eval() or currentIdxPar.mode not in [ParMode.CONSTANT, ParMode.BIND]:
-				return
-			currentIdxPar.val = index
-			self._setStepPar(currentIdxPar.sequenceBlock)
-		
-		elif self.hoveredPar == self.parKnobindex and message == 'Control Change':
-			# Only assign knob index on Control Change messages
-			if self.parKnobindex.mode not in [ParMode.CONSTANT, ParMode.BIND]:
-				return
-			self.parKnobindex.val = index
-		
-		elif self.hoveredPar in [self.parPulseindex, self.parParpersistindex, self.parResetparindex] and message == 'Note On':
-			# Only assign button indices on Note On messages
-			currentPar = self.hoveredPar
-			if currentPar.mode not in [ParMode.CONSTANT, ParMode.BIND]:
-				return
-			currentPar.val = index
 
+		_hoveredPar = self.hoveredPar
+		if _hoveredPar is None or _hoveredPar.mode not in [ParMode.CONSTANT, ParMode.BIND] or _hoveredPar.eval():
+			return
+		
+		# Control Change: knob only
+		if message == 'Control Change' and _hoveredPar == self.parKnobindex:
+			_hoveredPar.val = index
+
+		# Note On: buttons and steps
+		elif message == 'Note On':
+			if _hoveredPar in [self.parPulseindex, self.parResetparindex]:
+				_hoveredPar.val = index
+			if _hoveredPar in self.seqSteps.blockPars.Index:
+				_hoveredPar.val = index
+				self._setStepPar(_hoveredPar.sequenceBlock)
+			elif _hoveredPar in self.seqSlots.blockPars.Index:
+				_hoveredPar.val = index
+
+
+	def onReceiveMidiSlotLearn(self, index):
+		_hoveredPar = self.hoveredPar
+
+		if (blocks := self.__indexToBlocks(index, self.seqSlots)):
+			block = blocks[0]
+			if block:
+				_blockIdx = block.index
+				if _hoveredPar is not None and _hoveredPar.mode in [ParMode.CONSTANT, ParMode.BIND]:
+					# Extend list if necessary to accommodate the index
+					while len(self.slotPars) <= _blockIdx:
+						self.slotPars.append(None)
+					# Set the parameter at the correct index
+					self.slotPars[_blockIdx] = _hoveredPar
+					self._updateScreenAll(0,0,1,'_LEARNED_', force=True)
+				else:
+					self.activeSlot = None
+					self._updateScreenAll(0,0,1,'_HOVER_', force=True)
 
 	def onResetPar(self):
 		if self.activePar is not None:
 			self.activePar.reset()
 
-	
+# endregion midi callbacks
 
-
-# region par callbacks
-
-	def onParClear(self):
-		self.seqSteps.numBlocks = 1
-		self.seqSteps[0].par.Index = ''
-		# Set first block step to 1
-		self.seqSteps[0].par.Step.val = 1.0
-		self.parKnobindex.val = ''
-		self.parParpersistindex.val = ''
-		self.parResetparindex.val = ''
-
-	#TODO: these can be optimized if using Dependency objects
-	def onSeqStepsNIndex(self, _par, idx):
-		self.activeMidi.cook(force=True)
-
-	def onParKnobindex(self, _par, _val):
-		self.activeMidi.cook(force=True)
-
-	def onParParpersistindex(self, _par, _val):
-		self.activeMidi.cook(force=True)
-
-	def onParResetparindex(self, _par, _val):
-		self.resetMidi.cook(force=True)
-	# end TODO
-
-	def onParPeriststep(self, _par, _val):
-		if not _val:
-			self.currStep = self.evalDefaultstepsize
-			
-	def onParDefaultstepsize(self, _par, _val):
-		if not self.evalPersiststep:
-			self.currStep = _val
-
-	def onParUsedefaultsforvsn1(self):
-		# hardcoded stuff for the VSN1
-		buttons_steps = {33: 1, 34: 0.1, 35: 0.01, 36: 0.001, 37: 0.0001, 38: 0.00001}
-		self.seqSteps.numBlocks = 6
-		for i, (button, step) in enumerate(buttons_steps.items()):
-			self.seqSteps[i].par.Index.val = button
-			self.seqSteps[i].par.Step.val = step
-
-		knob_index = 41
-		par_persist_index = 39
-		reset_par_index = 40
-		self.parKnobindex.val = knob_index
-		self.parParpersistindex.val = par_persist_index
-		self.parResetparindex.val = reset_par_index
-
-		self.activeMidi.cook(force=True)
-		self.resetMidi.cook(force=True)
-
-# endregion par callbacks
+# region helper functions
 
 	def _doStep(self, step, value):
 		midValue = 128/2
@@ -222,13 +222,79 @@ class HoveredMidiRelativeExt:
 			parStep.val = step_value
 
 			
-	def __indexToBlock(self, index):
+	def __indexToBlocks(self, index, in_seq):
 		# look for all indexes in all sequence blocks, returns a list always
 		blocks = []
-		for block in self.seqSteps:
+		for block in in_seq:
 			if tdu.match(block.par.Index.eval(), [index]):
 				blocks.append(block)
 		return blocks
+
+# endregion helper functions
+# region par callbacks
+
+	def onParClear(self):
+		self.seqSteps.numBlocks = 1
+		self.seqSteps[0].par.Index = ''
+		self.seqSteps[0].par.Step.val = 1.0
+		self.seqSlots.numBlocks = 1
+		self.seqSlots[0].par.Index = ''
+		self.parKnobindex.val = ''
+		self.parResetparindex.val = ''
+		self.parPulseindex.val = ''
+		self.activeMidi.cook(force=True)
+		self.resetMidi.cook(force=True)
+		self.slotsLearnMidi.cook(force=True)
+
+	#TODO: these can be optimized if using Dependency objects
+	def onSeqStepsNIndex(self, _par, idx):
+		self.activeMidi.cook(force=True)
+
+	def onSeqSlotsNIndex(self, _par, idx):
+		self.activeMidi.cook(force=True)
+		self.slotsLearnMidi.cook(force=True)
+
+	def onParKnobindex(self, _par, _val):
+		self.activeMidi.cook(force=True)
+
+	def onParResetparindex(self, _par, _val):
+		self.resetMidi.cook(force=True)
+	# end TODO
+
+	def onParPeriststep(self, _par, _val):
+		if not _val:
+			self.currStep = self.evalDefaultstepsize
+			
+	def onParDefaultstepsize(self, _par, _val):
+		if not self.evalPersiststep:
+			self.currStep = _val
+
+	def onParUsedefaultsforvsn1(self):
+		# hardcoded stuff for the VSN1
+		buttons_steps = {42: 1, 43: 0.1, 44: 0.01, 45: 0.001}
+		self.seqSteps.numBlocks = len(buttons_steps)
+		for i, (button, step) in enumerate(buttons_steps.items()):
+			self.seqSteps[i].par.Index.val = button
+			self.seqSteps[i].par.Step.val = step
+
+		slot_indices = [33, 34, 35, 36, 37, 38, 39, 40]
+		self.seqSlots.numBlocks = len(slot_indices)
+		for i, index in enumerate(slot_indices):
+			self.seqSlots[i].par.Index.val = index
+
+		knob_index = 41
+		reset_par_index = 41
+		pulse_index = 41
+
+		self.parKnobindex.val = knob_index
+		self.parResetparindex.val = reset_par_index
+		self.parPulseindex.val = pulse_index
+
+		self.activeMidi.cook(force=True)
+		self.resetMidi.cook(force=True)
+		self.slotsLearnMidi.cook(force=True)
+
+# endregion par callbacks
 
 # region screen stuff
 
@@ -268,6 +334,9 @@ class HoveredMidiRelativeExt:
 		return sanitized
 
 	def _updateScreenAll(self, val, norm_min, norm_max, label, display_text=None, force=False):
+		if not self.evalVsn1screensupport:
+			return
+
 		# Process label based on compression setting
 		if self.evalUsecompressedlabels and not force:
 			processed_label = self._compressLabel(label)
@@ -295,6 +364,9 @@ class HoveredMidiRelativeExt:
 		self.websocket.sendText(json.dumps(grid_websocket_package))
 
 	def _updateScreenPar(self, _par):
+		if not self.evalVsn1screensupport:
+			return
+
 		if _par.isMenu:
 			_val = _par.menuIndex  # Numeric index for mapping
 			_min, _max = 0, len(_par.menuNames) - 1

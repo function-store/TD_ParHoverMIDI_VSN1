@@ -11,7 +11,7 @@ HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by co
 ## Features
 
 - **Hover-based Parameter Control**: Adjust any parameter by hovering your mouse over it
-- **Parameter Persistence Mode**: Lock parameters for continuous adjustment without hovering
+- **Multiple Parameter Slots**: Assign parameters to MIDI buttons for instant access and switching
 - **MIDI Integration**: Works with endless MIDI encoders in relative mode
 - **Smart Learning System**: Automatically assign MIDI button mappings for step adjustment and main knob MIDI index
 - **Adjustable Precision**: Change adjustment step sizes using MIDI buttons
@@ -59,11 +59,24 @@ HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by co
 
 Beyond step size adjustment, there are two special MIDI button functions:
 
-### Parameter Persistence (`Par Persist Index`)
-- **While hovering over a parameter**: Press this MIDI button to "lock" the parameter for continuous adjustment
-- **Locked mode**: The parameter remains selected even when moving your mouse away - you can adjust it without hovering
-- **Exit locked mode**: Press the button again while NOT hovering over any parameter to return to normal hover mode
-- **Override locked parameter**: Press the button while hovering over a different parameter to lock that one instead
+### Parameter Slots System
+The component supports multiple parameter slots that can be assigned to different MIDI buttons for quick access:
+
+**Slot Assignment**:
+- **Hover over a parameter** you want to assign to a slot
+- **Long-press a slot button** (configured in the Slots sequence) to assign the hovered parameter to that slot
+- **The parameter is now "stored"** in that slot for quick access
+- **Clear a slot**: Long-press any slot button while not hovering over any parameter to free up that slot (and return it to **normal hover mode**)
+
+**Slot Activation**:
+- **Press any assigned slot button** to activate that parameter slot
+- **The stored parameter becomes active** for adjustment without needing to hover
+- **VSN1 screen updates** to show the active slot parameter
+
+**Return to Hover Mode**:
+- **Press an empty slot button** (one without an assigned parameter) to return to normal hover mode
+
+> Parameter slots are saved with the project file / component.
 
 ### Parameter Reset (`Reset Par Index`)
 - **Hold this MIDI button**: While hovering over any parameter for the specified time duration
@@ -86,13 +99,8 @@ The following parameters are available to further customize the functionality of
 
 ## Future Plans / Roadmap
 
-### Multiple Parameter Slots
-- **Different locked slots on buttons**: Assign multiple MIDI buttons as parameter slot holders
-- **Hot-swappable assignments**: Hover over a parameter and press a slot button to assign it to that slot
-- **Quick parameter switching**: Switch between multiple locked parameters without re-hovering
-- **Workflow enhancement**: Enable complex multi-parameter workflows with instant parameter access
-
-This feature will allow users to have several parameters "ready" on different buttons, making it possible to quickly jump between frequently adjusted parameters in complex TouchDesigner projects.
+### Enhanced Slot Management
+- **Visual slot indicators**: Better feedback for which slots are assigned (light up / change color of VSN1 button)
 
 ## Development
 
