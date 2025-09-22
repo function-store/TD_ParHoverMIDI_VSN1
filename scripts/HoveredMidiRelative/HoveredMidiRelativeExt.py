@@ -1,5 +1,7 @@
 import json
 import math
+import re
+from enum import Enum
 from typing import Optional, List, Dict, Any, Union
 from TDStoreTools import StorageManager
 CustomParHelper: CustomParHelper = next(d for d in me.docked if 'ExtUtils' in d.tags).mod('CustomParHelper').CustomParHelper # import
@@ -26,11 +28,18 @@ class VSN1Constants:
 	MAX_LABEL_LENGTH = 9
 	MAX_VALUE_LENGTH = 8
 
+class SupportedParameterTypes(Enum):
+	NUMBER = 'Number'
+	MENU = 'Menu'
+	TOGGLE = 'Toggle'
+	PULSE = 'Pulse'
+
 class ScreenMessages:
 	HOVER = '_HOVER_'
 	LEARNED = '_LEARNED_'
 	STEP = '_STEP_'
 	EXPR = '_EXPR_'
+	UNSUPPORTED = '__'
 
 
 class HoveredMidiRelativeExt:
@@ -151,11 +160,18 @@ class HoveredMidiRelativeExt:
 		if (_par := getattr(_op.par, _par)) is None:
 			return
 		
-		# Handle expression mode parameters
-		if not ParameterValidator.is_valid_parameter(_par) and self.activeSlot is None:
-			self.screen_manager.update_all_display(0.5, 0, 1, _par.label, 
+		# Handle invalid/unsupported parameters when no active slot
+		if self.activeSlot is None:
+			if not ParameterValidator.is_valid_parameter(_par):
+				self.screen_manager.update_all_display(0.5, 0, 1, _par.label, 
 													  ScreenMessages.EXPR, compress=True)
-			return
+				return
+			
+			if not ParameterValidator.is_supported_parameter_type(_par):
+				self.screen_manager.update_all_display(0.5, 0, 1, _par.label, 
+													  ScreenMessages.UNSUPPORTED, compress=True)
+				return
+
 
 		self.hoveredPar = _par
 
@@ -234,7 +250,9 @@ class HoveredMidiRelativeExt:
 		block = blocks[0]
 		block_idx = block.index
 		
-		if hovered_par is not None and ParameterValidator.is_valid_parameter(hovered_par):
+		if hovered_par is not None and ParameterValidator.is_valid_parameter(hovered_par) and \
+			ParameterValidator.is_supported_parameter_type(hovered_par):
+			
 			# Extend slot list if necessary
 			while len(self.slotPars) <= block_idx:
 				self.slotPars.append(None)
@@ -409,6 +427,11 @@ class ParameterValidator:
 		"""Check if parameter is learnable ie valid and empty"""
 		return ParameterValidator.is_valid_parameter(par) and not par.eval()
 
+	@staticmethod
+	def is_supported_parameter_type(par) -> bool:
+		"""Check if parameter is supported for MIDI control"""
+		return any(getattr(par, f'is{type.value}') for type in SupportedParameterTypes)
+
 class MidiMessageHandler:
 	"""Handles MIDI message processing logic"""
 	
@@ -537,7 +560,6 @@ class ScreenManager:
 		"""Update screen for a specific parameter"""
 		if not self.is_screen_enabled() or par is None:
 			return
-		
 		if par.isMenu:
 			val = par.menuIndex
 			min_val, max_val = 0, len(par.menuNames) - 1
@@ -556,8 +578,21 @@ class ScreenManager:
 			val = par.eval()
 			min_val, max_val = par.normMin, par.normMax
 			display_text = None
+
+		label = par.label
+		if not label and (block := par.sequenceBlock):
+			# speeacial case when there's no label for some sequence pars like Constant CHOP
+			name = par.name
+			digit = re.split(r'\d+', name)[0]
+			name = re.split(r'\d+', name)[-1]
+			if name:
+				# even specialer case for constant CHOP: display the name of the constant value
+				if isinstance(block.owner, constantCHOP):
+					label = block.par.name.eval()
+				else:
+					label = name.capitalize()
 		
-		self.update_all_display(val, min_val, max_val, par.label, display_text, compress=True)
+		self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
 	
 	def update_step_display(self, step: float):
 		"""Update screen with current step value"""
