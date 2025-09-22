@@ -1,22 +1,61 @@
 import json
 import math
+from typing import Optional, List, Dict, Any, Union
 from TDStoreTools import StorageManager
 CustomParHelper: CustomParHelper = next(d for d in me.docked if 'ExtUtils' in d.tags).mod('CustomParHelper').CustomParHelper # import
-###
+
+# Constants
+class MidiConstants:
+	MIDI_MAX_VALUE = 127
+	MIDI_MIN_VALUE = 0
+	MIDI_CENTER_VALUE = 64  # 128/2
+	NOTE_ON = 'Note On'
+	NOTE_OFF = 'Note Off'
+	CONTROL_CHANGE = 'Control Change'
+	MAX_VELOCITY = 127
+
+class VSN1Constants:
+	# VSN1 Hardware mappings
+	STEP_BUTTONS = {42: 1, 43: 0.1, 44: 0.01, 45: 0.001}
+	SLOT_INDICES = [33, 34, 35, 36, 37, 38, 39, 40]
+	KNOB_INDEX = 41
+	RESET_INDEX = 41
+	PULSE_INDEX = 41
+	
+	# Screen constants
+	MAX_LABEL_LENGTH = 9
+	MAX_VALUE_LENGTH = 8
+
+class ScreenMessages:
+	HOVER = '_HOVER_'
+	LEARNED = '_LEARNED_'
+	STEP = '_STEP_'
+	EXPR = '_EXPR_'
+
 
 class HoveredMidiRelativeExt:
+	"""
+	TouchDesigner Extension for MIDI-controlled relativeparameter manipulation with VSN1 screen support
+	"""
+	
 	def __init__(self, ownerComp):
 		CustomParHelper.Init(self, ownerComp, enable_properties=True, enable_callbacks=True)
 		self.ownerComp = ownerComp
 		
+		# Initialize TD operators
 		self.activeMidi = self.ownerComp.op('midiin_active')
 		self.resetMidi = self.ownerComp.op('midiin_reset')
 		self.slotsLearnMidi = self.ownerComp.op('midiin_slots')
+		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
 		
-		self.websocket : websocketDAT = self.ownerComp.op('websocket1')
+		# Initialize state
+		self.hoveredPar: Optional[Par] = None
 		
-		self.hoveredPar = None
-
+		# Initialize helper classes
+		self.midi_handler = MidiMessageHandler(self)
+		self.screen_manager = ScreenManager(self)
+		
+		# Initialize storage
 		storedItems = [
 			{
 				'name': 'slotPars',
@@ -40,409 +79,513 @@ class HoveredMidiRelativeExt:
 				'dependable': False
 			}
 		]
-
-		self.stored = StorageManager(self, ownerComp, storedItems)
-
-		if self.evalVsn1screensupport:
-			self._clearScreen()
-			if self.activePar is not None:
-				self._updateScreenPar(self.activePar)
-			else:
-				self._updateScreenAll(0.5,0,1,'_HOVER_', display_text='_HOVER_', compress=False)
 		
+		self.stored = StorageManager(self, ownerComp, storedItems)
+		
+		# Initialize screen
+		self._initialize_screen()
+	
+	def _initialize_screen(self):
+		"""Initialize VSN1 screen if enabled"""
+		if not self.evalVsn1screensupport:
+			return
+			
+		self.screen_manager.clear_screen()
+		if self.activePar is not None:
+			self.screen_manager.update_parameter_display(self.activePar)
+		else:
+			self.screen_manager.update_all_display(0.5, 0, 1, ScreenMessages.HOVER, 
+												  ScreenMessages.HOVER, compress=False)
+
 # region properties
 
 	@property
 	def seqSteps(self):
+		"""Get sequence steps from owner component"""
 		return self.ownerComp.seq.Steps
 
 	@property
 	def seqSlots(self):
+		"""Get sequence slots from owner component"""
 		return self.ownerComp.seq.Slots
 
 	@property
-	def activePar(self):
-		# prioritize active slot pars over hovered par
-		if self.activeSlot is not None and self.activeSlot < len(self.slotPars):
-			if self.slotPars[self.activeSlot] is not None:
-				return self.slotPars[self.activeSlot]
+	def activePar(self) -> Optional[Par]:
+		"""Get currently active parameter (slot takes priority over hovered)"""
+		# Prioritize active slot parameters over hovered parameter
+		if (self.activeSlot is not None and 
+			self.activeSlot < len(self.slotPars) and 
+			self.slotPars[self.activeSlot] is not None):
+			return self.slotPars[self.activeSlot]
+			
 		if self.hoveredPar is not None:
 			return self.hoveredPar
+			
 		return None
 
-	
-	# NOTE: doing this intermediary property since TD stored properties cannot have setters?
+	# NOTE: Intermediary property since TD stored properties cannot have setters
 	@property
-	def _currStep(self):
+	def _currStep(self) -> float:
 		return self.currStep
 
 	@_currStep.setter
-	def _currStep(self, value):
+	def _currStep(self, value: float):
 		self.currStep = value
-		self._updateScreenStep(value)
+		self.screen_manager.update_step_display(value)
 
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
+		"""TouchDesigner callback when hovered parameter changes"""
 		self.hoveredPar = None
 
 		if not self.evalActive:
 			return
+			
+		# Validate inputs
 		if _op is None or _par is None:
 			return
+			
 		if not (_op := op(_op)):
 			return
+			
 		if (_par := getattr(_op.par, _par)) is None:
 			return
 		
-		if _par.mode not in [ParMode.CONSTANT, ParMode.BIND] and self.activeSlot is None:
-			self._updateScreenAll(0.5,0,1, _par.label, display_text='_EXPR_', compress=True)
+		# Handle expression mode parameters
+		if not ParameterValidator.is_valid_parameter(_par) and self.activeSlot is None:
+			self.screen_manager.update_all_display(0.5, 0, 1, _par.label, 
+													  ScreenMessages.EXPR, compress=True)
 			return
 
 		self.hoveredPar = _par
 
+		# Update screen if no active slot
 		if self.activeSlot is None:
-			self._updateScreenPar(_par)
-		
-		pass
+			self.screen_manager.update_parameter_display(_par)
 
 # endregion properties
 
 # region midi callbacks
 
-	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):		
+	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):
+		"""TouchDesigner callback for MIDI input processing"""
 		if channel != self.evalChannel or not self.evalActive:
 			return
 		
-		_activePar = self.activePar
-		_hoveredPar = self.hoveredPar
+		active_par = self.activePar
+		hovered_par = self.hoveredPar
 		index = int(index)
 
-		# check if it belongs to a sequence step
-		if message == 'Note On' and (blocks := self.__indexToBlocks(index, self.seqSteps)):
-			block = blocks[0]
-			if block:
-				if value == 127:
-					self._currStep = block.par.Step.eval()
-				elif not self.evalPersiststep and value == 0:
-					self._currStep = self.evalDefaultstepsize
-		
-		if int(index) == int(self.evalKnobindex):
-			if _activePar is not None:
-				if message == 'Control Change':
-					if _activePar.owner != self.ownerComp:
-						self._doStep(self._currStep, value)
-
-		if index == int(self.evalPulseindex):
-			if message == 'Note On':
-				if _activePar is not None:
-					if _activePar.owner != self.ownerComp and _activePar.isPulse:
-						if value == 127:
-							_activePar.pulse()
-						self._updateScreenPar(_activePar)
-
-			# TODO: make this an option? pulse with knob instead of button?
-			# if message == 'Control Change':
-			# 	if value - 128/2 > 0:
-			# 		if _activePar.owner != self.ownerComp and _activePar.isPulse:
-			# 			_activePar.pulse()
-
-		if message == 'Note On' and value == 127 and (blocks := self.__indexToBlocks(index, self.seqSlots)):
-			block = blocks[0]
-			if block:
-				_blockIdx = block.index
-				if _blockIdx < len(self.slotPars):
-					self.activeSlot = _blockIdx
-					self._updateScreenPar(self.slotPars[self.activeSlot])
-				else:
-					self.activeSlot = None
-					if _hoveredPar is not None:
-						label = _hoveredPar.label
-					else:
-						label = '_HOVER_'
-					self._updateScreenAll(0,0,1,label, display_text='_HOVER_', compress=False)
+		# Process different message types using helper class
+		if message == MidiConstants.NOTE_ON:
+			# Handle step sequence messages
+			if self.midi_handler.handle_step_message(index, value):
+				return
+				
+			# Handle pulse messages
+			if self.midi_handler.handle_pulse_message(index, value, active_par):
+				return
+				
+			# Handle slot selection messages
+			if self.midi_handler.handle_slot_message(index, value):
+				return
+			
+		elif message == MidiConstants.CONTROL_CHANGE:
+			# Handle knob control messages
+			if self.midi_handler.handle_knob_message(index, value, active_par):
+				return
 
 
 	def onReceiveMidiLearn(self, dat, rowIndex, message, channel, index, value, input, byteData):
+		"""TouchDesigner callback for MIDI learning mode"""
 		if channel != self.evalChannel or not self.evalActive:
 			return
 
-		_hoveredPar = self.hoveredPar
-		if _hoveredPar is None or _hoveredPar.mode not in [ParMode.CONSTANT, ParMode.BIND] or _hoveredPar.eval():
+		hovered_par = self.hoveredPar
+		if (hovered_par is None or 
+			not ParameterValidator.is_learnable_parameter(hovered_par)):
 			return
 		
-		# Control Change: knob only
-		if message == 'Control Change' and _hoveredPar == self.parKnobindex:
-			_hoveredPar.val = index
+		# Control Change: knob learning only
+		if message == MidiConstants.CONTROL_CHANGE and hovered_par == self.parKnobindex:
+			hovered_par.val = index
 
-		# Note On: buttons and steps
-		elif message == 'Note On':
-			if _hoveredPar in [self.parPulseindex, self.parResetparindex]:
-				_hoveredPar.val = index
-			if _hoveredPar in self.seqSteps.blockPars.Index:
-				_hoveredPar.val = index
-				self._setStepPar(_hoveredPar.sequenceBlock)
-			elif _hoveredPar in self.seqSlots.blockPars.Index:
-				_hoveredPar.val = index
+		# Note On: button and step learning
+		elif message == MidiConstants.NOTE_ON:
+			if hovered_par in [self.parPulseindex, self.parResetparindex]:
+				hovered_par.val = index
+				
+			if hovered_par in self.seqSteps.blockPars.Index:
+				hovered_par.val = index
+				self._set_step_parameter(hovered_par.sequenceBlock)
+				
+			elif hovered_par in self.seqSlots.blockPars.Index:
+				hovered_par.val = index
 
 
-	def onReceiveMidiSlotLearn(self, index):
-		_hoveredPar = self.hoveredPar
+	def onReceiveMidiSlotLearn(self, index: int):
+		"""TouchDesigner callback for slot learning"""
+		hovered_par = self.hoveredPar
 
-		if (blocks := self.__indexToBlocks(index, self.seqSlots)):
-			block = blocks[0]
-			if block:
-				_blockIdx = block.index
-				if _hoveredPar is not None and _hoveredPar.mode in [ParMode.CONSTANT, ParMode.BIND]:
-					# Extend list if necessary to accommodate the index
-					while len(self.slotPars) <= _blockIdx:
-						self.slotPars.append(None)
-					# Set the parameter at the correct index
-					self.slotPars[_blockIdx] = _hoveredPar
-					self._updateScreenAll(_hoveredPar.eval(),_hoveredPar.normMin, _hoveredPar.normMax, _hoveredPar.label, display_text='_LEARNED_', compress=False)
-				else:
-					self.activeSlot = None
-					self._updateScreenAll(0.5,0,1,'_HOVER_', display_text='_HOVER_', compress=False)
+		blocks = self._index_to_blocks(index, self.seqSlots)
+		if not blocks:
+			return
+			
+		block = blocks[0]
+		block_idx = block.index
+		
+		if hovered_par is not None and ParameterValidator.is_valid_parameter(hovered_par):
+			# Extend slot list if necessary
+			while len(self.slotPars) <= block_idx:
+				self.slotPars.append(None)
+				
+			# Assign parameter to slot
+			self.slotPars[block_idx] = hovered_par
+			self.screen_manager.update_all_display(
+				hovered_par.eval(), hovered_par.normMin, hovered_par.normMax, 
+				hovered_par.label, ScreenMessages.LEARNED, compress=False)
+		else:
+			self.activeSlot = None
+			self.screen_manager.update_all_display(
+				0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 
 	def onResetPar(self):
+		"""TouchDesigner callback to reset active parameter"""
 		if self.activePar is not None:
 			self.activePar.reset()
-			self._updateScreenPar(self.activePar)
+			self.screen_manager.update_parameter_display(self.activePar)
 
 # endregion midi callbacks
 
 # region helper functions
 
-	def _doStep(self, step, value):
-		midValue = 128/2
-		_par = self.activePar
-		if _par is None or _par.mode not in [ParMode.CONSTANT, ParMode.BIND]:
+	def _do_step(self, step: float, value: int):
+		"""Apply step value to active parameter based on MIDI input"""
+		active_par = self.activePar
+		if active_par is None or not ParameterValidator.is_valid_parameter(active_par):
 			return
 			
-		_diff = value - midValue
-		_step = step * (_diff)
+		diff = value - MidiConstants.MIDI_CENTER_VALUE
+		step_amount = step * diff
 		
-		if _par.isNumber:
+		if active_par.isNumber:
 			# Handle numeric parameters (float/int)
-			_val = _par.eval()
-			_newVal = _val + _step
-			_par.val = _newVal
-		elif _par.isMenu:
+			current_val = active_par.eval()
+			new_val = current_val + step_amount
+			active_par.val = new_val
+			
+		elif active_par.isMenu:
 			# Handle menu parameters - step through menu options
-			if abs(_diff) >= 1:  # Only change on significant step
-				current_index = _par.menuIndex
-				step_direction = 1 if _step > 0 else -1
+			if abs(diff) >= 1:  # Only change on significant step
+				current_index = active_par.menuIndex
+				step_direction = 1 if step_amount > 0 else -1
 				new_index = current_index + step_direction
-				_par.menuIndex = new_index
-		elif _par.isToggle:
+				active_par.menuIndex = new_index
+				
+		elif active_par.isToggle:
 			# Handle toggle parameters - step through on/off states
-			current_val = _par.eval()
-			if _step > 0 and not current_val:
-				_par.val = True  # Turn on if stepping positive and currently off
-			elif _step < 0 and current_val:
-				_par.val = False  # Turn off if stepping negative and currently on
+			current_val = active_par.eval()
+			if step_amount > 0 and not current_val:
+				active_par.val = True
+			elif step_amount < 0 and current_val:
+				active_par.val = False
 		else:
 			# Unsupported parameter type
 			return
 			
-		if self.evalVsn1screensupport:
-			# For menu/toggle, show current selection/state as the "value"
-			self._updateScreenPar(_par)
+		# Update screen display
+		self.screen_manager.update_parameter_display(active_par)
 
-	def _setStepPar(self, _block):
-		block = _block
-		parStep = block.par.Step
-		blockIndex = block.index
+	def _set_step_parameter(self, block):
+		"""Set step value for sequence block with logarithmic progression"""
+		par_step = block.par.Step
+		block_index = block.index
+		
 		# Set step progression: first block gets 1, then each gets /10
-		step_value = 1.0 / (10 ** blockIndex)
-		if parStep.eval() == 0:
-			parStep.val = step_value
+		step_value = 1.0 / (10 ** block_index)
+		if par_step.eval() == 0:
+			par_step.val = step_value
 
-			
-	def __indexToBlocks(self, index, in_seq):
-		# look for all indexes in all sequence blocks, returns a list always
+	def _index_to_blocks(self, index: int, sequence) -> List:
+		"""Find all sequence blocks matching the given MIDI index"""
 		blocks = []
-		for block in in_seq:
+		for block in sequence:
 			if tdu.match(block.par.Index.eval(), [index]):
 				blocks.append(block)
 		return blocks
 
 # endregion helper functions
-# region par callbacks
+# region parameter callbacks
 
 	def onParClear(self):
+		"""TouchDesigner callback to clear all MIDI mappings"""
+		# Reset sequence blocks
 		self.seqSteps.numBlocks = 1
 		self.seqSteps[0].par.Index = ''
 		self.seqSteps[0].par.Step.val = 1.0
+		
 		self.seqSlots.numBlocks = 1
 		self.seqSlots[0].par.Index = ''
+		
+		# Clear MIDI indices
 		self.parKnobindex.val = ''
 		self.parResetparindex.val = ''
 		self.parPulseindex.val = ''
-		self.activeMidi.cook(force=True)
-		self.resetMidi.cook(force=True)
-		self.slotsLearnMidi.cook(force=True)
+		
+		# Force cook MIDI operators
+		self._force_cook_midi_operators()
 
-	#TODO: these can be optimized if using Dependency objects
+	# TODO: These can be optimized using Dependency objects
 	def onSeqStepsNIndex(self, _par, idx):
+		"""TouchDesigner callback when sequence steps index changes"""
 		self.activeMidi.cook(force=True)
 
 	def onSeqSlotsNIndex(self, _par, idx):
+		"""TouchDesigner callback when sequence slots index changes"""
 		self.activeMidi.cook(force=True)
 		self.slotsLearnMidi.cook(force=True)
 
 	def onParKnobindex(self, _par, _val):
+		"""TouchDesigner callback when knob index parameter changes"""
 		self.activeMidi.cook(force=True)
 
 	def onParResetparindex(self, _par, _val):
+		"""TouchDesigner callback when reset parameter index changes"""
 		self.resetMidi.cook(force=True)
-	# end TODO
 
 	def onParPeriststep(self, _par, _val):
+		"""TouchDesigner callback when persist step parameter changes"""
 		if not _val:
 			self._currStep = self.evalDefaultstepsize
 			
 	def onParDefaultstepsize(self, _par, _val):
+		"""TouchDesigner callback when default step size parameter changes"""
 		if not self.evalPersiststep:
 			self._currStep = _val
 
 	def onParUsedefaultsforvsn1(self):
-		# hardcoded stuff for the VSN1
-		buttons_steps = {42: 1, 43: 0.1, 44: 0.01, 45: 0.001}
-		self.seqSteps.numBlocks = len(buttons_steps)
-		for i, (button, step) in enumerate(buttons_steps.items()):
+		"""TouchDesigner callback to set VSN1 hardware defaults"""
+		# Configure step buttons with their respective step values
+		self.seqSteps.numBlocks = len(VSN1Constants.STEP_BUTTONS)
+		for i, (button, step) in enumerate(VSN1Constants.STEP_BUTTONS.items()):
 			self.seqSteps[i].par.Index.val = button
 			self.seqSteps[i].par.Step.val = step
 
-		slot_indices = [33, 34, 35, 36, 37, 38, 39, 40]
-		self.seqSlots.numBlocks = len(slot_indices)
-		for i, index in enumerate(slot_indices):
+		# Configure slot indices
+		self.seqSlots.numBlocks = len(VSN1Constants.SLOT_INDICES)
+		for i, index in enumerate(VSN1Constants.SLOT_INDICES):
 			self.seqSlots[i].par.Index.val = index
 
-		knob_index = 41
-		reset_par_index = 41
-		pulse_index = 41
+		# Set control indices
+		self.parKnobindex.val = VSN1Constants.KNOB_INDEX
+		self.parResetparindex.val = VSN1Constants.RESET_INDEX
+		self.parPulseindex.val = VSN1Constants.PULSE_INDEX
 
-		self.parKnobindex.val = knob_index
-		self.parResetparindex.val = reset_par_index
-		self.parPulseindex.val = pulse_index
-
+		# Force cook MIDI operators
+		self._force_cook_midi_operators()
+	
+	def _force_cook_midi_operators(self):
+		"""Force cook all MIDI-related operators"""
 		self.activeMidi.cook(force=True)
 		self.resetMidi.cook(force=True)
 		self.slotsLearnMidi.cook(force=True)
 
-# endregion par callbacks
+# endregion parameter callbacks
 
-# region screen stuff
+# endregion
 
-	def _compressLabel(self, label, max_length = 9):
-		"""Compress labels only if longer than max_length"""
-		# Step 0: Sanitize label for Lua safety
-		label = self._sanitizeLabelForLua(label)
+class ParameterValidator:
+	"""Helper class for parameter validation"""
+	
+	@staticmethod
+	def is_valid_parameter(par) -> bool:
+		"""Check if parameter is valid for MIDI control"""
+		if par is None:
+			return False
+		return par.mode in [ParMode.CONSTANT, ParMode.BIND]
+	
+	@staticmethod
+	def is_learnable_parameter(par) -> bool:
+		"""Check if parameter is learnable ie valid and empty"""
+		return ParameterValidator.is_valid_parameter(par) and not par.eval()
+
+class MidiMessageHandler:
+	"""Handles MIDI message processing logic"""
+	
+	def __init__(self, parent_ext):
+		self.parent = parent_ext
+	
+	def handle_step_message(self, index: int, value: int) -> bool:
+		"""Handle step change messages"""
+		blocks = self.parent._index_to_blocks(index, self.parent.seqSteps)
+		if not blocks:
+			return False
+			
+		block = blocks[0]
+		if value == MidiConstants.MAX_VELOCITY:
+			self.parent._currStep = block.par.Step.eval()
+		elif not self.parent.evalPersiststep and value == 0:
+			self.parent._currStep = self.parent.evalDefaultstepsize
+		return True
+	
+	def handle_knob_message(self, index: int, value: int, active_par) -> bool:
+		"""Handle knob control messages"""
+		if int(index) != int(self.parent.evalKnobindex):
+			return False
+			
+		if active_par is not None and active_par.owner != self.parent.ownerComp:
+			self.parent._do_step(self.parent._currStep, value)
+		return True
+	
+	def handle_pulse_message(self, index: int, value: int, active_par) -> bool:
+		"""Handle pulse button messages"""
+		if index != int(self.parent.evalPulseindex):
+			return False
+			
+		if (active_par is not None and 
+			active_par.owner != self.parent.ownerComp and 
+			active_par.isPulse):
+			if value == MidiConstants.MAX_VELOCITY:
+				active_par.pulse()
+			self.parent.screen_manager.update_parameter_display(active_par)
+		return True
+	
+	def handle_slot_message(self, index: int, value: int) -> bool:
+		"""Handle slot selection messages"""
+		if value != MidiConstants.MAX_VELOCITY:
+			return False
+			
+		blocks = self.parent._index_to_blocks(index, self.parent.seqSlots)
+		if not blocks:
+			return False
+			
+		block = blocks[0]
+		block_idx = block.index
 		
-		# If label is already short enough, return as is
+		if block_idx < len(self.parent.slotPars):
+			self.parent.activeSlot = block_idx
+			self.parent.screen_manager.update_parameter_display(self.parent.slotPars[block_idx])
+		else:
+			self.parent.activeSlot = None
+			label = self.parent.hoveredPar.label if self.parent.hoveredPar else ScreenMessages.HOVER
+			self.parent.screen_manager.update_all_display(0, 0, 1, label, ScreenMessages.HOVER, compress=False)
+		return True
+
+class ScreenManager:
+	"""Manages VSN1 screen updates"""
+	
+	def __init__(self, parent_ext):
+		self.parent = parent_ext
+	
+	def is_screen_enabled(self) -> bool:
+		return self.parent.evalVsn1screensupport
+	
+	def compress_label(self, label: str, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
+		"""Compress labels only if longer than max_length"""
+		label = self._sanitize_label_for_lua(label)
+		
 		if len(label) <= max_length:
 			return label
 		
-		# Step 1: Remove whitespace
+		# Remove whitespace and underscores
 		compressed = label.replace(' ', '').replace('_', '')
 		
-		# Step 2: Remove vowels (keep first character and consonants)
+		# Remove vowels (keep first character)
 		vowels = 'aeiouAEIOU'
 		if len(compressed) > 1:
-			# Keep first character, remove vowels from rest
 			compressed = compressed[0] + ''.join(c for c in compressed[1:] if c not in vowels)
 		
-		# Step 3: Final truncation to max_length
 		return compressed[:max_length]
 	
-	def _sanitizeLabelForLua(self, label):
-		"""Remove or replace characters that could break Lua string syntax"""
+	def _sanitize_label_for_lua(self, label: str) -> str:
+		"""Remove characters that could break Lua string syntax"""
 		if not label:
-			return 'Param'  # Default fallback
-		
-		# Remove/replace problematic characters
-		sanitized = label.replace('"', '').replace("'", '').replace('\\', '').replace('\n', '').replace('\r', '')
-		
-		# Ensure we have something left
-		if not sanitized:
 			return 'Param'
 		
-		return sanitized
-
-	def _updateScreenAll(self, val, norm_min, norm_max, label, display_text=None, compress=True):
-		if not self.evalVsn1screensupport:
+		sanitized = label.replace('"', '').replace("'", '').replace('\\', '').replace('\n', '').replace('\r', '')
+		return sanitized if sanitized else 'Param'
+	
+	def _format_value(self, value: Any, max_length: int = VSN1Constants.MAX_VALUE_LENGTH) -> str:
+		"""Format values for display"""
+		if isinstance(value, (int, float)):
+			value = round(value, 6)
+		return str(value)[:max_length]
+	
+	def update_all_display(self, val: float, norm_min: float, norm_max: float, 
+						  label: str, display_text: Optional[str] = None, compress: bool = True):
+		"""Update screen with all parameter info"""
+		if not self.is_screen_enabled():
 			return
-
 		
-		# Format numeric values: round if number, truncate all to 9 chars max
-		def format_value(v, max_length=8):
-			if isinstance(v, (int, float)):
-				v = round(v, 6)
-			return str(v)[:max_length]
-
-		# Process label based on compression setting
-		if self.evalUsecompressedlabels and compress:
-			processed_label = self._compressLabel(label)
+		# Process label
+		if self.parent.evalUsecompressedlabels and compress:
+			processed_label = self.compress_label(label)
 		else:
-			processed_label = format_value(label)
+			processed_label = self._format_value(label)
 		
+		# Format values
+		val_formatted = self._format_value(val)
+		min_formatted = self._format_value(norm_min)
+		max_formatted = self._format_value(norm_max)
 		
-		val_formatted = format_value(val)
-		min_formatted = format_value(norm_min)
-		max_formatted = format_value(norm_max)
-		
-		# Use display_text if provided, otherwise format the value
-		display_str = display_text if display_text is not None else str(val_formatted)
+		display_str = display_text if display_text is not None else val_formatted
 		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}', '{display_str}')"
 		
-		grid_websocket_package = {
-			'type': 'execute-code',
-			'script': lua_code
-		}
-		self.websocket.sendText(json.dumps(grid_websocket_package))
-
-	def _updateScreenPar(self, _par):
-		if not self.evalVsn1screensupport:
+		self._send_to_screen(lua_code)
+	
+	def update_parameter_display(self, par):
+		"""Update screen for a specific parameter"""
+		if not self.is_screen_enabled() or par is None:
 			return
-
-		if _par.isMenu:
-			_val = _par.menuIndex  # Numeric index for mapping
-			_min, _max = 0, len(_par.menuNames) - 1
-			display_text = str(_par.menuLabels[_par.menuIndex])  # Actual menu option label
-			if self.evalUsecompressedlabels:
-				display_text = self._compressLabel(display_text)
-		elif _par.isToggle:
-			_val = 1 if _par.eval() else 0
-			_min, _max = 0, 1
-			display_text = "On" if _val else "Off"
-		elif _par.isPulse:
-			_val = 1 if _par.eval() else 0
-			_min, _max = 0, 1
+		
+		if par.isMenu:
+			val = par.menuIndex
+			min_val, max_val = 0, len(par.menuNames) - 1
+			display_text = str(par.menuLabels[par.menuIndex])
+			if self.parent.evalUsecompressedlabels:
+				display_text = self.compress_label(display_text)
+		elif par.isToggle:
+			val = 1 if par.eval() else 0
+			min_val, max_val = 0, 1
+			display_text = "On" if val else "Off"
+		elif par.isPulse:
+			val = 1 if par.eval() else 0
+			min_val, max_val = 0, 1
 			display_text = "Pulse"
 		else:
-			_val = _par.eval()  # Numeric value
-			_min, _max = _par.normMin, _par.normMax
-			display_text = None  # Use default formatting
+			val = par.eval()
+			min_val, max_val = par.normMin, par.normMax
+			display_text = None
 		
-		self._updateScreenAll(_val, _min, _max, _par.label, display_text, compress=True)
-
+		self.update_all_display(val, min_val, max_val, par.label, display_text, compress=True)
 	
-	def _updateScreenStep(self, step):
-		_seq = self.seqSteps
-		minStep = _seq[-1].par.Step.eval()
-		maxStep = _seq[0].par.Step.eval()
-		# map step between min and max logarithmically
-		_step = minStep + (maxStep - minStep) * (math.log(step) - math.log(minStep)) / (math.log(maxStep) - math.log(minStep))
-		self._updateScreenAll(_step, minStep, maxStep, '_STEP_', display_text=step, compress=False)
-
-
-	def _clearScreen(self):
-		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
+	def update_step_display(self, step: float):
+		"""Update screen with current step value"""
+		seq = self.parent.seqSteps
+		min_step = seq[-1].par.Step.eval()
+		max_step = seq[0].par.Step.eval()
 		
-		grid_websocket_package = {
+		# Logarithmic mapping
+		mapped_step = min_step + (max_step - min_step) * (
+			(math.log(step) - math.log(min_step)) / (math.log(max_step) - math.log(min_step))
+		)
+		
+		self.update_all_display(mapped_step, min_step, max_step, ScreenMessages.STEP, 
+							   display_text=str(step), compress=False)
+	
+	def clear_screen(self):
+		"""Clear the VSN1 screen"""
+		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
+		self._send_to_screen(lua_code)
+	
+	def _send_to_screen(self, lua_code: str):
+		"""Send Lua code to screen via websocket"""
+		package = {
 			'type': 'execute-code',
 			'script': lua_code
 		}
-		self.websocket.sendText(json.dumps(grid_websocket_package))
+		self.parent.websocket.sendText(json.dumps(package))
 
-# endregion screen stuff
+###
+
+
