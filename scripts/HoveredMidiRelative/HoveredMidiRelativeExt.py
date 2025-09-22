@@ -1,4 +1,5 @@
 import json
+import math
 from TDStoreTools import StorageManager
 CustomParHelper: CustomParHelper = next(d for d in me.docked if 'ExtUtils' in d.tags).mod('CustomParHelper').CustomParHelper # import
 ###
@@ -15,14 +16,25 @@ class HoveredMidiRelativeExt:
 		self.websocket : websocketDAT = self.ownerComp.op('websocket1')
 		
 		self.hoveredPar = None
-		self.activeSlot = None
-
-		self.currStep = self.evalDefaultstepsize
 
 		storedItems = [
 			{
 				'name': 'slotPars',
 				'default': [],
+				'readOnly': False,
+				'property': True,
+				'dependable': False
+			},
+			{
+				'name': 'activeSlot',
+				'default': None,
+				'readOnly': False,
+				'property': True,
+				'dependable': False
+			},
+			{
+				'name': 'currStep',
+				'default': self.evalDefaultstepsize,
 				'readOnly': False,
 				'property': True,
 				'dependable': False
@@ -33,7 +45,10 @@ class HoveredMidiRelativeExt:
 
 		if self.evalVsn1screensupport:
 			self._clearScreen()
-			self._updateScreenAll(0,0,1,'HOVERINIT', force=True)
+			if self.activePar is not None:
+				self._updateScreenPar(self.activePar)
+			else:
+				self._updateScreenAll(0.5,0,1,'_HOVER_', display_text='_HOVER_', compress=False)
 		
 # region properties
 
@@ -55,6 +70,17 @@ class HoveredMidiRelativeExt:
 			return self.hoveredPar
 		return None
 
+	
+	# NOTE: doing this intermediary property since TD stored properties cannot have setters?
+	@property
+	def _currStep(self):
+		return self.currStep
+
+	@_currStep.setter
+	def _currStep(self, value):
+		self.currStep = value
+		self._updateScreenStep(value)
+
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
 		self.hoveredPar = None
@@ -67,12 +93,15 @@ class HoveredMidiRelativeExt:
 			return
 		if (_par := getattr(_op.par, _par)) is None:
 			return
+		
+		if _par.mode not in [ParMode.CONSTANT, ParMode.BIND] and self.activeSlot is None:
+			self._updateScreenAll(0.5,0,1, _par.label, display_text='_EXPR_', compress=True)
+			return
 
 		self.hoveredPar = _par
 
-		if self.evalVsn1screensupport:
-			if self.activeSlot is not None:
-				self._updateScreenPar(_par)
+		if self.activeSlot is None:
+			self._updateScreenPar(_par)
 		
 		pass
 
@@ -93,21 +122,23 @@ class HoveredMidiRelativeExt:
 			block = blocks[0]
 			if block:
 				if value == 127:
-					self.currStep = block.par.Step.eval()
+					self._currStep = block.par.Step.eval()
 				elif not self.evalPersiststep and value == 0:
-					self.currStep = self.evalDefaultstepsize
+					self._currStep = self.evalDefaultstepsize
 		
 		if int(index) == int(self.evalKnobindex):
 			if _activePar is not None:
 				if message == 'Control Change':
 					if _activePar.owner != self.ownerComp:
-						self._doStep(self.currStep, value)
+						self._doStep(self._currStep, value)
 
 		if index == int(self.evalPulseindex):
-			if message == 'Note On' and value == 127:
+			if message == 'Note On':
 				if _activePar is not None:
 					if _activePar.owner != self.ownerComp and _activePar.isPulse:
-						_activePar.pulse()
+						if value == 127:
+							_activePar.pulse()
+						self._updateScreenPar(_activePar)
 
 			# TODO: make this an option? pulse with knob instead of button?
 			# if message == 'Control Change':
@@ -124,7 +155,11 @@ class HoveredMidiRelativeExt:
 					self._updateScreenPar(self.slotPars[self.activeSlot])
 				else:
 					self.activeSlot = None
-					self._updateScreenAll(0,0,1,'_HOVER_', force=True)
+					if _hoveredPar is not None:
+						label = _hoveredPar.label
+					else:
+						label = '_HOVER_'
+					self._updateScreenAll(0,0,1,label, display_text='_HOVER_', compress=False)
 
 
 	def onReceiveMidiLearn(self, dat, rowIndex, message, channel, index, value, input, byteData):
@@ -163,14 +198,15 @@ class HoveredMidiRelativeExt:
 						self.slotPars.append(None)
 					# Set the parameter at the correct index
 					self.slotPars[_blockIdx] = _hoveredPar
-					self._updateScreenAll(0,0,1,'_LEARNED_', force=True)
+					self._updateScreenAll(_hoveredPar.eval(),_hoveredPar.normMin, _hoveredPar.normMax, _hoveredPar.label, display_text='_LEARNED_', compress=False)
 				else:
 					self.activeSlot = None
-					self._updateScreenAll(0,0,1,'_HOVER_', force=True)
+					self._updateScreenAll(0.5,0,1,'_HOVER_', display_text='_HOVER_', compress=False)
 
 	def onResetPar(self):
 		if self.activePar is not None:
 			self.activePar.reset()
+			self._updateScreenPar(self.activePar)
 
 # endregion midi callbacks
 
@@ -263,11 +299,11 @@ class HoveredMidiRelativeExt:
 
 	def onParPeriststep(self, _par, _val):
 		if not _val:
-			self.currStep = self.evalDefaultstepsize
+			self._currStep = self.evalDefaultstepsize
 			
 	def onParDefaultstepsize(self, _par, _val):
 		if not self.evalPersiststep:
-			self.currStep = _val
+			self._currStep = _val
 
 	def onParUsedefaultsforvsn1(self):
 		# hardcoded stuff for the VSN1
@@ -333,21 +369,23 @@ class HoveredMidiRelativeExt:
 		
 		return sanitized
 
-	def _updateScreenAll(self, val, norm_min, norm_max, label, display_text=None, force=False):
+	def _updateScreenAll(self, val, norm_min, norm_max, label, display_text=None, compress=True):
 		if not self.evalVsn1screensupport:
 			return
 
-		# Process label based on compression setting
-		if self.evalUsecompressedlabels and not force:
-			processed_label = self._compressLabel(label)
-		else:
-			processed_label = label[:9]
 		
 		# Format numeric values: round if number, truncate all to 9 chars max
-		def format_value(v):
+		def format_value(v, max_length=8):
 			if isinstance(v, (int, float)):
 				v = round(v, 6)
-			return str(v)[:9]
+			return str(v)[:max_length]
+
+		# Process label based on compression setting
+		if self.evalUsecompressedlabels and compress:
+			processed_label = self._compressLabel(label)
+		else:
+			processed_label = format_value(label)
+		
 		
 		val_formatted = format_value(val)
 		min_formatted = format_value(norm_min)
@@ -377,12 +415,26 @@ class HoveredMidiRelativeExt:
 			_val = 1 if _par.eval() else 0
 			_min, _max = 0, 1
 			display_text = "On" if _val else "Off"
+		elif _par.isPulse:
+			_val = 1 if _par.eval() else 0
+			_min, _max = 0, 1
+			display_text = "Pulse"
 		else:
 			_val = _par.eval()  # Numeric value
 			_min, _max = _par.normMin, _par.normMax
 			display_text = None  # Use default formatting
 		
-		self._updateScreenAll(_val, _min, _max, _par.label, display_text)
+		self._updateScreenAll(_val, _min, _max, _par.label, display_text, compress=True)
+
+	
+	def _updateScreenStep(self, step):
+		_seq = self.seqSteps
+		minStep = _seq[-1].par.Step.eval()
+		maxStep = _seq[0].par.Step.eval()
+		# map step between min and max logarithmically
+		_step = minStep + (maxStep - minStep) * (math.log(step) - math.log(minStep)) / (math.log(maxStep) - math.log(minStep))
+		self._updateScreenAll(_step, minStep, maxStep, '_STEP_', display_text=step, compress=False)
+
 
 	def _clearScreen(self):
 		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
