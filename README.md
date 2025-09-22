@@ -94,8 +94,7 @@ The following parameters are available to further customize the functionality of
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
 
 ## Known Issues
-- VSN1 screen not updating consistently due to reaching character limit (too long param name, or value)
-- VSN1 screen glitching out (too quick updates? firmware issue?)
+- None
 
 ## Future Plans / Roadmap
 
