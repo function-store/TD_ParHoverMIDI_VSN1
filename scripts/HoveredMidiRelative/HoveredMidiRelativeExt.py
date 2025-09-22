@@ -23,7 +23,11 @@ class HoveredMidiRelativeExt:
 
 	@property
 	def activePar(self):
-		return self.persistPar or self.hoveredPar
+		if self.persistPar is not None:
+			return self.persistPar
+		if self.hoveredPar is not None:
+			return self.hoveredPar
+		return None
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
 		self.hoveredPar = None
@@ -31,8 +35,6 @@ class HoveredMidiRelativeExt:
 		if not self.evalActive:
 			return
 		if _op is None or _par is None:
-			return
-		if _op == self.ownerComp:
 			return
 		if not (_op := op(_op)):
 			return
@@ -46,29 +48,42 @@ class HoveredMidiRelativeExt:
 		
 		pass
 
-	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):
+	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):		
 		if channel != self.evalChannel or not self.evalActive:
 			return
+		
+		_activePar = self.activePar
 		index = int(index)
-		blocks = self.__indexToBlock(index)
 
-		if blocks:
+		# check if it belongs to a sequence step
+		if message == 'Note On' and (blocks := self.__indexToBlock(index)):
 			block = blocks[0]
 			if block:
 				if value == 127:
 					self.currStep = block.par.Step.eval()
 				elif not self.evalPersiststep and value == 0:
 					self.currStep = self.evalDefaultstepsize
-			return
 		
 		if int(index) == int(self.evalKnobindex):
-			if message == 'Control Change':
-				if self.activePar is None:
-					return
-				if self.activePar.owner != self.ownerComp:
-					self._doStep(self.currStep, value)
+			if _activePar is not None:
+				if message == 'Control Change':
+					if _activePar.owner != self.ownerComp:
+						self._doStep(self.currStep, value)
 
-		if int(index) == int(self.evalParpersistindex) and message == 'Note On':
+		if index == int(self.evalPulseindex):
+			if message == 'Note On' and value == 127:
+				if _activePar is not None:
+					if _activePar.owner != self.ownerComp and _activePar.isPulse:
+						_activePar.pulse()
+
+			# TODO: make this an option? pulse with knob instead of button?
+			# if message == 'Control Change':
+			# 	if value - 128/2 > 0:
+			# 		if _activePar.owner != self.ownerComp and _activePar.isPulse:
+			# 			_activePar.pulse()
+					
+
+		if int(index) == int(self.evalParpersistindex) and message == 'Note On' and value == 127:
 				if self.hoveredPar is not None:
 					self.persistPar = self.hoveredPar
 				else:
@@ -79,14 +94,22 @@ class HoveredMidiRelativeExt:
 		if channel != self.evalChannel or not self.evalActive:
 			return
 		
-		if self.hoveredPar in self.seqSteps.blockPars.Index:
+		if self.hoveredPar in self.seqSteps.blockPars.Index and message == 'Note On':
+			# Only assign sequence step indices on Note On messages (buttons)
 			currentIdxPar = self.hoveredPar
 			if currentIdxPar.eval() or currentIdxPar.mode not in [ParMode.CONSTANT, ParMode.BIND]:
 				return
 			currentIdxPar.val = index
 			self._setStepPar(currentIdxPar.sequenceBlock)
 		
-		elif self.hoveredPar in [self.parKnobindex, self.parParpersistindex, self.parResetparindex]:
+		elif self.hoveredPar == self.parKnobindex and message == 'Control Change':
+			# Only assign knob index on Control Change messages
+			if self.parKnobindex.mode not in [ParMode.CONSTANT, ParMode.BIND]:
+				return
+			self.parKnobindex.val = index
+		
+		elif self.hoveredPar in [self.parPulseindex, self.parParpersistindex, self.parResetparindex] and message == 'Note On':
+			# Only assign button indices on Note On messages
 			currentPar = self.hoveredPar
 			if currentPar.mode not in [ParMode.CONSTANT, ParMode.BIND]:
 				return
