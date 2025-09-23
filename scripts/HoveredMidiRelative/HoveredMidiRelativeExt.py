@@ -19,7 +19,7 @@ class MidiConstants:
 
 class VSN1Constants:
 	# VSN1 Hardware mappings
-	STEP_BUTTONS = {42: 1, 43: 0.1, 44: 0.01, 45: 0.001}
+	STEP_BUTTONS = {42: 0.001, 43: 0.01, 44: 0.1, 45: 1}
 	SLOT_INDICES = [33, 34, 35, 36, 37, 38, 39, 40]
 	KNOB_INDEX = 41
 	RESET_INDEX = 41
@@ -389,7 +389,7 @@ class HoveredMidiRelativeExt:
 		# Reset sequence blocks
 		self.seqSteps.numBlocks = 1
 		self.seqSteps[0].par.Index = ''
-		self.seqSteps[0].par.Step.val = 1.0
+		self.seqSteps[0].par.Step.val = 0.001
 		
 		self.seqSlots.numBlocks = 1
 		self.seqSlots[0].par.Index = ''
@@ -615,7 +615,7 @@ class ScreenManager:
 		return str(value)[:max_length]
 	
 	def update_all_display(self, val: float, norm_min: float, norm_max: float, 
-						  label: str, display_text: Optional[str] = None, compress: bool = True):
+						  label: str, display_text: Optional[str] = None, step_indicator: float = None, compress: bool = True):
 		"""Update screen with all parameter info"""
 		if not self.is_screen_enabled():
 			return
@@ -632,7 +632,7 @@ class ScreenManager:
 		max_formatted = self._format_value(norm_max)
 		
 		display_str = display_text if display_text is not None else val_formatted
-		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}', '{display_str}')"
+		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}', '{display_str}', {step_indicator})"
 		
 		self._send_to_screen(lua_code)
 	
@@ -683,9 +683,12 @@ class ScreenManager:
 		mapped_step = min_step + (max_step - min_step) * (
 			(math.log(step) - math.log(min_step)) / (math.log(max_step) - math.log(min_step))
 		)
+
+		# find index of step in seqSteps
+		index = next((i for i, s in enumerate(seq) if s.par.Step.eval() == step), None)
 		
 		self.update_all_display(mapped_step, min_step, max_step, ScreenMessages.STEP, 
-							   display_text=str(step), compress=False)
+							   display_text=str(step), step_indicator=index, compress=False)
 	
 	def clear_screen(self):
 		"""Clear the VSN1 screen"""
