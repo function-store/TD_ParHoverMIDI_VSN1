@@ -15,6 +15,7 @@ class MidiConstants:
 	NOTE_OFF = 'Note Off'
 	CONTROL_CHANGE = 'Control Change'
 	MAX_VELOCITY = 127
+	MIDI_FEEDBACK_OFFSET = 80
 
 class VSN1Constants:
 	# VSN1 Hardware mappings
@@ -56,6 +57,7 @@ class HoveredMidiRelativeExt:
 		self.resetMidi = self.ownerComp.op('midiin_reset')
 		self.slotsLearnMidi = self.ownerComp.op('midiin_slots')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
+		self.ledsMidiOut : midioutCHOP = self.ownerComp.op('midiout1')
 		
 		# Initialize state
 		self.hoveredPar: Optional[Par] = None
@@ -63,7 +65,7 @@ class HoveredMidiRelativeExt:
 		# Initialize helper classes
 		self.midi_handler = MidiMessageHandler(self)
 		self.screen_manager = ScreenManager(self)
-		
+
 		# Initialize storage
 		storedItems = [
 			{
@@ -88,15 +90,15 @@ class HoveredMidiRelativeExt:
 				'dependable': False
 			}
 		]
-		
+
 		self.stored = StorageManager(self, ownerComp, storedItems)
-		
+
 		# Initialize screen
-		self._initialize_screen()
+		self._initialize_VSN1()
 	
-	def _initialize_screen(self):
+	def _initialize_VSN1(self):
 		"""Initialize VSN1 screen if enabled"""
-		if not self.evalVsn1screensupport:
+		if not self.evalVsn1support:
 			return
 			
 		self.screen_manager.clear_screen()
@@ -106,6 +108,12 @@ class HoveredMidiRelativeExt:
 			self.screen_manager.update_all_display(0.5, 0, 1, ScreenMessages.HOVER, 
 												  ScreenMessages.HOVER, compress=False)
 
+		self._clear_all_slot_leds()
+		if self.activeSlot is not None:
+			active_slot_index = self._safe_get_midi_index(self.seqSlots[self.activeSlot].par.Index)
+			if active_slot_index is not None:
+				self.midi_handler._send_led_feedback(active_slot_index, 1)
+		
 # region properties
 
 	@property
@@ -125,7 +133,7 @@ class HoveredMidiRelativeExt:
 		if (self.activeSlot is not None and 
 			self.activeSlot < len(self.slotPars) and 
 			self.slotPars[self.activeSlot] is not None):
-			return self.slotPars[self.activeSlot]
+				return self.slotPars[self.activeSlot]
 			
 		if self.hoveredPar is not None:
 			return self.hoveredPar
@@ -183,7 +191,7 @@ class HoveredMidiRelativeExt:
 
 # region midi callbacks
 
-	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):
+	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):		
 		"""TouchDesigner callback for MIDI input processing"""
 		if channel != self.evalChannel or not self.evalActive:
 			return
@@ -249,7 +257,6 @@ class HoveredMidiRelativeExt:
 			
 		block = blocks[0]
 		block_idx = block.index
-		
 		if hovered_par is not None and ParameterValidator.is_valid_parameter(hovered_par) and \
 			ParameterValidator.is_supported_parameter_type(hovered_par):
 			
@@ -259,13 +266,22 @@ class HoveredMidiRelativeExt:
 				
 			# Assign parameter to slot
 			self.slotPars[block_idx] = hovered_par
+
+			# VSN1 updates
 			self.screen_manager.update_all_display(
 				hovered_par.eval(), hovered_par.normMin, hovered_par.normMax, 
 				hovered_par.label, ScreenMessages.LEARNED, compress=False)
+			self._clear_all_slot_leds()
+			if self.activeSlot is not None:
+				idx = self._safe_get_midi_index(
+					self.seqSlots[self.activeSlot].par.Index)
+				self.midi_handler._send_led_feedback(idx, 1)
 		else:
 			self.activeSlot = None
+			self.slotPars[block_idx] = None
 			self.screen_manager.update_all_display(
 				0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+			self._clear_all_slot_leds()
 
 	def onResetPar(self):
 		"""TouchDesigner callback to reset active parameter"""
@@ -324,6 +340,26 @@ class HoveredMidiRelativeExt:
 		if par_step.eval() == 0:
 			par_step.val = step_value
 
+	def _safe_get_midi_index(self, index_param_or_value, default: int = None) -> Optional[int]:
+		"""Safely convert a parameter value or string to MIDI index, handling empty strings and invalid values"""
+		try:
+			# Handle parameter objects
+			if hasattr(index_param_or_value, 'eval'):
+				value = index_param_or_value.eval()
+			else:
+				value = index_param_or_value
+			
+			# Check if empty or invalid
+			if not value or not str(value).strip():
+				return default
+			
+			# Convert to int
+			midi_index = int(value)
+			return midi_index if midi_index >= 0 else default
+			
+		except (ValueError, TypeError, AttributeError):
+			return default
+	
 	def _index_to_blocks(self, index: int, sequence) -> List:
 		"""Find all sequence blocks matching the given MIDI index"""
 		blocks = []
@@ -331,12 +367,25 @@ class HoveredMidiRelativeExt:
 			if tdu.match(block.par.Index.eval(), [index]):
 				blocks.append(block)
 		return blocks
+	
+	def _clear_all_slot_leds(self):
+		"""Turn off all slot LEDs"""
+		if hasattr(self, 'ledsMidiOut') and self.ledsMidiOut is not None:
+			for i in range(len(self.seqSlots)):
+				slot_index = self._safe_get_midi_index(self.seqSlots[i].par.Index)
+				if slot_index is not None and slot_index > 0:
+					self.ledsMidiOut.sendControl(self.evalChannel, 
+											   slot_index + MidiConstants.MIDI_FEEDBACK_OFFSET, 0)
+
 
 # endregion helper functions
 # region parameter callbacks
 
 	def onParClear(self):
 		"""TouchDesigner callback to clear all MIDI mappings"""
+		# Clear all slot LEDs before resetting
+		self._clear_all_slot_leds()
+		
 		# Reset sequence blocks
 		self.seqSteps.numBlocks = 1
 		self.seqSteps[0].par.Index = ''
@@ -349,6 +398,9 @@ class HoveredMidiRelativeExt:
 		self.parKnobindex.val = ''
 		self.parResetparindex.val = ''
 		self.parPulseindex.val = ''
+		
+		# Reset active slot
+		self.activeSlot = None
 		
 		# Force cook MIDI operators
 		self._force_cook_midi_operators()
@@ -438,6 +490,22 @@ class MidiMessageHandler:
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
 	
+	def _send_led_feedback(self, index: int, value: int, prev_index: int = None):
+		"""Send MIDI feedback to controller LEDs"""
+		if not hasattr(self.parent, 'ledsMidiOut') or self.parent.ledsMidiOut is None:
+			return
+		
+		value = value * 127
+		channel = self.parent.evalChannel
+		offset = MidiConstants.MIDI_FEEDBACK_OFFSET
+		
+		# Set new LED state
+		self.parent.ledsMidiOut.sendControl(channel, index + offset, value)
+		
+		# Turn off previous LED if specified
+		if prev_index is not None and prev_index != index:
+			self.parent.ledsMidiOut.sendControl(channel, prev_index + offset, 0)
+	
 	def handle_step_message(self, index: int, value: int) -> bool:
 		"""Handle step change messages"""
 		blocks = self.parent._index_to_blocks(index, self.parent.seqSteps)
@@ -453,7 +521,8 @@ class MidiMessageHandler:
 	
 	def handle_knob_message(self, index: int, value: int, active_par) -> bool:
 		"""Handle knob control messages"""
-		if int(index) != int(self.parent.evalKnobindex):
+		knob_index = self.parent._safe_get_midi_index(self.parent.evalKnobindex, default=-1)
+		if int(index) != knob_index:
 			return False
 			
 		if active_par is not None and active_par.owner != self.parent.ownerComp:
@@ -462,7 +531,8 @@ class MidiMessageHandler:
 	
 	def handle_pulse_message(self, index: int, value: int, active_par) -> bool:
 		"""Handle pulse button messages"""
-		if index != int(self.parent.evalPulseindex):
+		pulse_index = self.parent._safe_get_midi_index(self.parent.evalPulseindex, default=-1)
+		if index != pulse_index:
 			return False
 			
 		if (active_par is not None and 
@@ -485,12 +555,22 @@ class MidiMessageHandler:
 		block = blocks[0]
 		block_idx = block.index
 		
-		if block_idx < len(self.parent.slotPars):
+		# Get previous slot's MIDI index for LED feedback
+		prev_slot_index = None
+		if self.parent.activeSlot is not None and self.parent.activeSlot < len(self.parent.seqSlots):
+			prev_slot_index = self.parent._safe_get_midi_index(
+				self.parent.seqSlots[self.parent.activeSlot].par.Index)
+		
+		if block_idx < len(self.parent.slotPars) and self.parent.slotPars[block_idx] is not None:
+			# Activate slot
 			self.parent.activeSlot = block_idx
+			self._send_led_feedback(index, 1, prev_slot_index)  # LED on for new slot, off for previous
 			self.parent.screen_manager.update_parameter_display(self.parent.slotPars[block_idx])
 		else:
+			# Deactivate slot
 			self.parent.activeSlot = None
-			label = self.parent.hoveredPar.label if self.parent.hoveredPar else ScreenMessages.HOVER
+			self._send_led_feedback(index, 0, prev_slot_index)  # LED off for this slot, off for previous
+			label = self.parent.hoveredPar.label if self.parent.hoveredPar is not None else ScreenMessages.HOVER
 			self.parent.screen_manager.update_all_display(0, 0, 1, label, ScreenMessages.HOVER, compress=False)
 		return True
 
@@ -501,7 +581,7 @@ class ScreenManager:
 		self.parent = parent_ext
 	
 	def is_screen_enabled(self) -> bool:
-		return self.parent.evalVsn1screensupport
+		return self.parent.evalVsn1support
 	
 	def compress_label(self, label: str, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
 		"""Compress labels only if longer than max_length"""
@@ -539,7 +619,7 @@ class ScreenManager:
 		"""Update screen with all parameter info"""
 		if not self.is_screen_enabled():
 			return
-		
+
 		# Process label
 		if self.parent.evalUsecompressedlabels and compress:
 			processed_label = self.compress_label(label)
@@ -583,7 +663,6 @@ class ScreenManager:
 		if not label and (block := par.sequenceBlock):
 			# speeacial case when there's no label for some sequence pars like Constant CHOP
 			name = par.name
-			digit = re.split(r'\d+', name)[0]
 			name = re.split(r'\d+', name)[-1]
 			if name:
 				# even specialer case for constant CHOP: display the name of the constant value
@@ -612,7 +691,7 @@ class ScreenManager:
 		"""Clear the VSN1 screen"""
 		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
 		self._send_to_screen(lua_code)
-	
+		
 	def _send_to_screen(self, lua_code: str):
 		"""Send Lua code to screen via websocket"""
 		package = {
