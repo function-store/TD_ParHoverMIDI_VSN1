@@ -125,7 +125,8 @@ class HoveredMidiRelativeExt:
 		if hasattr(self, 'ui_manager'):
 			for i, slot_par in enumerate(self.slotPars):
 				if slot_par is not None:
-					self.ui_manager._set_button_label(i, slot_par.label)
+					label = LabelFormatter.get_label_for_parameter(slot_par, self.labelDisplayMode)
+					self.ui_manager._set_button_label(i, label)
 				else:
 					self.ui_manager._set_button_label(i, ScreenMessages.HOVER)
 		
@@ -195,20 +196,22 @@ class HoveredMidiRelativeExt:
 		if (_par := getattr(_op.par, _par)) is None:
 			return
 		
+		self.hoveredPar = _par
 		# Handle invalid/unsupported parameters when no active slot
 		if self.activeSlot is None:
 			if not ParameterValidator.is_valid_parameter(_par):
-				self.display_manager.update_all_display(0.5, 0, 1, _par.label, 
+				param_label = LabelFormatter.get_label_for_parameter(_par, self.labelDisplayMode)
+				self.display_manager.update_all_display(0.5, 0, 1, param_label, 
 														ScreenMessages.EXPR, compress=True)
-				
+				return  # Don't proceed to normal parameter display
 			
 			if not ParameterValidator.is_supported_parameter_type(_par):
-				self.display_manager.update_all_display(0.5, 0, 1, _par.label, 
+				param_label = LabelFormatter.get_label_for_parameter(_par, self.labelDisplayMode)
+				self.display_manager.update_all_display(0.5, 0, 1, param_label, 
 														ScreenMessages.UNSUPPORTED, compress=True)
+				return  # Don't proceed to normal parameter display
 
-		self.hoveredPar = _par
-		
-		# Update screen if no active slot
+		# Update screen if no active slot (only for valid parameters)
 		if self.activeSlot is None:
 			self.display_manager.update_parameter_display(_par)
 
@@ -600,12 +603,14 @@ class SlotManager:
 		
 		# Update UI button label
 		if hasattr(self.parent, 'ui_manager'):
-			self.parent.ui_manager._set_button_label(slot_idx, parameter.label)
+			label = LabelFormatter.get_label_for_parameter(parameter, self.parent.labelDisplayMode)
+			self.parent.ui_manager._set_button_label(slot_idx, label)
 		
 		# Update displays and feedback
+		param_label = LabelFormatter.get_label_for_parameter(parameter, self.parent.labelDisplayMode)
 		self.parent.display_manager.update_all_display(
 			parameter.eval(), parameter.normMin, parameter.normMax, 
-			parameter.label, ScreenMessages.LEARNED, compress=False)
+			param_label, ScreenMessages.LEARNED, compress=False)
 		
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
@@ -769,15 +774,20 @@ class DisplayManager:
 			min_val, max_val = par.normMin, par.normMax
 			display_text = None
 
-		label = par.label
-		if not label and (block := par.sequenceBlock):
+		# Use the centralized label method which handles parameter groups
+		label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode)
+		
+		# Fallback logic for parameters without labels (sequence blocks)
+		if not par.label and (block := par.sequenceBlock):
 			name = par.name
 			name = re.split(r'\d+', name)[-1]
 			if name:
 				if isinstance(block.owner, constantCHOP):
-					label = block.par.name.eval()
+					fallback_label = block.par.name.eval()
 				else:
-					label = name.capitalize()
+					fallback_label = name.capitalize()
+				# Apply formatting to the fallback label too
+				label = LabelFormatter.format_label(fallback_label, self.parent.labelDisplayMode)
 		
 		# Use the unified display logic
 		self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
@@ -1022,6 +1032,19 @@ class UIManager:
 		
 class LabelFormatter:
 	"""Utility class for label compression and formatting"""
+
+	@staticmethod
+	def get_label_for_parameter(par: Par, mode: LabelDisplayMode) -> str:
+		"""Get the label for a parameter"""
+		if par is None:
+			return ScreenMessages.HOVER
+		label = par.label
+		# for pars part of a parGroup we add the last char (x,y,z, etc...) to the label
+		if len(par.parGroup) > 1:
+			label += f" {par.name[-1].capitalize()}"
+		
+		label = LabelFormatter.format_label(label, mode)
+		return label
 	
 	@staticmethod
 	def format_label(label: str, mode: LabelDisplayMode, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
