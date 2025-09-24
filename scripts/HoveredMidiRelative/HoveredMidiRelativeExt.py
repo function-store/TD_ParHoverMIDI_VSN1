@@ -70,6 +70,7 @@ class HoveredMidiRelativeExt:
 		self.midi_handler = MidiMessageHandler(self)
 		self.vsn1_manager = VSN1Manager(self)
 		self.ui_manager = UIManager(self)
+		self.slot_manager = SlotManager(self)
 		self.display_manager = DisplayManager(self)
 
 		# Initialize storage
@@ -115,6 +116,15 @@ class HoveredMidiRelativeExt:
 													ScreenMessages.HOVER, compress=False)
 
 		self.display_manager.update_all_slot_leds()
+		
+		# Initialize UI button labels based on current slot assignments
+		if hasattr(self, 'ui_manager'):
+			for i, slot_par in enumerate(self.slotPars):
+				if slot_par is not None:
+					self.ui_manager._set_button_label(i, slot_par.label)
+				else:
+					self.ui_manager._set_button_label(i, ScreenMessages.HOVER)
+		
 		# Set initial outline color based on current state
 		if self.activeSlot is not None:
 			self.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)  # Active slot
@@ -185,8 +195,6 @@ class HoveredMidiRelativeExt:
 			if not ParameterValidator.is_supported_parameter_type(_par):
 				self.display_manager.update_all_display(0.5, 0, 1, _par.label, 
 														ScreenMessages.UNSUPPORTED, compress=True)
-				
-
 
 		self.hoveredPar = _par
 		
@@ -264,35 +272,16 @@ class HoveredMidiRelativeExt:
 			
 		block = blocks[0]
 		block_idx = block.index
-		if hovered_par is not None and ParameterValidator.is_valid_parameter(hovered_par) and \
-			ParameterValidator.is_supported_parameter_type(hovered_par):
-			
-			# Extend slot list if necessary
-			while len(self.slotPars) <= block_idx:
-				self.slotPars.append(None)
-				
-			# Assign parameter to slot and activate it
-			old_active_slot = self.activeSlot
-			self.slotPars[block_idx] = hovered_par
-			self.activeSlot = block_idx  # Learning also activates the slot
-
-			# Display updates
-			self.display_manager.update_all_display(
-				hovered_par.eval(), hovered_par.normMin, hovered_par.normMax, 
-				hovered_par.label, ScreenMessages.LEARNED, compress=False)
-			# Update LEDs: new active slot and previous active slot
-			self.display_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
-			# Update outline color for active slot (learning activates the slot)
-			self.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+		
+		if hovered_par is not None:
+			# Try to assign parameter to slot
+			success = self.slot_manager.assign_slot(block_idx, hovered_par)
+			if not success:
+				# Invalid parameter - clear the slot instead
+				self.slot_manager.clear_slot(block_idx)
 		else:
-			self.activeSlot = None
-			self.slotPars[block_idx] = None
-			self.display_manager.update_all_display(
-				0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
-			# Update LED for the slot we just cleared
-			self.display_manager.update_slot_leds(current_slot=block_idx)
-			# Update outline color for hover mode (slot cleared)
-			self.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+			# No hovered parameter - clear the slot
+			self.slot_manager.clear_slot(block_idx)
 
 	def onResetPar(self):
 		"""TouchDesigner callback to reset active parameter"""
@@ -577,12 +566,137 @@ class MidiMessageHandler:
 		return True
 
 
+class SlotManager:
+	"""Centralized slot management - handles all slot operations and state"""
+	def __init__(self, parent_ext):
+		self.parent = parent_ext
+	
+	def assign_slot(self, slot_idx: int, parameter: Par) -> bool:
+		"""Assign a parameter to a slot and activate it. Returns True if successful."""
+		if not ParameterValidator.is_valid_parameter(parameter) or \
+		   not ParameterValidator.is_supported_parameter_type(parameter):
+			return False
+		
+		# Extend slot list if necessary
+		while len(self.parent.slotPars) <= slot_idx:
+			self.parent.slotPars.append(None)
+		
+		# Store previous active slot for LED updates
+		old_active_slot = self.parent.activeSlot
+		
+		# Assign parameter and activate slot
+		self.parent.slotPars[slot_idx] = parameter
+		self.parent.activeSlot = slot_idx
+		
+		# Update UI button label
+		if hasattr(self.parent, 'ui_manager'):
+			self.parent.ui_manager._set_button_label(slot_idx, parameter.label)
+		
+		# Update displays and feedback
+		self.parent.display_manager.update_all_display(
+			parameter.eval(), parameter.normMin, parameter.normMax, 
+			parameter.label, ScreenMessages.LEARNED, compress=False)
+		
+		# Update LEDs and outline color
+		self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
+		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+		
+		return True
+	
+	def clear_slot(self, slot_idx: int):
+		"""Clear a slot and return to hover mode"""
+		if slot_idx >= len(self.parent.slotPars):
+			return
+			
+		# Clear the slot
+		self.parent.slotPars[slot_idx] = None
+		self.parent.activeSlot = None
+		
+		# Clear UI button label
+		if hasattr(self.parent, 'ui_manager'):
+			self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
+		
+		# Update display to hover mode
+		self.parent.display_manager.update_all_display(
+			0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+		
+		# Update LEDs and outline color
+		self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+	
+	def activate_slot(self, slot_idx: int) -> bool:
+		"""Activate an existing slot. Returns True if successful."""
+		if slot_idx >= len(self.parent.slotPars) or self.parent.slotPars[slot_idx] is None:
+			return False
+		
+		old_active_slot = self.parent.activeSlot
+		self.parent.activeSlot = slot_idx
+		
+		# Update display with slot parameter
+		slot_par = self.parent.slotPars[slot_idx]
+		self.parent.display_manager.update_parameter_display(slot_par)
+		
+		# Update LEDs and outline color
+		self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
+		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+		
+		return True
+	
+	def deactivate_current_slot(self):
+		"""Deactivate current slot and return to hover mode"""
+		if self.parent.activeSlot is None:
+			return
+		
+		old_active_slot = self.parent.activeSlot
+		self.parent.activeSlot = None
+		
+		# Update display to hover mode
+		self.parent.display_manager.update_all_display(
+			0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+		
+		# Update LEDs and outline color
+		self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)
+		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+	
+	def get_slot_parameter(self, slot_idx: int) -> Optional[Par]:
+		"""Get the parameter assigned to a slot"""
+		if slot_idx >= len(self.parent.slotPars):
+			return None
+		return self.parent.slotPars[slot_idx]
+	
+	def is_slot_occupied(self, slot_idx: int) -> bool:
+		"""Check if a slot has a parameter assigned"""
+		return self.get_slot_parameter(slot_idx) is not None
+	
+	def is_slot_active(self, slot_idx: int) -> bool:
+		"""Check if a slot is currently active"""
+		return self.parent.activeSlot == slot_idx
+	
+	def get_active_slot_parameter(self) -> Optional[Par]:
+		"""Get the parameter of the currently active slot"""
+		if self.parent.activeSlot is None:
+			return None
+		return self.get_slot_parameter(self.parent.activeSlot)
+
+
 class DisplayManager:
 	"""Unified display manager that handles ALL display logic and delegates to renderers"""
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
 		self.vsn1_renderer = parent_ext.vsn1_manager
 		self.ui_renderer = parent_ext.ui_manager
+	
+	def get_slot_state_value(self, slot_idx: int) -> int:
+		"""Centralized slot state logic: 0=free (hover), 127=occupied, 255=active"""
+		# Check if slot is active
+		if self.parent.activeSlot == slot_idx:
+			return 255  # Active slot
+			
+		# Check if slot is occupied
+		if slot_idx < len(self.parent.slotPars) and self.parent.slotPars[slot_idx] is not None:
+			return 127   # Occupied slot
+			
+		return 0  # Free slot (hover mode)
 	
 	def clear_screen(self):
 		"""Clear all displays"""
@@ -758,7 +872,7 @@ class VSN1Manager:
 			
 		# Update LEDs for all possible slots (used only during initialization)
 		for slot_idx in range(len(VSN1Constants.SLOT_INDICES)):
-			led_value = self._get_slot_led_value(slot_idx)
+			led_value = self.parent.display_manager.get_slot_state_value(slot_idx)
 			self._send_slot_led(slot_idx, led_value)
 	
 	def update_slot_leds(self, current_slot: int = None, previous_slot: int = None):
@@ -768,25 +882,14 @@ class VSN1Manager:
 		
 		# Update previous slot LED (if specified)
 		if previous_slot is not None:
-			prev_led_value = self._get_slot_led_value(previous_slot)
+			prev_led_value = self.parent.display_manager.get_slot_state_value(previous_slot)
 			self._send_slot_led(previous_slot, prev_led_value)
 		
 		# Update current slot LED (if specified)
 		if current_slot is not None:
-			curr_led_value = self._get_slot_led_value(current_slot)
+			curr_led_value = self.parent.display_manager.get_slot_state_value(current_slot)
 			self._send_slot_led(current_slot, curr_led_value)
 	
-	def _get_slot_led_value(self, slot_idx: int) -> int:
-		"""Get LED value for a slot: 0=free (hover), 30=occupied, 255=active"""
-		# Check if slot is active
-		if self.parent.activeSlot == slot_idx:
-			return 255  # Active slot
-			
-		# Check if slot is occupied
-		if slot_idx < len(self.parent.slotPars) and self.parent.slotPars[slot_idx] is not None:
-			return 30   # Occupied slot
-			
-		return 0  # Free slot (hover mode)
 
 	def update_outline_color_index(self, color_index: int):
 		self.grid_comm.SendLua(f'rc={color_index};lcd:ldrr(3,3,317,237,10,c[rc])lcd:ldsw()')
@@ -799,6 +902,11 @@ class UIManager:
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
 		self.ui = self.parent.ownerComp.op('UI')
+		
+
+	@property
+	def buttons(self):
+		return self.ui.op('BUTTONS').ops('button*')
 
 	@property
 	def ui_enabled(self) -> bool:
@@ -812,6 +920,12 @@ class UIManager:
 
 	def _set_circle_fill(self, percentage: float):
 		self.ui.par.Circlefill = tdu.clamp(tdu.remap(percentage, 0, 1, 0.05, 1), 0.05, 1)
+
+	def _set_button_color(self, index: int, color_phase_idx: int):
+		button = self.buttons[index]
+		if button is None:
+			return
+		button.par.Colorphaseidx = color_phase_idx
 
 	
 	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, percentage: float, step_indicator = None):
@@ -838,6 +952,10 @@ class UIManager:
 	def set_step_indicator(self, index: int):
 		if not self.ui_enabled:
 			return
+		self.ui.par.Stepindicatorindex = index
+		# get step value from seqSteps
+		step_value = self.parent.seqSteps[index].par.Step.eval()
+		self.ui.par.Stepvalue = step_value
 		#self.ui.par.StepIndicator.val = index
 		pass
 	
@@ -846,29 +964,51 @@ class UIManager:
 		"""Update all slot indicators in UI"""
 		if not self.ui_enabled:
 			return
-		# TODO: Implement UI slot indicators
+		for i in range(len(self.buttons)):
+			self._set_button_color(i, 0)
 		pass
 	
 	def update_slot_indicators(self, current_slot=None, previous_slot=None):
 		"""Update specific slot indicators in UI"""
 		if not self.ui_enabled:
 			return
-		# TODO: Implement UI slot indicator updates
+		
+		# Update previous slot LED (if specified)
+		if previous_slot is not None:
+			prev_led_value = self.parent.display_manager.get_slot_state_value(previous_slot)
+			self._set_button_color(previous_slot, prev_led_value)
+		
+		# Update current slot LED (if specified)
+		if current_slot is not None:
+			curr_led_value = self.parent.display_manager.get_slot_state_value(current_slot)
+			self._set_button_color(current_slot, curr_led_value)
 		pass
 	
 	def update_outline_color(self, color_index: int):
 		"""Update UI outline/border color equivalent"""
 		if not self.ui_enabled:
 			return
-		# TODO: Implement UI outline color changes
+		self.ui.par.Slotactive = True if color_index == VSN1ColorIndex.WHITE.value else False
 		pass
 	
 	def send_slot_feedback(self, slot_idx: int, value: int):
 		"""Send slot feedback to UI equivalent"""
 		if not self.ui_enabled:
 			return
-		# TODO: Implement UI slot feedback
+		self._set_button_color(slot_idx, value)
 		pass
+
+	def _set_button_label(self, slot_idx: int, label: str):
+		button = self.buttons[slot_idx]
+		if button is None:
+			return
+		label = LabelFormatter.compress_label(label) if label != ScreenMessages.HOVER else ScreenMessages.HOVER
+		button.par.label = label
+		
+		# Also update button color to match slot state
+		color_value = self.parent.display_manager.get_slot_state_value(slot_idx)
+		self._set_button_color(slot_idx, color_value)
+
 
 		
 class LabelFormatter:
@@ -906,4 +1046,6 @@ class LabelFormatter:
 		"""Format values for display with length limit"""
 		if isinstance(value, (int, float)):
 			value = round(value, 6)
+			if value % 1 == 0:
+				value = int(value)
 		return str(value)[:max_length]
