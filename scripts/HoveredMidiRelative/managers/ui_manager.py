@@ -5,7 +5,7 @@ class UIManager:
 	"""Manager for UI elements"""
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
-		self.ui = self.parent.ownerComp.op('UI')
+		self.ui = self.parent.ownerComp.op('_UI/UI')
 		
 
 	@property
