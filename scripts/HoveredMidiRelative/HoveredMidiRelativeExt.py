@@ -107,9 +107,7 @@ class HoveredMidiRelativeExt:
 			self.vsn1_manager.update_all_display(0.5, 0, 1, ScreenMessages.HOVER, 
 												  ScreenMessages.HOVER, compress=False)
 
-		self._clear_all_slot_leds()
-		if self.activeSlot is not None:
-			self.vsn1_manager.send_slot_led_feedback(self.activeSlot, 1)
+		self.vsn1_manager.update_all_slot_leds()
 		
 # region properties
 
@@ -261,22 +259,24 @@ class HoveredMidiRelativeExt:
 			while len(self.slotPars) <= block_idx:
 				self.slotPars.append(None)
 				
-			# Assign parameter to slot
+			# Assign parameter to slot and activate it
+			old_active_slot = self.activeSlot
 			self.slotPars[block_idx] = hovered_par
+			self.activeSlot = block_idx  # Learning also activates the slot
 
 			# VSN1 updates
 			self.vsn1_manager.update_all_display(
 				hovered_par.eval(), hovered_par.normMin, hovered_par.normMax, 
 				hovered_par.label, ScreenMessages.LEARNED, compress=False)
-			self._clear_all_slot_leds()
-			if self.activeSlot is not None:
-				self.vsn1_manager.send_slot_led_feedback(self.activeSlot, 1)
+			# Update LEDs: new active slot and previous active slot
+			self.vsn1_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
 		else:
 			self.activeSlot = None
 			self.slotPars[block_idx] = None
 			self.vsn1_manager.update_all_display(
 				0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
-			self._clear_all_slot_leds()
+			# Update LED for the slot we just cleared
+			self.vsn1_manager.update_slot_leds(current_slot=block_idx)
 
 	def onResetPar(self):
 		"""TouchDesigner callback to reset active parameter"""
@@ -300,6 +300,9 @@ class HoveredMidiRelativeExt:
 		if active_par.isNumber:
 			# Handle numeric parameters (float/int)
 			current_val = active_par.eval()
+			# for ints step is always 1 # TODO: this is debatable
+			if active_par.isInt:
+				step_amount = 1 if step_amount > 0 else -1
 			new_val = current_val + step_amount
 			active_par.val = new_val
 			
@@ -537,15 +540,19 @@ class MidiMessageHandler:
 		
 		if block_idx < len(self.parent.slotPars) and self.parent.slotPars[block_idx] is not None:
 			# Activate slot
+			old_active_slot = self.parent.activeSlot
 			self.parent.activeSlot = block_idx
-			self.parent.vsn1_manager.send_slot_led_feedback(block_idx, 1, prev_slot_index)  # LED on for new slot, off for previous
 			self.parent.vsn1_manager.update_parameter_display(self.parent.slotPars[block_idx])
+			# Update LEDs: previous slot and new active slot
+			self.parent.vsn1_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
 		else:
-			# Deactivate slot
+			# Deactivate slot (return to hover mode)
+			old_active_slot = self.parent.activeSlot
 			self.parent.activeSlot = None
-			self.parent.vsn1_manager.send_slot_led_feedback(block_idx, 0, prev_slot_index)  # LED off for this slot, off for previous
 			label = self.parent.hoveredPar.label if self.parent.hoveredPar is not None else ScreenMessages.HOVER
-			self.parent.vsn1_manager.update_all_display(0, 0, 1, label, ScreenMessages.HOVER, compress=False)
+			self.parent.vsn1_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=False)
+			# Update LED: turn off the previously active slot
+			self.parent.vsn1_manager.update_slot_leds(previous_slot=old_active_slot)
 		return True
 
 class VSN1Manager:
@@ -677,19 +684,60 @@ class VSN1Manager:
 		}
 		self.parent.websocket.sendText(json.dumps(package))
 	
+	def _send_slot_led(self, slot_idx: int, value: int):
+		"""Send LED command for a specific slot"""
+		if not self.is_vsn1_enabled():
+			return
+		self._send_to_screen(f'set_led({10+slot_idx},1,{int(value)})')
+	
 	def send_slot_led_feedback(self, slot_index: int, value: int, prev_slot_index: int = None):
 		"""Send LED feedback to VSN1 controller using slot indices (0-based)"""
 		if not self.is_vsn1_enabled():
 			return
 		
-		value = value * 127
-		
 		# Send LED command using slot index directly (0-based)
-		self._send_to_screen(f'set_led({10+slot_index},1,{int(value)})')
+		self._send_slot_led(slot_index, value)
 		
 		# Turn off previous LED if specified
 		if prev_slot_index is not None and prev_slot_index != slot_index:
-			self._send_to_screen(f'set_led({10+prev_slot_index},1,{int(0)})')
+			self._send_slot_led(prev_slot_index, 0)
+	
+	def update_all_slot_leds(self):
+		"""Update all slot LEDs based on current state: 0=free, 30=occupied, 255=active (initialization only)"""
+		if not self.is_vsn1_enabled():
+			return
+			
+		# Update LEDs for all possible slots (used only during initialization)
+		for slot_idx in range(len(VSN1Constants.SLOT_INDICES)):
+			led_value = self._get_slot_led_value(slot_idx)
+			self._send_slot_led(slot_idx, led_value)
+	
+	def update_slot_leds(self, current_slot: int = None, previous_slot: int = None):
+		"""Update only current and previous slot LEDs for efficiency"""
+		if not self.is_vsn1_enabled():
+			return
+		
+		# Update previous slot LED (if specified)
+		if previous_slot is not None:
+			prev_led_value = self._get_slot_led_value(previous_slot)
+			self._send_slot_led(previous_slot, prev_led_value)
+		
+		# Update current slot LED (if specified)
+		if current_slot is not None:
+			curr_led_value = self._get_slot_led_value(current_slot)
+			self._send_slot_led(current_slot, curr_led_value)
+	
+	def _get_slot_led_value(self, slot_idx: int) -> int:
+		"""Get LED value for a slot: 0=free (hover), 30=occupied, 255=active"""
+		# Check if slot is active
+		if self.parent.activeSlot == slot_idx:
+			return 255  # Active slot
+			
+		# Check if slot is occupied
+		if slot_idx < len(self.parent.slotPars) and self.parent.slotPars[slot_idx] is not None:
+			return 30   # Occupied slot
+			
+		return 0  # Free slot (hover mode)
 
 ###
 
