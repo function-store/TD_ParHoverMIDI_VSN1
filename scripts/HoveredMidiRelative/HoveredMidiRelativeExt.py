@@ -47,6 +47,10 @@ class ScreenMessages:
 	EXPR = '_EXPR_'
 	UNSUPPORTED = '__'
 
+class LabelDisplayMode(Enum):
+	TRUNCATED = 'Truncated'
+	COMPRESSED = 'Compressed'
+
 
 class HoveredMidiRelativeExt:
 	"""
@@ -166,6 +170,12 @@ class HoveredMidiRelativeExt:
 	def _currStep(self, value: float):
 		self.currStep = value
 		self.display_manager.update_step_display(value)
+
+	@property
+	def labelDisplayMode(self) -> LabelDisplayMode:
+		"""Get the current label display mode from component parameter"""
+		# covert text to enum
+		return LabelDisplayMode(self.evalLabeldisplaymode)
 
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
@@ -706,11 +716,11 @@ class DisplayManager:
 	def update_all_display(self, val, norm_min, norm_max, 
 						  label: str, display_text: Optional[str] = None, step_indicator = None, compress: bool = True):
 		"""Update all displays with parameter info - handles ALL logic here"""
-		# Process label with optional compression
-		if compress and self.parent.evalUsecompressedlabels:
-			processed_label = LabelFormatter.compress_label(label)
-		else:
-			processed_label = LabelFormatter.format_value(label)
+		if compress:
+		# Process label based on display mode and compression setting
+			processed_label = LabelFormatter.format_label(label, self.parent.labelDisplayMode)
+		else:	
+			processed_label = LabelFormatter.truncate_label(label)
 		
 		# Calculate circle fill percentage - handle both numeric and string values
 		try:
@@ -745,8 +755,7 @@ class DisplayManager:
 			val = par.menuIndex
 			min_val, max_val = 0, len(par.menuNames) - 1
 			display_text = str(par.menuLabels[par.menuIndex])
-			if self.parent.evalUsecompressedlabels:
-				display_text = LabelFormatter.compress_label(display_text)
+			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
 		elif par.isToggle:
 			val = 1 if par.eval() else 0
 			min_val, max_val = 0, 1
@@ -1002,7 +1011,7 @@ class UIManager:
 		button = self.buttons[slot_idx]
 		if button is None:
 			return
-		label = LabelFormatter.compress_label(label) if label != ScreenMessages.HOVER else ScreenMessages.HOVER
+		label = LabelFormatter.format_label(label, self.parent.labelDisplayMode) if label != ScreenMessages.HOVER else ScreenMessages.HOVER
 		button.par.label = label
 		
 		# Also update button color to match slot state
@@ -1013,6 +1022,17 @@ class UIManager:
 		
 class LabelFormatter:
 	"""Utility class for label compression and formatting"""
+	
+	@staticmethod
+	def format_label(label: str, mode: LabelDisplayMode, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
+		"""Format labels based on display mode - compression or truncation"""
+		if mode == LabelDisplayMode.COMPRESSED:
+			return LabelFormatter.compress_label(label, max_length)
+		elif mode == LabelDisplayMode.TRUNCATED:
+			return LabelFormatter.truncate_label(label, max_length)
+		else:
+			# Default to compression for unknown modes
+			return LabelFormatter.compress_label(label, max_length)
 	
 	@staticmethod
 	def compress_label(label: str, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
@@ -1031,6 +1051,16 @@ class LabelFormatter:
 			compressed = compressed[0] + ''.join(c for c in compressed[1:] if c not in vowels)
 		
 		return compressed[:max_length]
+	
+	@staticmethod
+	def truncate_label(label: str, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
+		"""Simply truncate labels to max length"""
+		label = LabelFormatter._sanitize_label(label)
+		
+		if len(label) <= max_length:
+			return label
+		
+		return label[:max_length]
 	
 	@staticmethod
 	def _sanitize_label(label: str) -> str:
