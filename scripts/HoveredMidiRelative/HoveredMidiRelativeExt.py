@@ -35,6 +35,11 @@ class SupportedParameterTypes(Enum):
 	TOGGLE = 'Toggle'
 	PULSE = 'Pulse'
 
+class VSN1ColorIndex(Enum):
+	BLACK = 1
+	WHITE = 2
+	COLOR = 3
+
 class ScreenMessages:
 	HOVER = '_HOVER_'
 	LEARNED = '_LEARNED_'
@@ -108,6 +113,11 @@ class HoveredMidiRelativeExt:
 												  ScreenMessages.HOVER, compress=False)
 
 		self.vsn1_manager.update_all_slot_leds()
+		# Set initial outline color based on current state
+		if self.activeSlot is not None:
+			self.vsn1_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)  # Active slot
+		else:
+			self.vsn1_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)  # Hover mode
 		
 # region properties
 
@@ -270,6 +280,8 @@ class HoveredMidiRelativeExt:
 				hovered_par.label, ScreenMessages.LEARNED, compress=False)
 			# Update LEDs: new active slot and previous active slot
 			self.vsn1_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
+			# Update outline color for active slot (learning activates the slot)
+			self.vsn1_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		else:
 			self.activeSlot = None
 			self.slotPars[block_idx] = None
@@ -277,6 +289,8 @@ class HoveredMidiRelativeExt:
 				0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 			# Update LED for the slot we just cleared
 			self.vsn1_manager.update_slot_leds(current_slot=block_idx)
+			# Update outline color for hover mode (slot cleared)
+			self.vsn1_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 
 	def onResetPar(self):
 		"""TouchDesigner callback to reset active parameter"""
@@ -545,6 +559,8 @@ class MidiMessageHandler:
 			self.parent.vsn1_manager.update_parameter_display(self.parent.slotPars[block_idx])
 			# Update LEDs: previous slot and new active slot
 			self.parent.vsn1_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
+			# Update outline color for active slot
+			self.parent.vsn1_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		else:
 			# Deactivate slot (return to hover mode)
 			old_active_slot = self.parent.activeSlot
@@ -553,6 +569,8 @@ class MidiMessageHandler:
 			self.parent.vsn1_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=False)
 			# Update LED: turn off the previously active slot
 			self.parent.vsn1_manager.update_slot_leds(previous_slot=old_active_slot)
+			# Update outline color for hover mode
+			self.parent.vsn1_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 		return True
 
 class VSN1Manager:
@@ -560,6 +578,7 @@ class VSN1Manager:
 	
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
+		self.grid_comm : IntechGridCommExt = self.parent.ownerComp.op('IntechGridComm').ext.IntechGridCommExt
 	
 	def is_vsn1_enabled(self) -> bool:
 		return self.parent.evalVsn1support
@@ -615,7 +634,7 @@ class VSN1Manager:
 		display_str = display_text if display_text is not None else val_formatted
 		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}', '{display_str}', {step_indicator})"
 		
-		self._send_to_screen(lua_code)
+		self.grid_comm.SendLua(lua_code)
 	
 	def update_parameter_display(self, par):
 		"""Update screen for a specific parameter"""
@@ -674,21 +693,14 @@ class VSN1Manager:
 	def clear_screen(self):
 		"""Clear the VSN1 screen"""
 		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
-		self._send_to_screen(lua_code)
+		self.grid_comm.SendLua(lua_code)
 		
-	def _send_to_screen(self, lua_code: str):
-		"""Send Lua code to screen via websocket"""
-		package = {
-			'type': 'execute-code',
-			'script': lua_code
-		}
-		self.parent.websocket.sendText(json.dumps(package))
 	
 	def _send_slot_led(self, slot_idx: int, value: int):
 		"""Send LED command for a specific slot"""
 		if not self.is_vsn1_enabled():
 			return
-		self._send_to_screen(f'set_led({10+slot_idx},1,{int(value)})')
+		self.grid_comm.SendLua(f'set_led({10+slot_idx},1,{int(value)})')
 	
 	def send_slot_led_feedback(self, slot_index: int, value: int, prev_slot_index: int = None):
 		"""Send LED feedback to VSN1 controller using slot indices (0-based)"""
@@ -738,6 +750,9 @@ class VSN1Manager:
 			return 30   # Occupied slot
 			
 		return 0  # Free slot (hover mode)
+
+	def update_outline_color_index(self, color_index: int):
+		self.grid_comm.SendLua(f'rc={color_index};lcd:ldrr(3,3,317,237,10,c[rc])lcd:ldsw()')
 
 ###
 
