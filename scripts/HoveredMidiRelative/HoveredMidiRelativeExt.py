@@ -566,7 +566,7 @@ class MidiMessageHandler:
 			old_active_slot = self.parent.activeSlot
 			self.parent.activeSlot = None
 			label = self.parent.hoveredPar.label if self.parent.hoveredPar is not None else ScreenMessages.HOVER
-			self.parent.vsn1_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=False)
+			self.parent.vsn1_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=False if label == ScreenMessages.HOVER else True)
 			# Update LED: turn off the previously active slot
 			self.parent.vsn1_manager.update_slot_leds(previous_slot=old_active_slot)
 			# Update outline color for hover mode
