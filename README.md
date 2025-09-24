@@ -20,7 +20,8 @@ HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by co
 - **Robust Error Handling**: Graceful handling of empty/invalid MIDI configurations
 - **Hardware Support**: Should work with any endless/relative encoder, optimized for [Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r) with specialized support
 - **Real-time Feedback**: Visual feedback on VSN1's built-in screen during parameter adjustments
-- **LED Feedback**: Visual feedback on VSN1 LEDs showing active parameter slots
+  - **LED Feedback**: Color-coded LEDs showing slot states (dark/dim/bright)
+  - **Visual State Indicators**: Screen outline colors indicate current mode (hover/slot active)
 
 ## Hardware Compatibility
 
@@ -99,8 +100,26 @@ The following parameters are available to further customize the functionality of
 - **`VSN1 Support`**: Enables VSN1 screen updates and LED feedback, displaying adjusted parameter and value (circle size between param normMin/Max values), using websocket communication --- requires Grid Editor to be open!
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
 
+## VSN1 Visual Feedback
+
+The VSN1 provides comprehensive visual feedback through LEDs and screen elements:
+
+### **Button LED States**:
+- **Dark**: Slot is free and available for assignment (hover mode)
+- **Dim**: Slot has a parameter assigned but is not currently active
+- **Bright**: Slot is currently active and controlling this parameter
+
+### **Screen Outline Colors**:
+- **Color outline**: Currently in hover mode - move mouse to select parameters
+- **White outline**: Currently in slot mode - a parameter slot is active
+
+### **Step Size Indicators**:
+- **Screen display**: Shows current step value when step size changes
+
+This visual system makes it immediately clear whether you're in hover mode or slot mode, which slots are available, occupied, or active, and what precision level you're currently using for parameter adjustments.
+
 ## Known Issues
-- Screen updates can be laggy (probable cause: Grid MIDI RX callbacks that are used for LED updates)
+- Screen updates can be laggy (it is trying its best though)
 
 ## Future Plans / Roadmap
 
