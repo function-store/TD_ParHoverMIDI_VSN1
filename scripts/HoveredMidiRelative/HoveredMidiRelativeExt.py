@@ -69,6 +69,8 @@ class HoveredMidiRelativeExt:
 		# Initialize helper classes
 		self.midi_handler = MidiMessageHandler(self)
 		self.vsn1_manager = VSN1Manager(self)
+		self.ui_manager = UIManager(self)
+		self.display_manager = DisplayManager(self)
 
 		# Initialize storage
 		storedItems = [
@@ -105,22 +107,22 @@ class HoveredMidiRelativeExt:
 		if not self.evalVsn1support:
 			return
 			
-		self.vsn1_manager.clear_screen()
+		self.display_manager.clear_screen()
 		if self.activePar is not None:
-			self.vsn1_manager.update_parameter_display(self.activePar)
+			self.display_manager.update_parameter_display(self.activePar)
 		else:
-			self.vsn1_manager.update_all_display(0.5, 0, 1, ScreenMessages.HOVER, 
-												  ScreenMessages.HOVER, compress=False)
+			self.display_manager.update_all_display(0.5, 0, 1, ScreenMessages.HOVER, 
+													ScreenMessages.HOVER, compress=False)
 
-		self.vsn1_manager.update_all_slot_leds()
+		self.display_manager.update_all_slot_leds()
 		# Set initial outline color based on current state
 		if self.activeSlot is not None:
-			self.vsn1_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)  # Active slot
+			self.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)  # Active slot
 		else:
-			self.vsn1_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)  # Hover mode
+			self.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)  # Hover mode
 		
 # region properties
-
+		
 	@property
 	def seqSteps(self):
 		"""Get sequence steps from owner component"""
@@ -153,7 +155,7 @@ class HoveredMidiRelativeExt:
 	@_currStep.setter
 	def _currStep(self, value: float):
 		self.currStep = value
-		self.vsn1_manager.update_step_display(value)
+		self.display_manager.update_step_display(value)
 
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
@@ -176,27 +178,27 @@ class HoveredMidiRelativeExt:
 		# Handle invalid/unsupported parameters when no active slot
 		if self.activeSlot is None:
 			if not ParameterValidator.is_valid_parameter(_par):
-				self.vsn1_manager.update_all_display(0.5, 0, 1, _par.label, 
-													  ScreenMessages.EXPR, compress=True)
-				return
+				self.display_manager.update_all_display(0.5, 0, 1, _par.label, 
+														ScreenMessages.EXPR, compress=True)
+				
 			
 			if not ParameterValidator.is_supported_parameter_type(_par):
-				self.vsn1_manager.update_all_display(0.5, 0, 1, _par.label, 
-													  ScreenMessages.UNSUPPORTED, compress=True)
-				return
+				self.display_manager.update_all_display(0.5, 0, 1, _par.label, 
+														ScreenMessages.UNSUPPORTED, compress=True)
+				
 
 
 		self.hoveredPar = _par
-
+		
 		# Update screen if no active slot
 		if self.activeSlot is None:
-			self.vsn1_manager.update_parameter_display(_par)
+			self.display_manager.update_parameter_display(_par)
 
 # endregion properties
 
 # region midi callbacks
 
-	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):		
+	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):
 		"""TouchDesigner callback for MIDI input processing"""
 		if channel != self.evalChannel or not self.evalActive:
 			return
@@ -214,10 +216,10 @@ class HoveredMidiRelativeExt:
 			# Handle pulse messages
 			if self.midi_handler.handle_pulse_message(index, value, active_par):
 				return
-				
+		
 			# Handle slot selection messages
 			if self.midi_handler.handle_slot_message(index, value):
-				return
+					return
 			
 		elif message == MidiConstants.CONTROL_CHANGE:
 			# Handle knob control messages
@@ -229,11 +231,11 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback for MIDI learning mode"""
 		if channel != self.evalChannel or not self.evalActive:
 			return
-
+		
 		hovered_par = self.hoveredPar
 		if (hovered_par is None or 
 			not ParameterValidator.is_learnable_parameter(hovered_par)):
-			return
+				return
 		
 		# Control Change: knob learning only
 		if message == MidiConstants.CONTROL_CHANGE and hovered_par == self.parKnobindex:
@@ -274,29 +276,29 @@ class HoveredMidiRelativeExt:
 			self.slotPars[block_idx] = hovered_par
 			self.activeSlot = block_idx  # Learning also activates the slot
 
-			# VSN1 updates
-			self.vsn1_manager.update_all_display(
+			# Display updates
+			self.display_manager.update_all_display(
 				hovered_par.eval(), hovered_par.normMin, hovered_par.normMax, 
 				hovered_par.label, ScreenMessages.LEARNED, compress=False)
 			# Update LEDs: new active slot and previous active slot
-			self.vsn1_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
+			self.display_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
 			# Update outline color for active slot (learning activates the slot)
-			self.vsn1_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+			self.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		else:
 			self.activeSlot = None
 			self.slotPars[block_idx] = None
-			self.vsn1_manager.update_all_display(
+			self.display_manager.update_all_display(
 				0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 			# Update LED for the slot we just cleared
-			self.vsn1_manager.update_slot_leds(current_slot=block_idx)
+			self.display_manager.update_slot_leds(current_slot=block_idx)
 			# Update outline color for hover mode (slot cleared)
-			self.vsn1_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+			self.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 
 	def onResetPar(self):
 		"""TouchDesigner callback to reset active parameter"""
 		if self.activePar is not None:
 			self.activePar.reset()
-			self.vsn1_manager.update_parameter_display(self.activePar)
+			self.display_manager.update_parameter_display(self.activePar)
 
 # endregion midi callbacks
 
@@ -340,7 +342,7 @@ class HoveredMidiRelativeExt:
 			return
 			
 		# Update screen display
-		self.vsn1_manager.update_parameter_display(active_par)
+		self.display_manager.update_parameter_display(active_par)
 
 	def _set_step_parameter(self, block):
 		"""Set step value for sequence block with logarithmic progression"""
@@ -384,7 +386,7 @@ class HoveredMidiRelativeExt:
 		"""Turn off all slot LEDs"""
 		if hasattr(self, 'vsn1_manager'):
 			for i in range(len(self.seqSlots)):
-				self.vsn1_manager.send_slot_led_feedback(i, 0)
+				self.display_manager.send_slot_led_feedback(i, 0)
 
 
 # endregion helper functions
@@ -534,7 +536,7 @@ class MidiMessageHandler:
 			active_par.isPulse):
 			if value == MidiConstants.MAX_VELOCITY:
 				active_par.pulse()
-			self.parent.vsn1_manager.update_parameter_display(active_par)
+			self.parent.display_manager.update_parameter_display(active_par)
 		return True
 	
 	def handle_slot_message(self, index: int, value: int) -> bool:
@@ -556,96 +558,81 @@ class MidiMessageHandler:
 			# Activate slot
 			old_active_slot = self.parent.activeSlot
 			self.parent.activeSlot = block_idx
-			self.parent.vsn1_manager.update_parameter_display(self.parent.slotPars[block_idx])
+			self.parent.display_manager.update_parameter_display(self.parent.slotPars[block_idx])
 			# Update LEDs: previous slot and new active slot
-			self.parent.vsn1_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
+			self.parent.display_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
 			# Update outline color for active slot
-			self.parent.vsn1_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		else:
 			# Deactivate slot (return to hover mode)
 			old_active_slot = self.parent.activeSlot
 			self.parent.activeSlot = None
 			label = self.parent.hoveredPar.label if self.parent.hoveredPar is not None else ScreenMessages.HOVER
-			self.parent.vsn1_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=False if label == ScreenMessages.HOVER else True)
+			compress = False if label == ScreenMessages.HOVER else True
+			self.parent.display_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=compress)
 			# Update LED: turn off the previously active slot
-			self.parent.vsn1_manager.update_slot_leds(previous_slot=old_active_slot)
+			self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)
 			# Update outline color for hover mode
-			self.parent.vsn1_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 		return True
 
-class VSN1Manager:
-	"""Manages VSN1 hardware integration - screen updates and LED feedback"""
-	
+
+class DisplayManager:
+	"""Unified display manager that handles ALL display logic and delegates to renderers"""
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
-		self.grid_comm : IntechGridCommExt = self.parent.ownerComp.op('IntechGridComm').ext.IntechGridCommExt
+		self.vsn1_renderer = parent_ext.vsn1_manager
+		self.ui_renderer = parent_ext.ui_manager
 	
-	def is_vsn1_enabled(self) -> bool:
-		return self.parent.evalVsn1support
+	def clear_screen(self):
+		"""Clear all displays"""
+		self.vsn1_renderer.clear_screen()
+		self.ui_renderer.clear_screen()
 	
-	def compress_label(self, label: str, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
-		"""Compress labels only if longer than max_length"""
-		label = self._sanitize_label_for_lua(label)
-		
-		if len(label) <= max_length:
-			return label
-		
-		# Remove whitespace and underscores
-		compressed = label.replace(' ', '').replace('_', '')
-		
-		# Remove vowels (keep first character)
-		vowels = 'aeiouAEIOU'
-		if len(compressed) > 1:
-			compressed = compressed[0] + ''.join(c for c in compressed[1:] if c not in vowels)
-		
-		return compressed[:max_length]
-	
-	def _sanitize_label_for_lua(self, label: str) -> str:
-		"""Remove characters that could break Lua string syntax"""
-		if not label:
-			return 'Param'
-		
-		sanitized = label.replace('"', '').replace("'", '').replace('\\', '').replace('\n', '').replace('\r', '')
-		return sanitized if sanitized else 'Param'
-	
-	def _format_value(self, value: Any, max_length: int = VSN1Constants.MAX_VALUE_LENGTH) -> str:
-		"""Format values for display"""
-		if isinstance(value, (int, float)):
-			value = round(value, 6)
-		return str(value)[:max_length]
-	
-	def update_all_display(self, val: float, norm_min: float, norm_max: float, 
-						  label: str, display_text: Optional[str] = None, step_indicator: float = None, compress: bool = True):
-		"""Update screen with all parameter info"""
-		if not self.is_vsn1_enabled():
-			return
-
-		# Process label
-		if self.parent.evalUsecompressedlabels and compress:
-			processed_label = self.compress_label(label)
+	def update_all_display(self, val, norm_min, norm_max, 
+						  label: str, display_text: Optional[str] = None, step_indicator = None, compress: bool = True):
+		"""Update all displays with parameter info - handles ALL logic here"""
+		# Process label with optional compression
+		if compress and self.parent.evalUsecompressedlabels:
+			processed_label = LabelFormatter.compress_label(label)
 		else:
-			processed_label = self._format_value(label)
+			processed_label = LabelFormatter.format_value(label)
 		
-		# Format values
-		val_formatted = self._format_value(val)
-		min_formatted = self._format_value(norm_min)
-		max_formatted = self._format_value(norm_max)
+		# Calculate circle fill percentage - handle both numeric and string values
+		try:
+			val_num = float(val)
+			norm_min_num = float(norm_min) 
+			norm_max_num = float(norm_max)
+			
+			if norm_max_num != norm_min_num:
+				percentage = (val_num - norm_min_num) / (norm_max_num - norm_min_num)
+			else:
+				percentage = 0.5
+		except (ValueError, TypeError):
+			percentage = 0.5
 		
-		display_str = display_text if display_text is not None else val_formatted
-		lua_code = f"update_param({val_formatted}, {min_formatted}, {max_formatted}, '{processed_label}', '{display_str}', {step_indicator})"
+		# Use display_text if provided, otherwise format the value
+		if display_text is not None:
+			bottom_text = display_text
+		else:
+			bottom_text = LabelFormatter.format_value(val)
 		
-		self.grid_comm.SendLua(lua_code)
+		# Delegate to renderers with processed data
+		self.vsn1_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
+		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
 	
 	def update_parameter_display(self, par):
-		"""Update screen for a specific parameter"""
-		if not self.is_vsn1_enabled() or par is None:
+		"""Update displays for a specific parameter - handles ALL logic here"""
+		if par is None:
 			return
+			
+		# Handle different parameter types - ALL logic here
 		if par.isMenu:
 			val = par.menuIndex
 			min_val, max_val = 0, len(par.menuNames) - 1
 			display_text = str(par.menuLabels[par.menuIndex])
 			if self.parent.evalUsecompressedlabels:
-				display_text = self.compress_label(display_text)
+				display_text = LabelFormatter.compress_label(display_text)
 		elif par.isToggle:
 			val = 1 if par.eval() else 0
 			min_val, max_val = 0, 1
@@ -661,39 +648,89 @@ class VSN1Manager:
 
 		label = par.label
 		if not label and (block := par.sequenceBlock):
-			# speeacial case when there's no label for some sequence pars like Constant CHOP
 			name = par.name
 			name = re.split(r'\d+', name)[-1]
 			if name:
-				# even specialer case for constant CHOP: display the name of the constant value
 				if isinstance(block.owner, constantCHOP):
 					label = block.par.name.eval()
 				else:
 					label = name.capitalize()
 		
+		# Use the unified display logic
 		self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
 	
 	def update_step_display(self, step: float):
-		"""Update screen with current step value"""
+		"""Update displays with current step value - handles ALL logic here"""
 		seq = self.parent.seqSteps
-		min_step = seq[-1].par.Step.eval()
-		max_step = seq[0].par.Step.eval()
+		if len(seq) == 0:
+			return
+			
+		# Calculate step display values
+		min_step = min(s.par.Step.eval() for s in seq)
+		max_step = max(s.par.Step.eval() for s in seq)
 		
-		# Logarithmic mapping
-		mapped_step = min_step + (max_step - min_step) * (
-			(math.log(step) - math.log(min_step)) / (math.log(max_step) - math.log(min_step))
-		)
-
-		# find index of step in seqSteps
+		# Map step to 0-1 range for display
+		if max_step != min_step:
+			mapped_step = (step - min_step) / (max_step - min_step)
+		else:
+			mapped_step = 0.5
+		
+		# Find step index for indicator
 		index = next((i for i, s in enumerate(seq) if s.par.Step.eval() == step), None)
 		
 		self.update_all_display(mapped_step, max_step, min_step, ScreenMessages.STEP, 
 							   display_text=str(step), step_indicator=index, compress=False)
 	
+	# VSN1-specific methods that also update UI equivalents
+	def update_all_slot_leds(self):
+		"""Update all slot LEDs and UI equivalents"""
+		self.vsn1_renderer.update_all_slot_leds()
+		self.ui_renderer.update_all_slot_indicators()
+	
+	def update_slot_leds(self, current_slot=None, previous_slot=None):
+		"""Update specific slot LEDs and UI equivalents"""
+		self.vsn1_renderer.update_slot_leds(current_slot, previous_slot)
+		self.ui_renderer.update_slot_indicators(current_slot, previous_slot)
+	
+	def update_outline_color_index(self, color_index: int):
+		"""Update outline color and UI equivalent"""
+		self.vsn1_renderer.update_outline_color_index(color_index)
+		self.ui_renderer.update_outline_color(color_index)
+	
+	def send_slot_led_feedback(self, slot_idx: int, value: int):
+		"""Send slot feedback to both displays"""
+		self.vsn1_renderer.send_slot_led_feedback(slot_idx, value)
+		self.ui_renderer.send_slot_feedback(slot_idx, value)
+
+
+class VSN1Manager:
+	"""Manages VSN1 hardware integration - screen updates and LED feedback"""
+	
+	def __init__(self, parent_ext):
+		self.parent = parent_ext
+		self.grid_comm : IntechGridCommExt = self.parent.ownerComp.op('IntechGridComm').ext.IntechGridCommExt
+	
+	def is_vsn1_enabled(self) -> bool:
+		return self.parent.evalVsn1support
+	
+	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, percentage: float, step_indicator = None):
+		"""Render display data to VSN1 screen - ONLY the Lua output, no logic"""
+		if not self.is_vsn1_enabled():
+			return
+			
+		# Simple Lua function call - ONLY difference from UI renderer
+		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator})"
+		self.grid_comm.SendLua(lua_code)
+	
 	def clear_screen(self):
 		"""Clear the VSN1 screen"""
 		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
 		self.grid_comm.SendLua(lua_code)
+	
+	def set_step_indicator(self, index: int):
+		"""Set step indicator on VSN1 display"""
+		# Handled by main render_display
+		pass
 		
 	
 	def _send_slot_led(self, slot_idx: int, value: int):
@@ -757,3 +794,116 @@ class VSN1Manager:
 ###
 
 
+class UIManager:
+	"""Manager for UI elements"""
+	def __init__(self, parent_ext):
+		self.parent = parent_ext
+		self.ui = self.parent.ownerComp.op('UI')
+
+	@property
+	def ui_enabled(self) -> bool:
+		return self.parent.evalEnableui
+
+	def _set_top_text(self, text: str):
+		self.ui.par.Toptext.val = text
+
+	def _set_bottom_text(self, text: str):
+		self.ui.par.Bottomtext.val = text
+
+	def _set_circle_fill(self, percentage: float):
+		self.ui.par.Circlefill = tdu.clamp(tdu.remap(percentage, 0, 1, 0.05, 1), 0.05, 1)
+
+	
+	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, percentage: float, step_indicator = None):
+		"""Render display data to UI - ONLY the UI parameter updates, no logic"""
+		if not self.ui_enabled:
+			return
+		# Set UI parameters - ONLY difference from VSN1 renderer
+		self._set_circle_fill(percentage)
+		self._set_top_text(processed_label)
+		self._set_bottom_text(bottom_text)
+		
+		# Set step indicator if provided
+		if step_indicator is not None:
+			self.set_step_indicator(step_indicator)
+	
+	def clear_screen(self):
+		"""Clear the UI display - ONLY the UI parameter updates"""
+		if not self.ui_enabled:
+			return
+		self._set_circle_fill(0.5)
+		self._set_top_text("")
+		self._set_bottom_text("")
+
+	def set_step_indicator(self, index: int):
+		if not self.ui_enabled:
+			return
+		#self.ui.par.StepIndicator.val = index
+		pass
+	
+	# UI equivalents for VSN1 features
+	def update_all_slot_indicators(self):
+		"""Update all slot indicators in UI"""
+		if not self.ui_enabled:
+			return
+		# TODO: Implement UI slot indicators
+		pass
+	
+	def update_slot_indicators(self, current_slot=None, previous_slot=None):
+		"""Update specific slot indicators in UI"""
+		if not self.ui_enabled:
+			return
+		# TODO: Implement UI slot indicator updates
+		pass
+	
+	def update_outline_color(self, color_index: int):
+		"""Update UI outline/border color equivalent"""
+		if not self.ui_enabled:
+			return
+		# TODO: Implement UI outline color changes
+		pass
+	
+	def send_slot_feedback(self, slot_idx: int, value: int):
+		"""Send slot feedback to UI equivalent"""
+		if not self.ui_enabled:
+			return
+		# TODO: Implement UI slot feedback
+		pass
+
+		
+class LabelFormatter:
+	"""Utility class for label compression and formatting"""
+	
+	@staticmethod
+	def compress_label(label: str, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
+		"""Compress labels for display - removes whitespace and vowels if needed"""
+		label = LabelFormatter._sanitize_label(label)
+		
+		if len(label) <= max_length:
+			return label
+		
+		# Remove whitespace and underscores
+		compressed = label.replace(' ', '').replace('_', '')
+		
+		# Remove vowels (keep first character)
+		vowels = 'aeiouAEIOU'
+		if len(compressed) > 1:
+			compressed = compressed[0] + ''.join(c for c in compressed[1:] if c not in vowels)
+		
+		return compressed[:max_length]
+	
+	@staticmethod
+	def _sanitize_label(label: str) -> str:
+		"""Remove characters that could cause issues in display systems"""
+		if not label:
+			return 'Param'
+		
+		sanitized = label.replace('"', '').replace("'", '').replace('\\', '').replace('\n', '').replace('\r', '')
+		return sanitized if sanitized else 'Param'
+	
+	@staticmethod
+	def format_value(value: Any, max_length: int = VSN1Constants.MAX_VALUE_LENGTH) -> str:
+		"""Format values for display with length limit"""
+		if isinstance(value, (int, float)):
+			value = round(value, 6)
+		return str(value)[:max_length]
