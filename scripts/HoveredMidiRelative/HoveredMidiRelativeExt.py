@@ -70,8 +70,18 @@ class HoveredMidiRelativeExt:
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
 
+		self._validate_storage()
+
 		# Initialize screen
 		self._initialize_VSN1()
+
+	def _validate_storage(self):
+		"""Validate storage"""
+		for idx, _par in enumerate(self.slotPars):
+			if _par is None or not _par.valid:
+				self.slotPars[idx] = None
+				if self.activeSlot == idx:
+					self.activeSlot = None
 	
 	def _initialize_VSN1(self):
 		"""Initialize VSN1 screen if enabled"""
@@ -84,8 +94,6 @@ class HoveredMidiRelativeExt:
 		else:
 			self.display_manager.update_all_display(0.5, 0, 1, ScreenMessages.HOVER, 
 													ScreenMessages.HOVER, compress=False)
-
-
 
 		self.display_manager.update_all_slot_leds()
 		
@@ -191,6 +199,14 @@ class HoveredMidiRelativeExt:
 		# Update screen if no active slot (only for valid parameters)
 		if self.activeSlot is None:
 			self.display_manager.update_parameter_display(_par)
+
+	def onGridConnect(self):
+		"""TouchDesigner callback when grid connects"""
+		self._initialize_VSN1()
+	
+	def onGridDisconnect(self):
+		"""TouchDesigner callback when grid disconnects"""
+		pass
 
 # endregion properties
 
