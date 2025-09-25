@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : slot_manager
-Author : root
-Saveorigin : HoveredMidiRelative.182.toe
+Author : Dan@DAN-4090
+Saveorigin : HoveredMidiRelative.189.toe
 Saveversion : 2023.12120
 Info Header End'''
 from typing import Optional
@@ -10,7 +10,7 @@ from validators import ParameterValidator
 from formatters import LabelFormatter
 
 class SlotManager:
-	"""Centralized slot management - handles all slot operations and state"""
+	"""Centralized slot management - handles all slot operations and state with bank support"""
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
 	
@@ -19,17 +19,25 @@ class SlotManager:
 		if not ParameterValidator.is_valid_parameter(parameter) or \
 		   not ParameterValidator.is_supported_parameter_type(parameter):
 			return False
+
+		# Extend number of banks if necessary
 		
 		# Extend slot list if necessary
-		while len(self.parent.slotPars) <= slot_idx:
-			self.parent.slotPars.append(None)
+		currBank = self.parent.currBank
+		while len(self.parent.slotPars) <= currBank:
+			self.parent.slotPars.append([])
+
+		while len(self.parent.slotPars[currBank]) <= slot_idx:
+			# Extend current bank with empty slots as needed
+			self.parent.slotPars[currBank].append(None)
 		
 		# Store previous active slot for LED updates
 		old_active_slot = self.parent.activeSlot
 		
 		# Assign parameter and activate slot
-		self.parent.slotPars[slot_idx] = parameter
+		self.parent.slotPars[currBank][slot_idx] = parameter
 		self.parent.activeSlot = slot_idx
+		self.parent.bankActiveSlots[currBank] = slot_idx
 		
 		# Update UI button label
 		if hasattr(self.parent, 'ui_manager'):
@@ -48,12 +56,15 @@ class SlotManager:
 	
 	def clear_slot(self, slot_idx: int):
 		"""Clear a slot and return to hover mode"""
-		if slot_idx >= len(self.parent.slotPars):
+		currBank = self.parent.currBank
+		if (currBank >= len(self.parent.slotPars) or 
+			slot_idx >= len(self.parent.slotPars[currBank])):
 			return
 			
 		# Clear the slot
-		self.parent.slotPars[slot_idx] = None
+		self.parent.slotPars[currBank][slot_idx] = None
 		self.parent.activeSlot = None
+		self.parent.bankActiveSlots[currBank] = None
 		
 		# Clear UI button label
 		if hasattr(self.parent, 'ui_manager'):
@@ -69,21 +80,93 @@ class SlotManager:
 	
 	def activate_slot(self, slot_idx: int) -> bool:
 		"""Activate an existing slot. Returns True if successful."""
-		if slot_idx >= len(self.parent.slotPars) or self.parent.slotPars[slot_idx] is None:
+		currBank = self.parent.currBank
+		if (currBank >= len(self.parent.slotPars) or 
+			slot_idx >= len(self.parent.slotPars[currBank]) or 
+			self.parent.slotPars[currBank][slot_idx] is None):
 			return False
 		
 		old_active_slot = self.parent.activeSlot
 		self.parent.activeSlot = slot_idx
+		self.parent.bankActiveSlots[currBank] = slot_idx
 		
 		# Update display with slot parameter
-		slot_par = self.parent.slotPars[slot_idx]
-		self.parent.display_manager.update_parameter_display(slot_par)
+		if slot_par := self.parent.slotPars[currBank][slot_idx]:
+			self.parent.display_manager.update_parameter_display(slot_par)
 		
-		# Update LEDs and outline color
-		self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
-		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+			# Update LEDs and outline color
+			self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
+			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+			return True
+		
+		return False
+
+	def recall_bank(self, bank_idx: int):
+		"""Switch to a different bank and recall its last active slot"""
+		# Validate bank index
+		if bank_idx < 0 or bank_idx >= self.parent.numBanks:
+			return False
+		
+		# Save current active slot for current bank
+		if self.parent.currBank < len(self.parent.bankActiveSlots):
+			self.parent.bankActiveSlots[self.parent.currBank] = self.parent.activeSlot
+		
+		# Switch to new bank
+		old_bank = self.parent.currBank
+		self.parent.currBank = bank_idx
+		
+		# Ensure bank structure exists
+		self.parent._validate_storage()
+		
+		# Recall previous active slot for this bank
+		if (bank_idx < len(self.parent.bankActiveSlots) and 
+			self.parent.bankActiveSlots[bank_idx] is not None):
+			previous_slot = self.parent.bankActiveSlots[bank_idx]
+			
+			# Check if the slot still has a valid parameter
+			if (previous_slot < len(self.parent.slotPars[bank_idx]) and 
+				self.parent.slotPars[bank_idx][previous_slot] is not None):
+				self.parent.activeSlot = previous_slot
+			else:
+				self.parent.activeSlot = None
+				self.parent.bankActiveSlots[bank_idx] = None
+		else:
+			self.parent.activeSlot = None
+		
+		# Refresh display and UI for new bank
+		self._refresh_bank_display()
 		
 		return True
+	
+	def _refresh_bank_display(self):
+		"""Refresh all display elements when switching banks"""
+		currBank = self.parent.currBank
+		
+		# Update bank indicator on both displays
+		self.parent.display_manager.set_bank_indicator(currBank)
+		
+		# Update UI button labels and colors for the new bank (comprehensive refresh)
+		if hasattr(self.parent, 'ui_manager'):
+			self.parent.ui_manager.refresh_all_button_states()
+		
+		# Update VSN1 slot LEDs (UI colors already handled above)
+		if hasattr(self.parent, 'vsn1_manager'):
+			self.parent.vsn1_manager.update_all_slot_leds()
+		
+		# Update display based on active slot or hover mode
+		if self.parent.activeSlot is not None:
+			active_par = self.parent.slotPars[currBank][self.parent.activeSlot]
+			self.parent.display_manager.update_parameter_display(active_par)
+			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+		else:
+			# Return to hover mode
+			if self.parent.hoveredPar is not None:
+				self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
+			else:
+				self.parent.display_manager.update_all_display(
+					0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
+				)
+			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 	
 	def deactivate_current_slot(self):
 		"""Deactivate current slot and return to hover mode"""
@@ -101,18 +184,22 @@ class SlotManager:
 		self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 	
-	def get_slot_parameter(self, slot_idx: int) -> Optional[Par]:
-		"""Get the parameter assigned to a slot"""
-		if slot_idx >= len(self.parent.slotPars):
+	def get_slot_parameter(self, slot_idx: int, bank_idx: Optional[int] = None) -> Optional[Par]:
+		"""Get the parameter assigned to a slot in the specified bank (defaults to current bank)"""
+		if bank_idx is None:
+			bank_idx = self.parent.currBank
+			
+		if (bank_idx >= len(self.parent.slotPars) or 
+			slot_idx >= len(self.parent.slotPars[bank_idx])):
 			return None
-		return self.parent.slotPars[slot_idx]
+		return self.parent.slotPars[bank_idx][slot_idx]
 	
-	def is_slot_occupied(self, slot_idx: int) -> bool:
-		"""Check if a slot has a parameter assigned"""
-		return self.get_slot_parameter(slot_idx) is not None
+	def is_slot_occupied(self, slot_idx: int, bank_idx: Optional[int] = None) -> bool:
+		"""Check if a slot has a parameter assigned in the specified bank (defaults to current bank)"""
+		return self.get_slot_parameter(slot_idx, bank_idx) is not None
 	
 	def is_slot_active(self, slot_idx: int) -> bool:
-		"""Check if a slot is currently active"""
+		"""Check if a slot is currently active in the current bank"""
 		return self.parent.activeSlot == slot_idx
 	
 	def get_active_slot_parameter(self) -> Optional[Par]:

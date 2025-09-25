@@ -47,7 +47,7 @@ class HoveredMidiRelativeExt:
 		storedItems = [
 			{
 				'name': 'slotPars',
-				'default': [],
+				'default': [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)],
 				'readOnly': False,
 				'property': True,
 				'dependable': False
@@ -65,12 +65,25 @@ class HoveredMidiRelativeExt:
 				'readOnly': False,
 				'property': True,
 				'dependable': False
+			},
+			{
+				'name': 'currBank',
+				'default': 0,
+				'property': True,
+				'dependable': False
+			},
+			{
+				'name': 'bankActiveSlots',
+				'default': [None for _ in range(self.numBanks)],
+				'readOnly': False,
+				'property': True,
+				'dependable': False
 			}
 		]
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
 
-		# needed to clear pickle errors due to missing parameters in storage, before we can even validate
+		# Needed to clear pickle errors due to missing parameters in storage, before we can even validate
 		self.ownerComp.clearScriptErrors(recurse=True)
 		self._validate_storage()
 
@@ -78,12 +91,52 @@ class HoveredMidiRelativeExt:
 		self._initialize_VSN1()
 
 	def _validate_storage(self):
-		"""Validate storage"""
-		for idx, _par in enumerate(self.slotPars):
-			if _par is None or not _par.valid:
-				self.slotPars[idx] = None
-				if self.activeSlot == idx:
-					self.activeSlot = None
+		"""Validate storage and ensure proper structure for dynamic bank changes"""
+		# Ensure slotPars is properly structured as 2D array
+		if not isinstance(self.slotPars, list):
+			self.slotPars = []
+		
+		# Ensure bankActiveSlots is properly structured
+		if not isinstance(self.bankActiveSlots, list):
+			self.bankActiveSlots = []
+		
+		# Ensure we have at least as many banks as configured
+		current_num_banks = self.numBanks
+		
+		# Extend slotPars if we have more banks than before
+		while len(self.slotPars) < current_num_banks:
+			self.slotPars.append([])
+		
+		# Extend bankActiveSlots if we have more banks than before
+		while len(self.bankActiveSlots) < current_num_banks:
+			self.bankActiveSlots.append(None)
+		
+		# Truncate if we have fewer banks than before (but preserve data)
+		if len(self.slotPars) > current_num_banks:
+			self.slotPars = self.slotPars[:current_num_banks]
+		
+		if len(self.bankActiveSlots) > current_num_banks:
+			self.bankActiveSlots = self.bankActiveSlots[:current_num_banks]
+		
+		# Validate current bank index
+		if self.currBank >= current_num_banks:
+			self.currBank = 0
+			self.activeSlot = None
+		
+		# Validate each bank's slots
+		for _bank_idx in range(len(self.slotPars)):
+			bank_slots = self.slotPars[_bank_idx]
+			if not isinstance(bank_slots, list):
+				self.slotPars[_bank_idx] = []
+				continue
+				
+			for idx, _par in enumerate(bank_slots):
+				if _par is not None and not _par.valid:
+					self.slotPars[_bank_idx][idx] = None
+					if self.currBank == _bank_idx and self.activeSlot == idx:
+						# Invalidate active slot
+						self.activeSlot = None
+						self.bankActiveSlots[_bank_idx] = None
 	
 	def _initialize_VSN1(self):
 		"""Initialize VSN1 screen if enabled"""
@@ -101,12 +154,8 @@ class HoveredMidiRelativeExt:
 		
 		# Initialize UI button labels based on current slot assignments
 		if hasattr(self, 'ui_manager'):
-			for i, slot_par in enumerate(self.slotPars):
-				if slot_par is not None:
-					label = LabelFormatter.get_label_for_parameter(slot_par, self.labelDisplayMode)
-					self.ui_manager._set_button_label(i, label)
-				else:
-					self.ui_manager._set_button_label(i, ScreenMessages.HOVER)
+			# Set bank indicator
+			self.display_manager.set_bank_indicator(self.currBank)
 		
 		# Set initial outline color based on current state
 		if self.activeSlot is not None:
@@ -131,13 +180,32 @@ class HoveredMidiRelativeExt:
 		return self.ownerComp.seq.Slots
 
 	@property
+	def seqBanks(self):
+		return self.ownerComp.seq.Banks
+
+	@property
+	def numBanks(self):
+		return self.seqBanks.numBlocks
+
+	@property
+	def numSlots(self):
+		return self.seqSlots.numBlocks
+
+	@property
+	def numSteps(self):
+		return self.seqSteps.numBlocks
+
+	@property
 	def activePar(self) -> Optional[Par]:
 		"""Get currently active parameter (slot takes priority over hovered)"""
 		# Prioritize active slot parameters over hovered parameter
 		if (self.activeSlot is not None and 
-			self.activeSlot < len(self.slotPars) and 
-			self.slotPars[self.activeSlot] is not None):
-				return self.slotPars[self.activeSlot]
+			self.activeSlot < self.numSlots and 
+			self.currBank < self.numBanks and
+			self.currBank < len(self.slotPars) and
+			self.activeSlot < len(self.slotPars[self.currBank]) and
+			self.slotPars[self.currBank][self.activeSlot] is not None):
+				return self.slotPars[self.currBank][self.activeSlot]
 			
 		if self.hoveredPar is not None:
 			return self.hoveredPar
@@ -225,7 +293,7 @@ class HoveredMidiRelativeExt:
 
 		# Process different message types using helper class
 		if message == MidiConstants.NOTE_ON:
-			# Handle step sequence messages
+			# Handle step change messages
 			if self.midi_handler.handle_step_message(index, value):
 				return
 				
@@ -235,7 +303,7 @@ class HoveredMidiRelativeExt:
 		
 			# Handle slot selection messages
 			if self.midi_handler.handle_slot_message(index, value):
-					return
+				return
 			
 		elif message == MidiConstants.CONTROL_CHANGE:
 			# Handle knob control messages
@@ -269,6 +337,9 @@ class HoveredMidiRelativeExt:
 			elif hovered_par in self.seqSlots.blockPars.Index:
 				hovered_par.val = index
 
+			elif hovered_par in self.seqBanks.blockPars.Index:
+				hovered_par.val = index
+
 
 	def onReceiveMidiSlotLearn(self, index: int):
 		"""TouchDesigner callback for slot learning"""
@@ -296,6 +367,15 @@ class HoveredMidiRelativeExt:
 		if self.activePar is not None:
 			self.activePar.reset()
 			self.display_manager.update_parameter_display(self.activePar)
+
+	def onReceiveMidiBankSel(self, channel, midi_idx: int) -> None:
+		"""TouchDesigner callback for bank selection MIDI input"""
+		if channel != self.evalChannel or not self.evalActive:
+			return
+		
+		# Handle bank change message
+		self.midi_handler.handle_bank_message(midi_idx)
+				
 
 # endregion midi callbacks
 
@@ -382,7 +462,7 @@ class HoveredMidiRelativeExt:
 	def _clear_all_slot_leds(self):
 		"""Turn off all slot LEDs"""
 		if hasattr(self, 'vsn1_manager'):
-			for i in range(len(self.seqSlots)):
+			for i in range(self.numSlots):
 				self.display_manager.send_slot_led_feedback(i, 0)
 
 
@@ -462,6 +542,11 @@ class HoveredMidiRelativeExt:
 			self.seqSteps[i].par.Index.val = button
 			self.seqSteps[i].par.Step.val = step
 
+		# Configure bank buttons
+		self.seqBanks.numBlocks = len(VSN1Constants.BANK_BUTTONS)
+		for i, button in enumerate(VSN1Constants.BANK_BUTTONS):
+			self.seqBanks[i].par.Index.val = button
+
 		# Configure slot indices
 		self.seqSlots.numBlocks = len(VSN1Constants.SLOT_INDICES)
 		for i, index in enumerate(VSN1Constants.SLOT_INDICES):
@@ -480,6 +565,18 @@ class HoveredMidiRelativeExt:
 		self.activeMidi.cook(force=True)
 		self.resetMidi.cook(force=True)
 		self.slotsLearnMidi.cook(force=True)
+
+	def onSeqBanksNumBlocks(self, _par, _val):
+		"""TouchDesigner callback when number of banks changes"""
+		# Revalidate storage to handle bank count changes
+		self._validate_storage()
+		
+		# If current bank is now invalid, switch to bank 0
+		if self.currBank >= self.numBanks:
+			self.slot_manager.recall_bank(0)
+		else:
+			# Refresh current bank display to ensure UI is updated
+			self.slot_manager._refresh_bank_display()
 
 # endregion parameter callbacks
 

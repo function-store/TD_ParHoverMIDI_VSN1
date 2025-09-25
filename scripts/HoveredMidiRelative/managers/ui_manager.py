@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : ui_manager
-Author : root
-Saveorigin : HoveredMidiRelative.179.toe
+Author : Dan@DAN-4090
+Saveorigin : HoveredMidiRelative.193.toe
 Saveversion : 2023.12120
 Info Header End'''
 from constants import VSN1ColorIndex, ScreenMessages
@@ -71,12 +71,13 @@ class UIManager:
 	
 	# UI equivalents for VSN1 features
 	def update_all_slot_indicators(self):
-		"""Update all slot indicators in UI"""
+		"""Update all slot color indicators in UI (called by display_manager)"""
 		if not self.ui_enabled:
 			return
+		# Only update colors, not labels (labels are handled separately)
 		for i in range(len(self.buttons)):
-			self._set_button_color(i, 0)
-		pass
+			slot_state = self.parent.display_manager.get_slot_state_value(i)
+			self._set_button_color(i, slot_state)
 	
 	def update_slot_indicators(self, current_slot=None, previous_slot=None):
 		"""Update specific slot indicators in UI"""
@@ -108,7 +109,39 @@ class UIManager:
 		self._set_button_color(slot_idx, value)
 		pass
 
+	def set_bank_indicator(self, bank_idx: int):
+		"""Set bank indicator in UI"""
+		if not self.ui_enabled:
+			return
+		# Update UI parameter to show current bank
+		self.ui.par.Currentbank = bank_idx
+	
+	def refresh_all_button_states(self):
+		"""Refresh all button labels and colors for current bank"""
+		if not self.ui_enabled:
+			return
+		
+		currBank = self.parent.currBank
+		for i in range(self.parent.numSlots):
+			# Update label
+			if (i < len(self.parent.slotPars[currBank]) and 
+				self.parent.slotPars[currBank][i] is not None):
+				label = LabelFormatter.get_label_for_parameter(
+					self.parent.slotPars[currBank][i], 
+					self.parent.labelDisplayMode
+				)
+				self._set_button_label(i, label)
+			else:
+				self._set_button_label(i, ScreenMessages.HOVER)
+			
+			# Update color based on slot state
+			slot_state = self.parent.display_manager.get_slot_state_value(i)
+			self._set_button_color(i, slot_state)
+		
 	def _set_button_label(self, slot_idx: int, label: str):
+		"""Set button label for a slot"""
+		if not self.ui_enabled or slot_idx >= len(self.buttons):
+			return
 		button = self.buttons[slot_idx]
 		if button is None:
 			return
@@ -118,3 +151,10 @@ class UIManager:
 		# Also update button color to match slot state
 		color_value = self.parent.display_manager.get_slot_state_value(slot_idx)
 		self._set_button_color(slot_idx, color_value)
+
+	def set_bank_indicator(self, bank_idx: int):
+		"""Set bank indicator in UI"""
+		if not self.ui_enabled:
+			return
+		# Update UI parameter to show current bank
+		self.ui.par.Bankindicatorindex = bank_idx

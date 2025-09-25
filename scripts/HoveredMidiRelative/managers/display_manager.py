@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : display_manager
-Author : root
-Saveorigin : HoveredMidiRelative.182.toe
+Author : Dan@DAN-4090
+Saveorigin : HoveredMidiRelative.201.toe
 Saveversion : 2023.12120
 Info Header End'''
 import re
@@ -23,7 +23,10 @@ class DisplayManager:
 			return 255  # Active slot
 			
 		# Check if slot is occupied
-		if slot_idx < len(self.parent.slotPars) and self.parent.slotPars[slot_idx] is not None:
+		currBank = self.parent.currBank
+		if (currBank < len(self.parent.slotPars) and 
+			slot_idx < len(self.parent.slotPars[currBank]) and 
+			self.parent.slotPars[currBank][slot_idx] is not None):
 			return 127   # Occupied slot
 			
 		return 0  # Free slot (hover mode)
@@ -64,7 +67,7 @@ class DisplayManager:
 		# Delegate to renderers with processed data
 		self.vsn1_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
 		
-		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED]:
+		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED] and self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE, KnobLedUpdateMode.OFF]:
 			self.vsn1_renderer.update_knob_leds_gradual(0)
 		elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
 			self.vsn1_renderer.update_knob_leds_gradual(percentage)
@@ -75,6 +78,8 @@ class DisplayManager:
 	def update_parameter_display(self, par, bottom_text: str = None, force_knob_leds: bool = False):
 		"""Update displays for a specific parameter - handles ALL logic here"""
 		if par is None:
+			return
+		if not par.valid:
 			return
 			
 		# Handle different parameter types - ALL logic here
@@ -149,6 +154,10 @@ class DisplayManager:
 							   display_text=str(step), step_indicator=index, compress=False)
 		if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
 			self.vsn1_renderer.update_knob_leds_steps(index)
+
+	def set_bank_indicator(self, bank_idx: int):
+		self.vsn1_renderer.set_bank_indicator(bank_idx)
+		self.ui_renderer.set_bank_indicator(bank_idx)
 	
 	# VSN1-specific methods that also update UI equivalents
 	def update_all_slot_leds(self):

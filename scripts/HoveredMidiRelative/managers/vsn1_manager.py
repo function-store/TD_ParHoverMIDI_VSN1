@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : vsn1_manager
-Author : root
-Saveorigin : HoveredMidiRelative.182.toe
+Author : Dan@DAN-4090
+Saveorigin : HoveredMidiRelative.191.toe
 Saveversion : 2023.12120
 Info Header End'''
 from constants import VSN1Constants
@@ -132,3 +132,10 @@ class VSN1Manager:
 		for idx, led_idx in enumerate(VSN1Constants.KNOB_LED_IDXS):
 			led_updates.append((led_idx, (step_indicator_idx == idx) * 255 * self.knob_led_dampen))
 		self._send_batch_leds(led_updates)
+
+	def set_bank_indicator(self, bank_idx: int):
+		"""Set bank indicator on VSN1 display"""
+		if not self.is_vsn1_enabled():
+			return
+		# Send Lua command to update bank indicator on screen
+		self.grid_comm.SendLua(f'b={bank_idx};lcd:ldsw()')

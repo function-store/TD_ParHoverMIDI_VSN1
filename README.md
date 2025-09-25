@@ -12,6 +12,7 @@ HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by co
 
 - **Hover-based Parameter Control**: Adjust any parameter by hovering your mouse over it
 - **Multiple Parameter Slots**: Assign parameters to MIDI buttons for instant access and switching
+- **Multiple Banks**: Organize slots into separate banks for expanded parameter control
 - **MIDI Integration**: Works with endless MIDI encoders in relative mode
 - **Smart Learning System**: Automatically assign MIDI button mappings for step adjustment and main knob MIDI index
 - **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters (Pulse buttons now support Toggle parameters too)
@@ -59,6 +60,7 @@ HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by co
 6. **Adjust Step Size**: Use assigned MIDI buttons to cycle through different step sizes for fine/coarse control 
 7. **Usage**: Hover over any parameter and twist your MIDI controller to adjust that specific parameter's value
 8. Check [Parameter Slots System](#parameter-slots-system) to save and recall parameters to control!
+9. **Multiple Banks**: Use [Multiple Banks](#multiple-banks) to organize slots into separate banks for expanded control
 
 ## Special MIDI Functions
 
@@ -84,6 +86,41 @@ The component supports multiple parameter slots that can be assigned to differen
 - **All VSN1 slot LEDs turn off** when returning to hover mode
 
 > Parameter slots are saved with the project file / component.
+
+### Multiple Banks
+The component supports multiple banks to organize your parameter slots, dramatically expanding your control capabilities:
+
+**Bank Organization**:
+- **Each bank** contains its own set of parameter slots (e.g., 8 slots per bank)
+- **Banks are independent** - each bank remembers its own slot assignments and active slot
+- **Bank switching** instantly loads a different set of parameter assignments
+- **Example**: Bank 0 might control lighting parameters, Bank 1 audio effects, Bank 2 video parameters
+
+**Bank Configuration**:
+- **Add banks**: Use the `Banks` sequence parameter +/- buttons to add/remove banks
+- **Manual mapping**: Set MIDI note indices in the Banks sequence for bank selection buttons
+- **Learning mode**: Hover over a Banks sequence Index parameter and press your desired MIDI button
+- **VSN1 preset**: The `Use Defaults for VSN1` parameter automatically configures bank buttons
+
+**Bank Switching**:
+- **Press a bank button** to switch to that bank
+- **Slot assignments change** - button labels and colors update to show the new bank's slots
+- **Active slot recalled** - if you had an active slot in this bank, it becomes active again
+- **Bank indicator** - both VSN1 screen and UI show the current bank number
+- **Independent operation** - each bank operates exactly like the original single-bank system
+
+**Bank Memory**:
+- **Last active slot** - each bank remembers which slot was last active
+- **Slot assignments** - each bank maintains its own parameter-to-slot mappings
+- **Seamless switching** - return to any bank and continue where you left off
+
+**Visual Feedback**:
+- **Bank indicator** - current bank number displayed on VSN1 screen and UI
+- **Button labels** - slot button labels update to show parameters from current bank
+- **Button colors** - slot button colors reflect the current bank's slot states (empty/occupied/active)
+- **VSN1 LEDs** - slot LEDs update to match current bank's assignments
+
+> Banks and their slot assignments are saved with the project file / component.
 
 ### Parameter Reset (`Reset Par Index`)
 - **Hold this MIDI button**: While hovering over any parameter for the specified time duration
@@ -121,13 +158,18 @@ The VSN1 provides comprehensive visual feedback through LEDs and screen elements
 - **Color outline**: Currently in hover mode - move mouse to select parameters
 - **White outline**: Currently in slot mode - a parameter slot is active
 
+### **Bank Indicators**:
+- **Screen display**: Shows current bank number (e.g., "Bank 0", "Bank 1")
+- **Button updates**: Slot button labels and LEDs update when switching banks
+- **UI indicator**: TouchDesigner UI shows current bank number
+
 ### **Step Size Indicators**:
 - **Screen display**: Shows current step value when step size changes
 
 ### **Knob LEDs**: 
 - **Knob ring LEDs** show visual feedback of value-based gradual fill or step-based indicators, depending on setting.
 
-This visual system makes it immediately clear whether you're in hover mode or slot mode, which slots are available, occupied, or active, and what precision level you're currently using for parameter adjustments.
+This visual system makes it immediately clear whether you're in hover mode or slot mode, which bank you're currently using, which slots are available, occupied, or active, and what precision level you're currently using for parameter adjustments.
 
 ## Known Issues
 - Screen updates can be laggy (it is trying its best though)
@@ -136,7 +178,10 @@ This visual system makes it immediately clear whether you're in hover mode or sl
 
 ### Enhanced Slot Management
 - ✅ **LED feedback for active slots**: Implemented - LEDs show which slot is currently active
-- **Enhanced visual indicators**: Color-coded LEDs or screen indicators for different slot states
+- ✅ **Multiple banks**: Implemented - organize slots into separate banks for expanded control
+- ✅ **Bank memory**: Implemented - each bank remembers its last active slot and assignments
+- ✅ **Visual bank indicators**: Implemented - screen and UI show current bank number
+- **Enhanced visual indicators**: Additional color-coded LEDs or screen indicators for different slot states
 - **Slot persistence improvements**: Better handling of slot assignments across sessions
 
 
@@ -164,11 +209,11 @@ scripts/HoveredMidiRelative/
 
 **Core Components:**
 - **`HoveredMidiRelativeExt`**: Main extension class with TouchDesigner integration
-- **`MidiMessageHandler`**: Processes MIDI input (steps, knobs, pulses, slots)
+- **`MidiMessageHandler`**: Processes MIDI input (steps, knobs, pulses, slots, banks)
 - **`DisplayManager`**: Centralizes all display logic and coordinates renderers
 - **`VSN1Manager`**: Handles VSN1 screen updates and LED feedback (with batched LED commands)
-- **`UIManager`**: Manages local TouchDesigner UI elements
-- **`SlotManager`**: Handles parameter slot assignment, activation, and clearing
+- **`UIManager`**: Manages local TouchDesigner UI elements with bank-aware button states
+- **`SlotManager`**: Handles parameter slot assignment, activation, clearing, and bank switching
 - **`ParameterValidator`**: Validates parameter compatibility and learning eligibility
 - **`LabelFormatter`**: Smart label compression with priority for parameter groups and sequence block indices
 
@@ -177,6 +222,8 @@ scripts/HoveredMidiRelative/
 - Robust MIDI input processing with error handling
 - Centralized parameter value calculations with type-specific handling
 - Smart learning system implementation
+- Multiple banks with independent slot management and memory
+- Bank-aware UI updates with comprehensive state management
 - Optimized VSN1 communication with batched LED updates
 - Priority-based label formatting (preserves parameter group suffixes and sequence block prefixes)
 - Unified display architecture with thin renderer pattern

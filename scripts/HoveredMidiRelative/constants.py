@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : constants
-Author : root
-Saveorigin : HoveredMidiRelative.179.toe
+Author : Dan@DAN-4090
+Saveorigin : HoveredMidiRelative.188.toe
 Saveversion : 2023.12120
 Info Header End'''
 from enum import Enum
@@ -20,6 +20,7 @@ class MidiConstants:
 class VSN1Constants:
 	# VSN1 Hardware mappings
 	STEP_BUTTONS = {42: 0.001, 43: 0.01, 44: 0.1, 45: 1}
+	BANK_BUTTONS = [42, 43, 44, 45]
 	SLOT_INDICES = [33, 34, 35, 36, 37, 38, 39, 40]
 	KNOB_INDEX = 41
 	RESET_INDEX = 41
