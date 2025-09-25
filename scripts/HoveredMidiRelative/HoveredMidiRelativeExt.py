@@ -80,10 +80,12 @@ class HoveredMidiRelativeExt:
 			
 		self.display_manager.clear_screen()
 		if self.activePar is not None:
-			self.display_manager.update_parameter_display(self.activePar)
+			self.display_manager.update_parameter_display(self.activePar, force_knob_leds=True)
 		else:
 			self.display_manager.update_all_display(0.5, 0, 1, ScreenMessages.HOVER, 
 													ScreenMessages.HOVER, compress=False)
+
+
 
 		self.display_manager.update_all_slot_leds()
 		
@@ -101,6 +103,10 @@ class HoveredMidiRelativeExt:
 			self.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)  # Active slot
 		else:
 			self.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)  # Hover mode
+
+		if self.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
+			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), 0)
+			self.vsn1_manager.update_knob_leds_steps(step_idx)
 		
 # region properties
 		
@@ -143,6 +149,11 @@ class HoveredMidiRelativeExt:
 		"""Get the current label display mode from component parameter"""
 		# covert text to enum
 		return LabelDisplayMode(self.evalLabeldisplaymode)
+
+	@property
+	def knobLedUpdateMode(self) -> KnobLedUpdateMode:
+		"""Get the current knob LED update mode from component parameter"""
+		return KnobLedUpdateMode(self.evalKnobledupdate)
 
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
@@ -411,6 +422,19 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback when default step size parameter changes"""
 		if not self.evalPersiststep:
 			self._currStep = _val
+
+	def onParKnobledupdate(self, _par, _val):
+		"""TouchDesigner callback when knob LED update mode parameter changes"""
+		if KnobLedUpdateMode(_val) in [KnobLedUpdateMode.VALUE, KnobLedUpdateMode.OFF]:
+			self.display_manager.update_parameter_display(self.activePar, force_knob_leds=True)
+		else:
+			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), None)
+			self.vsn1_manager.update_knob_leds_steps(step_idx)
+
+	def onParVsn1support(self, _par, _val):
+		"""TouchDesigner callback when VSN1 support parameter changes"""
+		if _val:
+			self.ownerComp.par.Resetcomm.pulse()
 
 	def onParUsedefaultsforvsn1(self):
 		"""TouchDesigner callback to set VSN1 hardware defaults"""

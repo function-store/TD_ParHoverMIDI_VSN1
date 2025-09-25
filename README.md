@@ -14,7 +14,7 @@ HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by co
 - **Multiple Parameter Slots**: Assign parameters to MIDI buttons for instant access and switching
 - **MIDI Integration**: Works with endless MIDI encoders in relative mode
 - **Smart Learning System**: Automatically assign MIDI button mappings for step adjustment and main knob MIDI index
-- **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
+- **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters (Pulse buttons now support Toggle parameters too)
 - **Adjustable Precision**: Change adjustment step sizes using MIDI buttons
 - **Parameter Reset**: Hold button to reset parameters to default values
 - **Robust Error Handling**: Graceful handling of empty/invalid MIDI configurations
@@ -90,6 +90,12 @@ The component supports multiple parameter slots that can be assigned to differen
 - **Result**: The parameter will reset to its default value
 - **Duration**: Configurable via the `Reset Hold Length` parameter
 
+### Parameter Pulse (`Pulse Index`)
+- **Press this MIDI button**: While hovering over a parameter
+- **For Pulse parameters**: Triggers the pulse action
+- **For Toggle parameters**: Toggles the parameter on/off
+- **Other parameter types**: No action (returns false)
+
 ## Customization Parameters
 
 The following parameters are available to further customize the functionality of the component:
@@ -98,7 +104,9 @@ The following parameters are available to further customize the functionality of
 - **`Default Step Size`**: Step size when Persist Step is off and not holding any step button. Set this to zero to avoid accidental parameter adjustments when not holding any button.
 - **`Reset Hold Length`**: Holding the assigned reset button for this specified time will reset hovered parameter to its default value.
 - **`VSN1 Support`**: Enables VSN1 screen updates and LED feedback, displaying adjusted parameter and value (circle size between param normMin/Max values), using websocket communication --- requires Grid Editor to be open!
+- **`Label Display Mode`**: Choose between "Compressed" (removes vowels/spaces) or "Truncated" (simple cut-off) for parameter label formatting on limited displays
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
+- **`Knob LED Update`**: Choose between "Off", "Value" and "Step" to determine what is indicated on the knob LEDs of VSN1. **NOTE**: Currently when set to "Value", laggy updates can be observed on the hardware unit.
 
 ## VSN1 Visual Feedback
 
@@ -116,6 +124,9 @@ The VSN1 provides comprehensive visual feedback through LEDs and screen elements
 ### **Step Size Indicators**:
 - **Screen display**: Shows current step value when step size changes
 
+### **Knob LEDs**: 
+- **Knob ring LEDs** show visual feedback of value-based gradual fill or step-based indicators, depending on setting.
+
 This visual system makes it immediately clear whether you're in hover mode or slot mode, which slots are available, occupied, or active, and what precision level you're currently using for parameter adjustments.
 
 ## Known Issues
@@ -128,23 +139,47 @@ This visual system makes it immediately clear whether you're in hover mode or sl
 - **Enhanced visual indicators**: Color-coded LEDs or screen indicators for different slot states
 - **Slot persistence improvements**: Better handling of slot assignments across sessions
 
+
+## Known Issues
+- When **`Knob LED Update`** is set to "Value", laggy updates can be observed on the hardware unit, but it does not affect actual value updates.
+
 ## Development
 
-### Extension Scripts
-The `HoveredMidiRelativeExt.py` file has been refactored into a modular architecture:
+### Project Structure
+The codebase has been refactored into a modular architecture for better maintainability:
 
-**Core Classes:**
+```
+scripts/HoveredMidiRelative/
+├── constants.py              # All constants and enums
+├── validators.py             # Parameter validation logic
+├── formatters.py             # Label and value formatting utilities
+├── handlers.py               # MIDI message processing
+├── managers/
+│   ├── slot_manager.py       # Parameter slot operations
+│   ├── display_manager.py    # Unified display logic coordinator
+│   ├── vsn1_manager.py       # VSN1 hardware integration
+│   └── ui_manager.py         # Local UI element management
+└── HoveredMidiRelativeExt.py # Main extension class
+```
+
+**Core Components:**
 - **`HoveredMidiRelativeExt`**: Main extension class with TouchDesigner integration
-- **`MidiMessageHandler`**: Processes MIDI input and manages LED feedback
-- **`ScreenManager`**: Handles VSN1 screen updates and display formatting
+- **`MidiMessageHandler`**: Processes MIDI input (steps, knobs, pulses, slots)
+- **`DisplayManager`**: Centralizes all display logic and coordinates renderers
+- **`VSN1Manager`**: Handles VSN1 screen updates and LED feedback (with batched LED commands)
+- **`UIManager`**: Manages local TouchDesigner UI elements
+- **`SlotManager`**: Handles parameter slot assignment, activation, and clearing
 - **`ParameterValidator`**: Validates parameter compatibility and learning eligibility
+- **`LabelFormatter`**: Smart label compression with priority for parameter groups and sequence block indices
 
 **Key Features:**
 - Mouse hover detection and parameter tracking
 - Robust MIDI input processing with error handling
-- Centralized parameter value calculations
+- Centralized parameter value calculations with type-specific handling
 - Smart learning system implementation
-- VSN1 screen updates and LED feedback
+- Optimized VSN1 communication with batched LED updates
+- Priority-based label formatting (preserves parameter group suffixes and sequence block prefixes)
+- Unified display architecture with thin renderer pattern
 - Safe handling of empty/invalid MIDI configurations
 
 

@@ -23,6 +23,8 @@ class VSN1Constants:
 	MAX_LABEL_LENGTH = 9
 	MAX_VALUE_LENGTH = 8
 
+	KNOB_LED_IDXS = [0, 1, 2, 3, 4]
+
 class SupportedParameterTypes(Enum):
 	NUMBER = 'Number'
 	MENU = 'Menu'
@@ -44,3 +46,8 @@ class ScreenMessages:
 class LabelDisplayMode(Enum):
 	TRUNCATED = 'Truncated'
 	COMPRESSED = 'Compressed'
+
+class KnobLedUpdateMode(Enum):
+	OFF = 'Off'
+	VALUE = 'Value'
+	STEPS = 'Step'

@@ -1,6 +1,6 @@
 import re
 from typing import Optional
-from constants import ScreenMessages, VSN1ColorIndex
+from constants import ScreenMessages, VSN1ColorIndex, KnobLedUpdateMode
 from formatters import LabelFormatter
 
 class DisplayManager:
@@ -57,9 +57,16 @@ class DisplayManager:
 		
 		# Delegate to renderers with processed data
 		self.vsn1_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
+		
+		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED]:
+			self.vsn1_renderer.update_knob_leds_gradual(0)
+		elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
+			self.vsn1_renderer.update_knob_leds_gradual(percentage)
+
+		
 		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
-	
-	def update_parameter_display(self, par):
+    
+	def update_parameter_display(self, par, force_knob_leds: bool = False):
 		"""Update displays for a specific parameter - handles ALL logic here"""
 		if par is None:
 			return
@@ -100,6 +107,15 @@ class DisplayManager:
 		
 		# Use the unified display logic
 		self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
+		if force_knob_leds:
+			if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
+				percentage = (val - min_val) / (max_val - min_val)
+				self.vsn1_renderer.update_knob_leds_gradual(percentage)
+			elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
+				index = next((i for i, s in enumerate(self.parent.seqSteps) if s.par.Step.eval() == self.parent._currStep), None)
+				self.vsn1_renderer.update_knob_leds_steps(index)
+			elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.OFF]:
+				self.vsn1_renderer.update_knob_leds_gradual(0)
 	
 	def update_step_display(self, step: float):
 		"""Update displays with current step value - handles ALL logic here"""
@@ -122,6 +138,8 @@ class DisplayManager:
 		
 		self.update_all_display(mapped_step, max_step, min_step, ScreenMessages.STEP, 
 							   display_text=str(step), step_indicator=index, compress=False)
+		if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
+			self.vsn1_renderer.update_knob_leds_steps(index)
 	
 	# VSN1-specific methods that also update UI equivalents
 	def update_all_slot_leds(self):
