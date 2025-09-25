@@ -1,3 +1,9 @@
+'''Info Header Start
+Name : IntechGridCommExt
+Author : root
+Saveorigin : HoveredMidiRelative.179.toe
+Saveversion : 2023.12120
+Info Header End'''
 
 CustomParHelper: CustomParHelper = next(d for d in me.docked if 'ExtUtils' in d.tags).mod('CustomParHelper').CustomParHelper # import
 ###

@@ -1,3 +1,9 @@
+'''Info Header Start
+Name : formatters
+Author : root
+Saveorigin : HoveredMidiRelative.179.toe
+Saveversion : 2023.12120
+Info Header End'''
 """
 Label and value formatting utilities for HoveredMidiRelative
 """

@@ -70,6 +70,8 @@ class HoveredMidiRelativeExt:
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
 
+		# needed to clear pickle errors due to missing parameters in storage, before we can even validate
+		self.ownerComp.clearScriptErrors(recurse=True)
 		self._validate_storage()
 
 		# Initialize screen

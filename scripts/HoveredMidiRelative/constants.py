@@ -1,3 +1,9 @@
+'''Info Header Start
+Name : constants
+Author : root
+Saveorigin : HoveredMidiRelative.179.toe
+Saveversion : 2023.12120
+Info Header End'''
 from enum import Enum
 
 # Constants

@@ -1,3 +1,9 @@
+'''Info Header Start
+Name : slot_manager
+Author : root
+Saveorigin : HoveredMidiRelative.182.toe
+Saveversion : 2023.12120
+Info Header End'''
 from typing import Optional
 from constants import ScreenMessages, VSN1ColorIndex
 from validators import ParameterValidator
@@ -32,9 +38,7 @@ class SlotManager:
 		
 		# Update displays and feedback
 		param_label = LabelFormatter.get_label_for_parameter(parameter, self.parent.labelDisplayMode)
-		self.parent.display_manager.update_all_display(
-			parameter.eval(), parameter.normMin, parameter.normMax, 
-			param_label, ScreenMessages.LEARNED, compress=False)
+		self.parent.display_manager.update_parameter_display(parameter, bottom_text=ScreenMessages.LEARNED)
 		
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)

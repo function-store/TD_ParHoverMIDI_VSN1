@@ -1,3 +1,9 @@
+'''Info Header Start
+Name : display_manager
+Author : root
+Saveorigin : HoveredMidiRelative.182.toe
+Saveversion : 2023.12120
+Info Header End'''
 import re
 from typing import Optional
 from constants import ScreenMessages, VSN1ColorIndex, KnobLedUpdateMode
@@ -66,7 +72,7 @@ class DisplayManager:
 		
 		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
     
-	def update_parameter_display(self, par, force_knob_leds: bool = False):
+	def update_parameter_display(self, par, bottom_text: str = None, force_knob_leds: bool = False):
 		"""Update displays for a specific parameter - handles ALL logic here"""
 		if par is None:
 			return
@@ -89,6 +95,9 @@ class DisplayManager:
 			val = par.eval()
 			min_val, max_val = par.normMin, par.normMax
 			display_text = None
+
+		if bottom_text is not None:
+			display_text = bottom_text
 
 		# Use the centralized label method which handles parameter groups
 		label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode)

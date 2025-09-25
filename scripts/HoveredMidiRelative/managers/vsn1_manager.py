@@ -1,3 +1,9 @@
+'''Info Header Start
+Name : vsn1_manager
+Author : root
+Saveorigin : HoveredMidiRelative.182.toe
+Saveversion : 2023.12120
+Info Header End'''
 from constants import VSN1Constants
 
 class VSN1Manager:
@@ -18,6 +24,7 @@ class VSN1Manager:
 			
 		# Simple Lua function call - ONLY difference from UI renderer
 		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator})"
+
 		self.grid_comm.SendLua(lua_code)
 	
 	def clear_screen(self):

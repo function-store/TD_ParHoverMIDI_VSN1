@@ -1,3 +1,9 @@
+'''Info Header Start
+Name : ui_manager
+Author : root
+Saveorigin : HoveredMidiRelative.179.toe
+Saveversion : 2023.12120
+Info Header End'''
 from constants import VSN1ColorIndex, ScreenMessages
 from formatters import LabelFormatter
 

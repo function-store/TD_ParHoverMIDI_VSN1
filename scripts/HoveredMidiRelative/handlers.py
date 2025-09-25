@@ -1,3 +1,9 @@
+'''Info Header Start
+Name : handlers
+Author : root
+Saveorigin : HoveredMidiRelative.184.toe
+Saveversion : 2023.12120
+Info Header End'''
 from constants import MidiConstants, VSN1ColorIndex, ScreenMessages
 
 class MidiMessageHandler:
@@ -36,14 +42,12 @@ class MidiMessageHandler:
 		if index != pulse_index:
 			return False
 			
-		if active_par is not None and active_par.owner != self.parent.ownerComp and \
-			value == MidiConstants.MAX_VELOCITY:
-			if active_par.isPulse:
-				active_par.pulse()
-			elif active_par.isToggle:
-				active_par.val = not active_par.eval()
-			else:
-				return False
+		if active_par is not None and active_par.owner != self.parent.ownerComp:
+			if value == MidiConstants.MAX_VELOCITY:
+				if active_par.isPulse:
+					active_par.pulse()
+				elif active_par.isToggle:
+					active_par.val = not active_par.eval()
 			self.parent.display_manager.update_parameter_display(active_par)
 		return True
 	
