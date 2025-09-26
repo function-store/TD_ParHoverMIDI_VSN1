@@ -2,11 +2,17 @@
 
 A TouchDesigner component for intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. **This component only works with endless relative MIDI knobs (such as the [Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r), but should work with others) - standard potentiometers will not function.**
 
+
+
 ## Overview
 
 HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by combining mouse hover detection with MIDI controller input. Simply hover your mouse over any parameter and use your MIDI controller to make precise adjustments without clicking or dragging. The system controls one parameter at a time based on your mouse hover position.
 
 > Relative MIDI means the device sends a value less or greater than 64 to indicate movement in either direction. The greater the difference, the bigger the movement. The sensitivity is configurable for VSN1 for example.
+
+Below is a summary of the features mapped to [Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r), the target hardware of this repo.
+
+![](https://github.com/function-store/TD_HoveredMidiRelative/blob/main/docs/images/hoveredvsn1.jpg)
 
 ## Features
 
