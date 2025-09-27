@@ -31,6 +31,7 @@ class HoveredMidiRelativeExt:
 		self.activeMidi = self.ownerComp.op('midiin_active')
 		self.resetMidi = self.ownerComp.op('midiin_reset')
 		self.slotsLearnMidi = self.ownerComp.op('midiin_slots')
+		self.bankMidi = self.ownerComp.op('midiin_bank')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
 		
 		# Initialize state
@@ -503,6 +504,10 @@ class HoveredMidiRelativeExt:
 		self.activeMidi.cook(force=True)
 		self.slotsLearnMidi.cook(force=True)
 
+	def onSeqBanksNIndex(self, _par, idx):
+		"""TouchDesigner callback when sequence banks index changes"""
+		self.bankMidi.cook(force=True)
+
 	def onParKnobindex(self, _par, _val):
 		"""TouchDesigner callback when knob index parameter changes"""
 		self.activeMidi.cook(force=True)
@@ -565,6 +570,7 @@ class HoveredMidiRelativeExt:
 		self.activeMidi.cook(force=True)
 		self.resetMidi.cook(force=True)
 		self.slotsLearnMidi.cook(force=True)
+		self.bankMidi.cook(force=True)
 
 	def onSeqBanksNumBlocks(self, _par, _val):
 		"""TouchDesigner callback when number of banks changes"""
