@@ -369,13 +369,13 @@ class HoveredMidiRelativeExt:
 			self.activePar.reset()
 			self.display_manager.update_parameter_display(self.activePar)
 
-	def onReceiveMidiBankSel(self, channel, midi_idx: int) -> None:
+	def onReceiveMidiBankSel(self, index: int) -> None:
 		"""TouchDesigner callback for bank selection MIDI input"""
-		if channel != self.evalChannel or not self.evalActive:
+		if not self.evalActive:
 			return
-		
+
 		# Handle bank change message
-		self.midi_handler.handle_bank_message(midi_idx)
+		self.midi_handler.handle_bank_message(index)
 				
 
 # endregion midi callbacks

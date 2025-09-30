@@ -1,6 +1,6 @@
 '''Info Header Start
 Name : formatters
-Author : root
+Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.179.toe
 Saveversion : 2023.12120
 Info Header End'''
@@ -29,7 +29,7 @@ class LabelFormatter:
 		if block := par.sequenceBlock:
 			prefix = f"{block.index}"
 		
-		if len(par.parGroup) > 1:
+		if len(par.parGroup) > 1 and not (isinstance(par.parGroup, ParGroupUnit) or isinstance(par.parGroup, ParGroupPulse)):
 			suffix = f"{par.name[-1].capitalize()}"
 		
 		# Format with prefix and suffix preservation
