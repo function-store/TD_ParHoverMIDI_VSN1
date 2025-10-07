@@ -12,7 +12,7 @@ This component enables seamless parameter adjustment in TouchDesigner by combini
 
 Below is a summary of the features mapped to [Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r), the target hardware of this repo.
 
-![](https://github.com/function-store/TD_HoveredMidiRelative/blob/main/docs/images/hoveredvsn1.jpg)
+![](https://github.com/function-store/TD_ParHoverMIDI_VSN1/blob/main/docs/images/hoveredvsn1.jpg)
 
 ## Features
 
@@ -48,6 +48,18 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 
 ## Installation
 
+### Intech Studio Grid Editor
+
+**Install the Grid Package:**
+1. Clone the repository
+2. Run `npm i` in the root folder
+3. Run `npm run build` to build the necessary files
+4. In the Editor at the Package Manager panel, either Approve the package at the top of the list if possible or use the `+ Add external package` button to add the **root** path of the package (for example, `C:\Users\...\TD_ParHoverMIDI_VSN1`)
+
+**Import the VSN1 Configuration:**
+1. On your VSN1 device, import `TouchDesigner Par Hover Control` from the Grid Editor Link `grid-editor://?config-link=xRPvAgRRc1AobWO2HtYM` (paste it into your browser or look for it in the **Grid Cloud**)
+2. Keep Grid Editor open at all times when using VSN1 (exclusive access to port `9642` required)
+
 ### TouchDesigner
 
 1. Connect your MIDI controller to your system
@@ -55,18 +67,6 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 3. Download the latest release from the `modules/release/` directory
 4. Drag `ParHoverMIDI_VSN1.tox` into your TouchDesigner project
 5. Have Grid Editor open at all times when using Intech hardware (see next section)
-
-### Intech Studio Grid Editor
-
-**Install the Grid Package:**
-1. Clone the repository
-2. Run `npm i` in the root folder
-3. Run `npm run build` to build the necessary files
-4. In the Editor at the Package Manager panel, either Approve the package at the top of the list if possible or use the `+ Add external package` button to add the **root** path of the package (for example, `C:\Users\...\package-websocket`)
-
-**Import the VSN1 Configuration:**
-5. On your VSN1 device, import `TouchDesigner Par Hover Control` from the Grid Editor Link `grid-editor://?config-link=xRPvAgRRc1AobWO2HtYM` (paste it into your browser) or look for it in the **Grid Cloud**
-6. Keep Grid Editor open at all times when using VSN1 (exclusive access to port `9642` required)
 
 ## Quick Start
 
