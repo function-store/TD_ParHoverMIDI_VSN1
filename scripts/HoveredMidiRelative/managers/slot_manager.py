@@ -1,3 +1,4 @@
+
 '''Info Header Start
 Name : slot_manager
 Author : Dan@DAN-4090

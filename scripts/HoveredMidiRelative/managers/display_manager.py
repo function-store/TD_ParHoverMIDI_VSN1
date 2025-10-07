@@ -1,3 +1,4 @@
+
 '''Info Header Start
 Name : display_manager
 Author : Dan@DAN-4090
@@ -8,6 +9,7 @@ import re
 from typing import Optional
 from constants import ScreenMessages, VSN1ColorIndex, KnobLedUpdateMode
 from formatters import LabelFormatter
+import math
 
 class DisplayManager:
 	"""Unified display manager that handles ALL display logic and delegates to renderers"""
@@ -146,11 +148,14 @@ class DisplayManager:
 			mapped_step = (step - min_step) / (max_step - min_step)
 		else:
 			mapped_step = 0.5
+
+		# Scale for better display
+		mapped_step = mapped_step ** 0.5
 		
 		# Find step index for indicator
 		index = next((i for i, s in enumerate(seq) if s.par.Step.eval() == step), None)
 		
-		self.update_all_display(mapped_step, max_step, min_step, ScreenMessages.STEP, 
+		self.update_all_display(mapped_step, min_step, max_step, ScreenMessages.STEP, 
 							   display_text=str(step), step_indicator=index, compress=False)
 		if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
 			self.vsn1_renderer.update_knob_leds_steps(index)

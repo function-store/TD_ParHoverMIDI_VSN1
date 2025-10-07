@@ -48,3 +48,23 @@ mapping/
 Log/OrbbecSDK.log.txt
 /Assets
 /clipboard_images
+
+# Grid Package
+
+node_modules
+
+photoshop-plugin/ccx
+photoshop-plugin/dist
+photoshop-plugin/node_modules
+photoshop-plugin/ccx
+
+# Editor directories and files
+.vscode
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

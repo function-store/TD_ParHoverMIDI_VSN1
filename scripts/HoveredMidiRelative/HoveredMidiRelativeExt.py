@@ -1,3 +1,8 @@
+'''Info Header Start
+Name : HoveredMidiRelativeExt
+Author : Dan@DAN-4090
+Saveversion : 2023.12120
+Info Header End'''
 import json
 import math
 import re
@@ -85,11 +90,11 @@ class HoveredMidiRelativeExt:
 		self.stored = StorageManager(self, ownerComp, storedItems)
 
 		# Needed to clear pickle errors due to missing parameters in storage, before we can even validate
-		self.ownerComp.clearScriptErrors(recurse=True)
 		self._validate_storage()
 
 		# Initialize screen
 		self._initialize_VSN1()
+
 
 	def _validate_storage(self):
 		"""Validate storage and ensure proper structure for dynamic bank changes"""
@@ -472,6 +477,7 @@ class HoveredMidiRelativeExt:
 
 	def onParClear(self):
 		"""TouchDesigner callback to clear all MIDI mappings"""
+		debug('onParClear')
 		# Clear all slot LEDs before resetting
 		self._clear_all_slot_leds()
 		

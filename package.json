@@ -1,0 +1,33 @@
+{
+  "name": "package-touchdesigner-parhover",
+  "version": "1.2.0",
+  "description": "TouchDesigner Par Hover (VSN1)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write .",
+    "install:components": "cd ./components && npm install",
+    "build:components": "cd ./components && npm run build",
+    "dev:components": "cd ./components && npm run dev",
+    "postinstall": "run-p install:*",
+    "build": "run-p build:*",
+    "dev": "run-p dev:*"
+  },
+  "author": "@function.str",
+  "license": "ISC",
+  "grid_editor": {
+    "componentsPath": "components/dist/components.js",
+    "preferenceComponent": "touchdesigner-parhover-preference",
+    "shortDescription": "Control and save hovered parameters in TouchDesigner with VSN1 - see repo for .tox and README",
+    "mainIcon": "TouchDesigner-icon.svg",
+    "menuIcon": "TouchDesigner-icon.svg"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "prettier-plugin-svelte": "^3.3.3",
+    "npm-run-all": "^4.1.5"
+  }
+}

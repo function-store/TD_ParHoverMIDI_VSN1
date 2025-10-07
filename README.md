@@ -1,14 +1,14 @@
-# HoveredMidiRelative
+# TouchDesigner Par Hover Control for VSN1
 
-A TouchDesigner component for intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. **This component only works with endless relative MIDI knobs (such as the [Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r), but should work with others) - standard potentiometers will not function.**
-
-
+A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. While optimized for VSN1, it's compatible with other endless relative MIDI controllers. **Standard potentiometers will not function as intended.**
 
 ## Overview
 
-HoveredMidiRelative enables seamless parameter adjustment in TouchDesigner by combining mouse hover detection with MIDI controller input. Simply hover your mouse over any parameter and use your MIDI controller to make precise adjustments without clicking or dragging. The system controls one parameter at a time based on your mouse hover position.
+This component enables seamless parameter adjustment in TouchDesigner by combining mouse hover detection with VSN1's endless encoders and visual feedback system. Simply hover your mouse over any parameter and use the VSN1's knob to make precise adjustments without clicking or dragging. The VSN1's screen and LEDs provide real-time feedback, while the system controls one parameter at a time based on your mouse hover position.
 
 > Relative MIDI means the device sends a value less or greater than 64 to indicate movement in either direction. The greater the difference, the bigger the movement. The sensitivity is configurable for VSN1 for example.
+
+> This repo also contains the [Grid Editor](https://intech.studio/products/editor) package that needs to be added to the editor, see [Installation Steps](#installation)
 
 Below is a summary of the features mapped to [Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r), the target hardware of this repo.
 
@@ -16,52 +16,67 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 
 ## Features
 
+- **VSN1-Optimized Control**: Designed specifically for VSN1's endless encoders and visual feedback system
 - **Hover-based Parameter Control**: Adjust any parameter by hovering your mouse over it
-- **Multiple Parameter Slots**: Assign parameters to MIDI buttons for instant access and switching
-- **Multiple Banks**: Organize slots into separate banks for expanded parameter control
-- **MIDI Integration**: Works with endless MIDI encoders in relative mode
-- **Smart Learning System**: Automatically assign MIDI button mappings for step adjustment and main knob MIDI index
-- **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters (Pulse buttons now support Toggle parameters too)
-- **Adjustable Precision**: Change adjustment step sizes using MIDI buttons
-- **Parameter Reset**: Hold button to reset parameters to default values
-- **Robust Error Handling**: Graceful handling of empty/invalid MIDI configurations
-- **Hardware Support**: Should work with any endless/relative encoder, optimized for [Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r) with specialized support
-- **Real-time Feedback**: Visual feedback on VSN1's built-in screen during parameter adjustments
+- **Multiple Parameter Slots**: Assign parameters to VSN1 buttons for instant access and switching
+- **Multiple Banks**: Organize slots into separate banks using VSN1 buttons for expanded parameter control
+- **Smart Learning System**: Automatically assign VSN1 button mappings for step adjustment and main knob control
+- **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
+- **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
+- **Parameter Reset**: Hold VSN1 button to reset parameters to default values
+- **Real-time VSN1 Feedback**: Full integration with VSN1's built-in screen and LED system
   - **LED Feedback**: Color-coded LEDs showing slot states (dark/dim/bright)
+  - **Screen Display**: Parameter names, values, and bank indicators on VSN1 screen
   - **Visual State Indicators**: Screen outline colors indicate current mode (hover/slot active)
+- **Generic MIDI Compatibility**: Also works with other endless/relative MIDI encoders (without visual feedback)
 
 ## Hardware Compatibility
 
-### Supported Controllers
-- **Generic MIDI Controllers**: Compatible with endless encoders in relative mode
-- **MIDI Button Controllers**: For step size adjustment functionality (optional enhancement)
-- **intech.studio VSN1**: Full native support with optimized mappings (endless encoders) and screen update
+### Primary Target Hardware
+- **Intech Studio VSN1**: Full native support with optimized mappings, screen updates, and LED feedback
+
+### Alternative Hardware (Limited Support)
+- **Generic MIDI Controllers**: Compatible with endless encoders in relative mode (no visual feedback)
+- **MIDI Button Controllers**: For step size and bank adjustment functionality
+> Turn off `VSN1 Support` custom parameter in the TouchDesigner component to avoid issues.
 
 ### Requirements
 - TouchDesigner (2023.11880+)
-- **MIDI controller with endless relative encoders** (absolute controls will not work)
-- USB or MIDI interface connection
-- **For VSN1 display updates**: 
-  - Install and activate the [websocket package](https://github.com/intechstudio/package-websocket?tab=readme-ov-file#installation)
-  - Grid Editor must be open with exclusive access to port 9834 (no other communication on this port)
-  - Import `TouchDesigner Hover Param Adjustment` from the Grid Editor Link `grid-editor://?config-link=xRPvAgRRc1AobWO2HtY` (paste it into your browser) or look for it in the Cloud
+- **Intech Studio VSN1** (recommended) or other endless relative MIDI encoder
+- USB connection to VSN1 or MIDI interface for other controllers
+- **For full VSN1 integration**: Grid Editor must be open with exclusive access to port `9642`
 
 ## Installation
 
-0. Connect your MIDI controller to your system
-1. Configure MIDI settings in TouchDesigner (Dialogs -> MIDI Mapper)
-2. Download the latest release from the `modules/release/` directory
-3. Drag `HoveredMidiRelative.tox` into your TouchDesigner project
+### TouchDesigner
+
+1. Connect your MIDI controller to your system
+2. Configure MIDI settings in TouchDesigner (Dialogs -> MIDI Mapper)
+3. Download the latest release from the `modules/release/` directory
+4. Drag `ParHoverMIDI_VSN1.tox` into your TouchDesigner project
+5. Have Grid Editor open at all times when using Intech hardware (see next section)
+
+### Intech Studio Grid Editor
+
+**Install the Grid Package:**
+1. Clone the repository
+2. Run `npm i` in the root folder
+3. Run `npm run build` to build the necessary files
+4. In the Editor at the Package Manager panel, either Approve the package at the top of the list if possible or use the `+ Add external package` button to add the **root** path of the package (for example, `C:\Users\...\package-websocket`)
+
+**Import the VSN1 Configuration:**
+5. On your VSN1 device, import `TouchDesigner Par Hover Control` from the Grid Editor Link `grid-editor://?config-link=xRPvAgRRc1AobWO2HtYM` (paste it into your browser) or look for it in the **Grid Cloud**
+6. Keep Grid Editor open at all times when using VSN1 (exclusive access to port `9642` required)
 
 ## Quick Start
 
-1. **Setup**: Place the HoveredMidiRelative component in your network
+1. **Setup**: Place the `ParHoverMIDI_VSN1.tox` component in your network (suggested at root `/`)
 2. **MIDI Configuration**: Ensure your MIDI controller is recognized by TouchDesigner
 3. **MIDI Setup**: On the component, set your `Device ID` and MIDI `Channel`
 4. **MIDI Mapping**: Map MIDI indices to functions using the custom parameters. Use the Sequence parameter +/- buttons to change the number of mapped steps.
+   - **Preset mapping for VSN1**: Pulse the parameter `Use Defaults for VSN1`
    - **Manual**: Type the MIDI note/control indices to the custom parameters
    - **Learning Mode**: Activate the hover-learning function to map controls by turning on `Learn`, hover over an empty mapping and move your MIDI knobs/buttons.
-   - **Preset mapping for VSN1**: Pulse the parameter `Use Defaults for VSN1`
 5. **Modify Step Size**: When using `Learning Mode` the step sizes will be automatically set to 1, 0.1, ...
 6. **Adjust Step Size**: Use assigned MIDI buttons to cycle through different step sizes for fine/coarse control 
 7. **Usage**: Hover over any parameter and twist your MIDI controller to adjust that specific parameter's value
@@ -212,6 +227,8 @@ scripts/HoveredMidiRelative/
 │   └── ui_manager.py         # Local UI element management
 └── HoveredMidiRelativeExt.py # Main extension class
 ```
+
+> This repo also contains the Grid package code for a monolithic repo, and is based on the [example package](https://github.com/intechstudio/package-websocket).
 
 **Core Components:**
 - **`HoveredMidiRelativeExt`**: Main extension class with TouchDesigner integration
