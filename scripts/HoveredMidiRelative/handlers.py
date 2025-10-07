@@ -6,6 +6,7 @@ Saveorigin : HoveredMidiRelative.187.toe
 Saveversion : 2023.12120
 Info Header End'''
 from constants import MidiConstants, VSN1ColorIndex, ScreenMessages
+from validators import ParameterValidator
 
 class MidiMessageHandler:
 	"""Handles MIDI message processing logic"""
@@ -41,7 +42,7 @@ class MidiMessageHandler:
 			return False
 			
 		if active_par is not None and active_par.owner != self.parent.ownerComp:
-			self.parent._do_step(self.parent._currStep, value)
+			self._do_step(self.parent._currStep, value)
 		return True
 	
 	def handle_pulse_message(self, index: int, value: int, active_par) -> bool:
@@ -117,4 +118,44 @@ class MidiMessageHandler:
 		
 		# Switch to the requested bank
 		return self.parent.slot_manager.recall_bank(bank_idx)
+
+	def _do_step(self, step: float, value: int):
+		"""Apply step value to active parameter based on MIDI input"""
+		active_par = self.parent.activePar
+		if active_par is None or not ParameterValidator.is_valid_parameter(active_par):
+			return
+			
+		diff = value - MidiConstants.MIDI_CENTER_VALUE
+		step_amount = step * diff
+		
+		if active_par.isNumber:
+			# Handle numeric parameters (float/int)
+			current_val = active_par.eval()
+			# for ints step is always 1 # TODO: this is debatable
+			if active_par.isInt:
+				step_amount = 1 if step_amount > 0 else -1
+			new_val = current_val + step_amount
+			active_par.val = new_val
+			
+		elif active_par.isMenu:
+			# Handle menu parameters - step through menu options
+			if abs(diff) >= 1:  # Only change on significant step
+				current_index = active_par.menuIndex
+				step_direction = 1 if step_amount > 0 else -1
+				new_index = current_index + step_direction
+				active_par.menuIndex = new_index
+				
+		elif active_par.isToggle or active_par.isMomentary:
+			# Handle toggle parameters - step through on/off states
+			current_val = active_par.eval()
+			if step_amount > 0 and not current_val:
+				active_par.val = True
+			elif step_amount < 0 and current_val:
+				active_par.val = False
+		else:
+			# Unsupported parameter type
+			return
+			
+		# Update screen display
+		self.parent.display_manager.update_parameter_display(active_par)
 
