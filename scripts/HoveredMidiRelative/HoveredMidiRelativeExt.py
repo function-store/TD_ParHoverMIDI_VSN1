@@ -413,7 +413,7 @@ class HoveredMidiRelativeExt:
 				new_index = current_index + step_direction
 				active_par.menuIndex = new_index
 				
-		elif active_par.isToggle:
+		elif active_par.isToggle or active_par.isMomentary:
 			# Handle toggle parameters - step through on/off states
 			current_val = active_par.eval()
 			if step_amount > 0 and not current_val:

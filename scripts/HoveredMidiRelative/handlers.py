@@ -54,6 +54,9 @@ class MidiMessageHandler:
 			if value == MidiConstants.MAX_VELOCITY:
 				if active_par.isPulse:
 					active_par.pulse()
+				elif active_par.isMomentary:
+					# TODO: implement mouse-like momentary behavior
+					active_par.pulse(frames=1)
 				elif active_par.isToggle:
 					active_par.val = not active_par.eval()
 			self.parent.display_manager.update_parameter_display(active_par)

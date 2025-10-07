@@ -41,7 +41,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 > Turn off `VSN1 Support` custom parameter in the TouchDesigner component to avoid issues.
 
 ### Requirements
-- TouchDesigner (2023.11880+)
+- TouchDesigner (2023.12120+)
 - **Intech Studio VSN1** (recommended) or other endless relative MIDI encoder
 - USB connection to VSN1 or MIDI interface for other controllers
 - **For full VSN1 integration**: Grid Editor must be open with exclusive access to port `9642`
