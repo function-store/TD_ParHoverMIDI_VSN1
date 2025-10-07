@@ -1,5 +1,5 @@
 <svelte:options
-  customElement={{ tag: "websocket-preference", shadow: "none" }}
+  customElement={{ tag: "package-touchdesigner-parhover-preference", shadow: "none" }}
 />
 
 <script>
@@ -16,7 +16,7 @@
 
   // @ts-ignore
   const messagePort = createPackageMessagePort(
-    "package-websocket",
+    "package-touchdesigner-parhover",
     "preferences",
   );
 
@@ -51,7 +51,7 @@
     <Block>
       <BlockTitle>
         <div class="flex flex-row content-center">
-          Websocket Preference <div
+          TouchDesigner Par Hover (VSN1) <div
             style="margin-left: 12px; width: 12px; height: 12px; border-radius: 50%; background-color: {currentlyConnected
               ? '#00D248'
               : '#fb2323'}"
@@ -61,16 +61,30 @@
       <BlockBody>
         Connection to client : {currentlyConnected ? "Connected" : "Connecting"}
       </BlockBody>
+    </Block>
+    
+    <Block>
+      <BlockTitle>TouchDesigner Instructions and .tox</BlockTitle>
       <BlockBody>
-        Window focus
-        <MeltCheckbox
-          title={"Only run actions when Window is in focus"}
-          bind:target={watchForActiveWindow}
-        />
-        <p class="text-gray-500 text-sm font-bold mt-1">
-          Note: Requires Active Window package enabled
-        </p>
+        Check the README for instructions!
       </BlockBody>
+        <div class="flex flex-row gap-2">
+          <MoltenPushButton 
+            text="README" 
+            style="normal" 
+            click={() => window.open('https://github.com/function-store/TD_ParHoverMIDI_VSN1?tab=readme-ov-file#quick-start', '_blank')} 
+          />
+          <MoltenPushButton 
+            text="Download .tox" 
+            style="accept" 
+            click={() => window.open('https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox', '_blank')} 
+          />
+          <MoltenPushButton 
+            text="Video Demo (placeholder)" 
+            style="outlined" 
+            click={() => window.open('https://youtube.com/c/FunctionStore', '_blank')} 
+          />
+        </div>
     </Block>
   </div>
 </main-app>

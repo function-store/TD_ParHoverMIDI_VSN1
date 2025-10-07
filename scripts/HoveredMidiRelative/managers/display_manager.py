@@ -90,14 +90,14 @@ class DisplayManager:
 			min_val, max_val = 0, len(par.menuNames) - 1
 			display_text = str(par.menuLabels[par.menuIndex])
 			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
-		elif par.isToggle:
+		elif par.isToggle or par.isMomentary:
 			val = 1 if par.eval() else 0
 			min_val, max_val = 0, 1
 			display_text = "On" if val else "Off"
 		elif par.isPulse:
 			val = 1 if par.eval() else 0
 			min_val, max_val = 0, 1
-			display_text = "Pulse"
+			display_text = f"_PULSE_"
 		else:
 			val = par.eval()
 			min_val, max_val = par.normMin, par.normMax

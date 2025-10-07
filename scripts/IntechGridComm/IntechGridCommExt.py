@@ -17,14 +17,24 @@ class IntechGridCommExt:
 		self.reconnectTimer: timerDAT = self.ownerComp.op('timer1')
 		self.callbackManager = self.ownerComp.op('callbackManager')
 		
+	@property
+	def isQueued(self) -> bool:
+		"""Used for package that supports queued messages"""
+		return self.ownerComp.par.Queuedmessage.eval()
 
-	def SendLua(self, lua_code: str):
+	def SendLua(self, lua_code: str, queue: bool = False):
+		if queue:
+			# Used for package that supports queued messages
+			package_type = 'queue-code'
+		else:
+			package_type = 'execute-code'
+		#package_type = 'execute-code'
 		package = {
-			'type': 'execute-code',
+			'type': package_type,
 			'script': lua_code
 		}
+		
 		self.websocket.sendText(json.dumps(package))
-	
 
 	def onReconnectTimerTrigger(self):
 		"""TouchDesigner callback when reconnect timer done"""
@@ -40,4 +50,4 @@ class IntechGridCommExt:
 
 	def onParSend(self):
 		if self.evalLuacode:
-			self.SendLua(self.evalLuacode)
+			self.SendLua(self.evalLuacode, queue=self.isQueued)

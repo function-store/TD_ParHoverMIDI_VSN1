@@ -64,24 +64,24 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 
 1. Connect your MIDI controller to your system
 2. Configure MIDI settings in TouchDesigner (Dialogs -> MIDI Mapper)
-3. Download the latest release from the `modules/release/` directory
-4. Drag `ParHoverMIDI_VSN1.tox` into your TouchDesigner project
+3. Download `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest)
+4. Drag `ParHoverMIDI_VSN1.tox` into your TouchDesigner project (suggested `/` root)
 5. Have Grid Editor open at all times when using Intech hardware (see next section)
 
 ## Quick Start
-
+0. Download `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest)
 1. **Setup**: Place the `ParHoverMIDI_VSN1.tox` component in your network (suggested at root `/`)
-2. **MIDI Configuration**: Ensure your MIDI controller is recognized by TouchDesigner
-3. **MIDI Setup**: On the component, set your `Device ID` and MIDI `Channel`
-4. **MIDI Mapping**: Map MIDI indices to functions using the custom parameters. Use the Sequence parameter +/- buttons to change the number of mapped steps.
-   - **Preset mapping for VSN1**: Pulse the parameter `Use Defaults for VSN1`
-   - **Manual**: Type the MIDI note/control indices to the custom parameters
-   - **Learning Mode**: Activate the hover-learning function to map controls by turning on `Learn`, hover over an empty mapping and move your MIDI knobs/buttons.
-5. **Modify Step Size**: When using `Learning Mode` the step sizes will be automatically set to 1, 0.1, ...
-6. **Adjust Step Size**: Use assigned MIDI buttons to cycle through different step sizes for fine/coarse control 
-7. **Usage**: Hover over any parameter and twist your MIDI controller to adjust that specific parameter's value
-8. Check [Parameter Slots System](#parameter-slots-system) to save and recall parameters to control!
-9. **Multiple Banks**: Use [Multiple Banks](#multiple-banks) to organize slots into separate banks for expanded control
+2. **MIDI Configuration**: Ensure your MIDI device is recognized in TouchDesigner's Device Manager
+3. **MIDI Setup**: Set your `Device ID` and MIDI `Channel` in the component parameters
+1. **VSN1 Settings**: On the component, pulse `Use Defaults for VSN1` to automatically configure all mappings
+2. **Alternative Manual Setup** (for non-VSN1 users):
+   - Map MIDI indices manually using the custom parameters
+   - Use `Learn` mode to map controls by hovering over empty mappings and moving your MIDI knobs/buttons
+3. **Modify Step Size**: When using `Learning Mode` the step sizes will be automatically set to 0.001, 0.01, 0.1, 1
+4. **Adjust Step Size**: Use assigned MIDI buttons to cycle through different step sizes for fine/coarse control 
+5. **Usage**: Hover over any parameter and twist your MIDI controller to adjust that specific parameter's value
+6. Check [Parameter Slots System](#parameter-slots-system) to save and recall parameters to control!
+7.  **Multiple Banks**: Use [Multiple Banks](#multiple-banks) to organize slots into separate banks for expanded control
 
 ## Special MIDI Functions
 

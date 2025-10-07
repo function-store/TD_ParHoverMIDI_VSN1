@@ -69,7 +69,7 @@ exports.loadPackage = async function (gridController, persistedData) {
   createAction({
     short: "xwsps",
     displayName: "Parameter Set",
-    defaultLua: 'gps("package-websocket", "volume", self:get_auto_value())',
+    defaultLua: 'gps("package-touchdesigner-parhover", "volume", self:get_auto_value())',
     actionComponent: "websocket-parameter-set-action",
   });
 
@@ -222,22 +222,20 @@ function handleWebsocketMessage(message) {
   let data = JSON.parse(message);
   console.log({ data });
   if (data.type === "execute-code") {
-    //TouchDesigner specific queuing code
-    if (data.script.startsWith("update_param")) {
-      queUpdateMessage({
-        type: "execute-lua-script",
-        script: data.script,
-        targetDx: data.targetDx,
-        targetDy: data.targetDy,
-      });
-    } else {
-      controller.sendMessageToEditor({
-        type: "execute-lua-script",
-        script: data.script,
-        targetDx: data.targetDx,
-        targetDy: data.targetDy,
-      });
-    }
+    controller.sendMessageToEditor({
+      type: "execute-lua-script",
+      script: data.script,
+      targetDx: data.targetDx,
+      targetDy: data.targetDy,
+    });
+  }
+  else if (data.type === "queue-code") {
+    queUpdateMessage({
+      type: "execute-lua-script",
+      script: data.script,
+      targetDx: data.targetDx,
+      targetDy: data.targetDy,
+    });
   }
 }
 

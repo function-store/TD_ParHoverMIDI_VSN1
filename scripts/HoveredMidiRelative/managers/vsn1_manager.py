@@ -26,7 +26,7 @@ class VSN1Manager:
 		# Simple Lua function call - ONLY difference from UI renderer
 		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator})"
 
-		self.grid_comm.SendLua(lua_code)
+		self.grid_comm.SendLua(lua_code, queue=True)
 	
 	def clear_screen(self):
 		"""Clear the VSN1 screen"""
@@ -51,7 +51,7 @@ class VSN1Manager:
 		if not self.is_vsn1_enabled() or not led_updates:
 			return
 		
-		# Build batch Lua command
+		# Build batch Lua command#
 		lua_commands = []
 		for idx, value in led_updates:
 			lua_commands.append(f'set_led({idx},1,{int(value)})')
@@ -140,3 +140,12 @@ class VSN1Manager:
 			return
 		# Send Lua command to update bank indicator on screen
 		self.grid_comm.SendLua(f'b={bank_idx};lcd:ldsw()')
+
+	def clear_all_slot_leds(self):
+		"""Clear all slot LEDs (set to 0)"""
+		if not self.is_vsn1_enabled():
+			return
+		led_updates = []
+		for i in range(len(VSN1Constants.SLOT_INDICES)):
+			led_updates.append((10 + i, 0))
+		self._send_batch_leds(led_updates)

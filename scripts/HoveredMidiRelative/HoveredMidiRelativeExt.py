@@ -425,21 +425,13 @@ class HoveredMidiRelativeExt:
 				blocks.append(block)
 		return blocks
 	
-	def _clear_all_slot_leds(self):
-		"""Turn off all slot LEDs"""
-		if hasattr(self, 'vsn1_manager'):
-			for i in range(self.numSlots):
-				self.display_manager.send_slot_led_feedback(i, 0)
-
-
 # endregion helper functions
 # region parameter callbacks
 
 	def onParClear(self):
 		"""TouchDesigner callback to clear all MIDI mappings"""
-		debug('onParClear')
 		# Clear all slot LEDs before resetting
-		self._clear_all_slot_leds()
+		self.vsn1_manager.clear_all_slot_leds()
 		
 		# Reset sequence blocks
 		self.seqSteps.numBlocks = 1

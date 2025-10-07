@@ -1,6 +1,6 @@
 {
   "name": "package-touchdesigner-parhover",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "TouchDesigner Par Hover (VSN1)",
   "main": "index.js",
   "scripts": {
@@ -17,7 +17,7 @@
   "license": "ISC",
   "grid_editor": {
     "componentsPath": "components/dist/components.js",
-    "preferenceComponent": "touchdesigner-parhover-preference",
+    "preferenceComponent": "package-touchdesigner-parhover-preference",
     "shortDescription": "Control and save hovered parameters in TouchDesigner with VSN1 - see repo for .tox and README",
     "mainIcon": "TouchDesigner-icon.svg",
     "menuIcon": "TouchDesigner-icon.svg"

@@ -38,6 +38,7 @@ class SupportedParameterTypes(Enum):
 	MENU = 'Menu'
 	TOGGLE = 'Toggle'
 	PULSE = 'Pulse'
+	MOMENTARY = 'Momentary'
 
 class VSN1ColorIndex(Enum):
 	BLACK = 1

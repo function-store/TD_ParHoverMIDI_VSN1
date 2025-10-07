@@ -13,9 +13,9 @@
   let ref;
   let isInitialized = false;
 
-  const actionRegex = /^gps\("package-websocket", "*(.*?)", (.*?)\)$/;
+  const actionRegex = /^gps\("package-touchdesigner-parhover", "*(.*?)", (.*?)\)$/;
   function actualCode() {
-    return `gps("package-websocket", "${parameterId}", ${parameterValue})`;
+    return `gps("package-touchdesigner-parhover", "${parameterId}", ${parameterValue})`;
   }
 
   function handleConfigUpdate(config) {

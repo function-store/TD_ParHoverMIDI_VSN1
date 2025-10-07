@@ -53,7 +53,7 @@ class MidiMessageHandler:
 			
 		if active_par is not None and active_par.owner != self.parent.ownerComp:
 			if value == MidiConstants.MAX_VELOCITY:
-				if active_par.isPulse:
+				if active_par.isPulse or active_par.isMomentary:
 					active_par.pulse()
 				elif active_par.isMomentary:
 					# TODO: implement mouse-like momentary behavior
