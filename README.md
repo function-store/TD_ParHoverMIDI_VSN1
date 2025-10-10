@@ -57,7 +57,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 4. In the Editor at the Package Manager panel, either Approve the package at the top of the list if possible or use the `+ Add external package` button to add the **root** path of the package (for example, `C:\Users\...\TD_ParHoverMIDI_VSN1`)
 
 **Import the VSN1 Configuration:**
-1. On your VSN1 device, import `TouchDesigner Par Hover Control` from the Grid Editor Link `grid-editor://?config-link=xRPvAgRRc1AobWO2HtYM` (paste it into your browser or look for it in the **Grid Cloud**)
+1. In the Grid Editor cloud search for `TouchDesigner Par Hover Control` and import it on your VSN1 device.
 2. Keep Grid Editor open at all times when using VSN1 (exclusive access to port `9642` required)
 
 ### TouchDesigner
