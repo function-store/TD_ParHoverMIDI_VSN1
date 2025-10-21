@@ -55,13 +55,91 @@ class SlotManager:
 		
 		return True
 	
+	def _undo_clear_slot_callback(self, isUndo, info):
+		"""Undo callback to restore or re-clear a slot"""
+		slot_idx = info['slot_idx']
+		bank_idx = info['bank_idx']
+		is_current_bank = self.parent.currBank == bank_idx
+		
+		if isUndo:
+			# Restore the slot
+			previous_parameter = info['previous_parameter']
+			previous_active_slot = info['previous_active_slot']
+			previous_bank_active_slot = info['previous_bank_active_slot']
+			
+			# Validate parameter still exists and is valid
+			try:
+				if previous_parameter is None or not previous_parameter.valid:
+					# Parameter no longer exists, cannot restore
+					return
+			except:
+				# Parameter reference is completely invalid
+				return
+			
+			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
+			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
+			
+			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
+			if is_current_bank:
+				self.parent.activeSlot = previous_active_slot
+				
+				# Restore UI button label
+				if hasattr(self.parent, 'ui_manager'):
+					label = LabelFormatter.get_label_for_parameter(previous_parameter, self.parent.labelDisplayMode)
+					self.parent.ui_manager._set_button_label(slot_idx, label)
+				
+				# Restore display
+				if previous_active_slot == slot_idx:
+					self.parent.display_manager.update_parameter_display(previous_parameter)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+				else:
+					# Return to hover mode if slot wasn't active
+					self.parent.display_manager.update_all_display(
+						0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+				
+				# Restore LEDs
+				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot)
+		else:
+			# Redo: clear the slot again
+			self.parent.slotPars[bank_idx][slot_idx] = None
+			self.parent.bankActiveSlots[bank_idx] = None
+			
+			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
+			if is_current_bank:
+				self.parent.activeSlot = None
+				
+				if hasattr(self.parent, 'ui_manager'):
+					self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
+				
+				self.parent.display_manager.update_all_display(
+					0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+				
+				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+		
+		# Always refresh UI buttons for current bank to ensure correct state
+		# (TouchDesigner's undo system may revert some UI states)
+		if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
+			#self.parent.ui_manager.refresh_all_button_states()
+			run("args[0].refresh_all_button_states()", self.parent.ui_manager, delayFrames=1)
+	
 	def clear_slot(self, slot_idx: int):
 		"""Clear a slot and return to hover mode"""
 		currBank = self.parent.currBank
 		if (currBank >= len(self.parent.slotPars) or 
 			slot_idx >= len(self.parent.slotPars[currBank])):
 			return
-			
+		
+		# Check if slot has a parameter to clear
+		previous_parameter = self.parent.slotPars[currBank][slot_idx]
+		if previous_parameter is None:
+			return  # Nothing to clear
+		
+		# Capture state before clearing (for undo)
+		previous_active_slot = self.parent.activeSlot
+		previous_bank_active_slot = self.parent.bankActiveSlots[currBank]
+		
 		# Clear the slot
 		self.parent.slotPars[currBank][slot_idx] = None
 		self.parent.activeSlot = None
@@ -78,6 +156,21 @@ class SlotManager:
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+		
+		# Add undo support if enabled
+		if self.parent.evalEnableundo:
+			ui.undo.startBlock(f'Clear Slot {slot_idx} in Bank {currBank}')
+			try:
+				undo_info = {
+					'slot_idx': slot_idx,
+					'bank_idx': currBank,
+					'previous_parameter': previous_parameter,
+					'previous_active_slot': previous_active_slot,
+					'previous_bank_active_slot': previous_bank_active_slot
+				}
+				ui.undo.addCallback(self._undo_clear_slot_callback, undo_info)
+			finally:
+				ui.undo.endBlock()
 	
 	def activate_slot(self, slot_idx: int) -> bool:
 		"""Activate an existing slot. Returns True if successful."""
