@@ -37,6 +37,7 @@ class HoveredMidiRelativeExt:
 		self.pushMidi = self.ownerComp.op('midiin_push')
 		self.slotsLearnMidi = self.ownerComp.op('midiin_slots')
 		self.bankMidi = self.ownerComp.op('midiin_bank')
+		self.modeselMidi = self.ownerComp.op('midiin_modesel')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
 		
 		# Initialize state
@@ -255,6 +256,10 @@ class HoveredMidiRelativeExt:
 		"""Get the current relative step mode from component parameter"""
 		return StepMode(self.evalStepmode)
 
+	@stepMode.setter
+	def stepMode(self, value: StepMode):
+		self.evalStepmode = value.value
+
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
 		self.hoveredPar = None
@@ -396,6 +401,13 @@ class HoveredMidiRelativeExt:
 
 		# Handle bank change message
 		self.midi_handler.handle_bank_message(index)
+
+	def onReceiveModeSel(self):
+		"""TouchDesigner callback for mode selection MIDI input"""
+		if not self.evalActive:
+			return
+		# set step mode to the opposite of the current step mode
+		self.stepMode = StepMode.RELATIVE if self.stepMode == StepMode.AUTORANGE else StepMode.AUTORANGE
 				
 
 # endregion midi callbacks
@@ -470,6 +482,7 @@ class HoveredMidiRelativeExt:
 	def onSeqStepsNIndex(self, _par, idx):
 		"""TouchDesigner callback when sequence steps index changes"""
 		self.activeMidi.cook(force=True)
+		self.modeselMidi.cook(force=True)
 
 	def onSeqSlotsNIndex(self, _par, idx):
 		"""TouchDesigner callback when sequence slots index changes"""
@@ -479,6 +492,7 @@ class HoveredMidiRelativeExt:
 	def onSeqBanksNIndex(self, _par, idx):
 		"""TouchDesigner callback when sequence banks index changes"""
 		self.bankMidi.cook(force=True)
+		self.modeselMidi.cook(force=True)
 
 	def onParKnobindex(self, _par, _val):
 		"""TouchDesigner callback when knob index parameter changes"""

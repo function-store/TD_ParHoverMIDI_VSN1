@@ -19,7 +19,7 @@ class MidiMessageHandler:
 		"""Used for checking if a bank off message coincides with a step message
 		since by default these two messages are assigned to the same MIDI button
 		"""
-		return self.parent.ownerComp.op('null_midibank')[0].eval() == 1
+		return self.parent.ownerComp.op('null_midibank')[0].eval() == 1 or self.parent.ownerComp.op('null_modesel')[0].eval() == 1
 	
 	
 	def handle_step_message(self, index: int, value: int) -> bool:
