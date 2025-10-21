@@ -65,5 +65,5 @@ class SecondaryMode(Enum):
 	STEP = 'Step'
 
 class StepMode(Enum):
-	RELATIVE = 'Relative'
-	AUTORANGE = 'AutoRange'
+	FIXED = 'Fixed'
+	ADAPTIVE = 'Adaptive'

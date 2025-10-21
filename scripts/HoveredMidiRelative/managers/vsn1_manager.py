@@ -144,11 +144,11 @@ class VSN1Manager:
 	def set_stepmode_indicator(self, step_mode: StepMode):
 		if not self.is_vsn1_enabled():
 			return
-		if step_mode == StepMode.RELATIVE:
+		if step_mode == StepMode.FIXED:
 			self.grid_comm.SendLua(f'ci=2')
 		else:
 			self.grid_comm.SendLua(f'ci=3')
-		self.render_display(0.5, 0, 1, '_MODE_', '_REL_' if step_mode == StepMode.RELATIVE else '_AUTO_', 0.5)
+		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', 0.5)
 
 	def clear_all_slot_leds(self):
 		"""Clear all slot LEDs (set to 0)"""

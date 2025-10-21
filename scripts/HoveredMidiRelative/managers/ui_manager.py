@@ -164,5 +164,5 @@ class UIManager:
 		"""Set mode indicator in UI"""
 		if not self.ui_enabled:
 			return
-		self.ui.par.Modecolorindex = 1 if step_mode == StepMode.RELATIVE else 2
-		self.render_display(0.5, 0, 1, '_MODE_', '_REL_' if step_mode == StepMode.RELATIVE else '_AUTO_', 0.5)
+		self.ui.par.Modecolorindex = 1 if step_mode == StepMode.FIXED else 2
+		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', 0.5)

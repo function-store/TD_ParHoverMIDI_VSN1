@@ -50,17 +50,21 @@ class MidiMessageHandler:
 		push_index = self.parent._safe_get_midi_index(self.parent.evalPushindex, default=-1)
 		if index != push_index:
 			return False
+		if active_par is None or not ParameterValidator.is_valid_parameter(active_par) or (active_par.owner == self.parent.ownerComp):
+			return False
 			
-		if active_par is not None and active_par.owner != self.parent.ownerComp:
-			if value == MidiConstants.MAX_VELOCITY:
-				if active_par.isPulse or active_par.isMomentary:
-					active_par.pulse()
-				elif active_par.isMomentary:
-					# TODO: implement mouse-like momentary behavior
-					active_par.pulse(frames=1)
-				elif active_par.isToggle:
-					active_par.val = not active_par.eval()
-			self.parent.display_manager.update_parameter_display(active_par)
+		if value == MidiConstants.MAX_VELOCITY:
+			if active_par.isPulse:
+				active_par.pulse()
+			elif active_par.isMomentary:
+				active_par.val = True
+			elif active_par.isToggle:
+				active_par.val = not active_par.eval()
+		if value == 0:
+			if active_par.isMomentary:
+				active_par.val = False
+		self.parent.display_manager.update_parameter_display(active_par)
+		
 		return True
 	
 	def handle_slot_message(self, index: int, value: int) -> bool:
@@ -133,20 +137,20 @@ class MidiMessageHandler:
 				step = self.parent.evalSecondarystep or step
 			
 			# Calculate step amount based on mode
-			if self.parent.stepMode == StepMode.RELATIVE:
+			if self.parent.stepMode == StepMode.FIXED:
 				step_amount = step * diff
-			else: # AutoRange mode - step scales with parameter range
+			else: # Adaptive mode - step scales with parameter range
 				min_val, max_val = active_par.normMin, active_par.normMax
 				step_amount = ((max_val - min_val) * step) * diff
 			
 			# Handle integer parameters with different step behavior
 			if active_par.isInt:
-				if self.parent.stepMode == StepMode.RELATIVE:
-					# TODO: debatable if this fixed step is good for ints in relative mode. What's the alternative?
+				if self.parent.stepMode == StepMode.FIXED:
+					# TODO: debatable if this fixed step is good for ints in fixed mode. What's the alternative?
 					step_amount = 1 if diff > 0 else -1
 				else:
 					step_amount = max(1, ((max_val - min_val) * step)) * (1 if diff > 0 else -1)
-			
+				
 			# Apply the step to current value
 			active_par.val = active_par.eval() + step_amount
 			

@@ -23,7 +23,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **Smart Learning System**: Automatically assign VSN1 button mappings for step adjustment and main knob control
 - **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
-- **Step Mode**: Choose between Relative (fixed step size) or AutoRange (step scales with parameter range)
+- **Step Mode**: Choose between Fixed (fixed step size) or Adaptive (step scales with parameter range)
 - **Secondary Mode**: Knob push functionality with two modes - Reset (hold to reset parameter) or Step (hold and rotate for alternate step size)
 - **Real-time VSN1 Feedback**: Full integration with VSN1's built-in screen and LED system
   - **LED Feedback**: Color-coded LEDs showing slot states (dark/dim/bright)
@@ -149,22 +149,22 @@ The component supports multiple banks to organize your parameter slots, dramatic
 ### Step Mode (`Step Mode`)
 The component supports two different step calculation modes that determine how parameter adjustments are scaled:
 
-**Relative Mode**:
+**Fixed Mode**:
 - **Fixed step size**: Uses the configured step size value directly (e.g., 0.001, 0.01, 0.1, 1)
 - **Consistent behavior**: Same step increment regardless of parameter range
 - **Best for**: Parameters where you want consistent, predictable step sizes
 - **Example**: A parameter with range 0-1 using step 0.001 will increment by exactly 0.001
 
-**AutoRange Mode**:
+**Adaptive Mode**:
 - **Adaptive step size**: Step size automatically scales based on the parameter's min/max range
 - **Range-aware**: Larger parameter ranges result in larger steps, smaller ranges result in smaller steps
 - **Best for**: Working with parameters of varying ranges while maintaining proportional control
 - **Example**: Step 0.001 on a 0-1 range increments by 0.001, but on a 0-1000 range increments by 1
 
 **Switching Modes**:
-- **Via Parameter**: Set the `Step Mode` custom parameter to "Relative" or "AutoRange"
+- **Via Parameter**: Set the `Step Mode` custom parameter to "Fixed" or "Adaptive"
 - **Via VSN1 Shortcut**: Hold all 4 step buttons simultaneously to toggle between modes
-- **Visual Feedback**: VSN1 screen briefly displays "_REL_" or "_AUTO_" when mode changes, and the circle's outline color switches between white (relative) and colored (auto)
+- **Visual Feedback**: VSN1 screen briefly displays "_FIXED_" or "_ADAPT_" when mode changes, and the circle's outline color switches between white (Fixed) and colored (Adaptive)
 
 ### Secondary Mode (`Secondary Mode`)
 The knob push button functionality can be configured for two different modes:
@@ -190,7 +190,7 @@ The knob push button functionality can be configured for two different modes:
 
 The following parameters are available to further customize the functionality of the component:
 - **`Step Size`**: Adjustable in each `Step` block.
-- **`Step Mode`**: Choose between "Relative" (fixed step size) or "AutoRange" (step scales with parameter range). Can also be toggled by holding all 4 step buttons simultaneously.
+- **`Step Mode`**: Choose between "Fixed" (fixed step size) or "Adaptive" (step scales with parameter range). Can also be toggled by holding all 4 step buttons simultaneously.
 - **`Persist Step` toggle**: When this is off, the step will be set to default when not holding any step button. When on, it will save the last used step.
 - **`Default Step Size`**: Step size when Persist Step is off and not holding any step button. Set this to zero to avoid accidental parameter adjustments when not holding any button.
 - **`Secondary Mode`**: Choose between "Reset" or "Step" to determine knob push button behavior.

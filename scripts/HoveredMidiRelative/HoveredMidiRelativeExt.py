@@ -407,7 +407,7 @@ class HoveredMidiRelativeExt:
 		if not self.evalActive:
 			return
 		# set step mode to the opposite of the current step mode
-		self.stepMode = StepMode.RELATIVE if self.stepMode == StepMode.AUTORANGE else StepMode.AUTORANGE
+		self.stepMode = StepMode.FIXED if self.stepMode == StepMode.ADAPTIVE else StepMode.ADAPTIVE
 				
 
 # endregion midi callbacks
