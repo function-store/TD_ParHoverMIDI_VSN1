@@ -23,7 +23,8 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **Smart Learning System**: Automatically assign VSN1 button mappings for step adjustment and main knob control
 - **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
-- **Parameter Reset**: Hold VSN1 button to reset parameters to default values
+- **Step Mode**: Choose between Relative (fixed step size) or AutoRange (step scales with parameter range)
+- **Secondary Mode**: Knob push functionality with two modes - Reset (hold to reset parameter) or Step (hold and rotate for alternate step size)
 - **Real-time VSN1 Feedback**: Full integration with VSN1's built-in screen and LED system
   - **LED Feedback**: Color-coded LEDs showing slot states (dark/dim/bright)
   - **Screen Display**: Parameter names, values, and bank indicators on VSN1 screen
@@ -50,7 +51,6 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 
 ### Intech Studio Grid Editor
 
-
 **Install the Grid Package:**
 1. Clone the repository
 2. Run `npm i` in the root folder
@@ -58,7 +58,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 4. In the Editor at the Package Manager panel, either Approve the package at the top of the list if possible or use the `+ Add external package` button to add the **root** path of the package (for example, `C:\Users\...\TD_ParHoverMIDI_VSN1`)
 
 **Import the VSN1 Configuration:**
-1. In the Grid Editor cloud search for `TouchDesigner Par Hover Control` and import it on your **VSN1** device.
+1. On your VSN1 device, import `TouchDesigner Par Hover Control` from the Grid Editor Link `grid-editor://?config-link=xRPvAgRRc1AobWO2HtYM` (paste it into your browser or look for it in the **Grid Cloud**)
 2. Keep Grid Editor open at all times when using VSN1 (exclusive access to port `9642` required)
 
 ### TouchDesigner
@@ -144,10 +144,39 @@ The component supports multiple banks to organize your parameter slots, dramatic
 
 > Banks and their slot assignments are saved with the project file / component.
 
-### Parameter Reset (`Reset Par Index`)
-- **Hold this MIDI button**: While hovering over any parameter for the specified time duration
-- **Result**: The parameter will reset to its default value
-- **Duration**: Configurable via the `Reset Hold Length` parameter
+### Step Mode (`Step Mode`)
+The component supports two different step calculation modes that determine how parameter adjustments are scaled:
+
+**Relative Mode**:
+- **Fixed step size**: Uses the configured step size value directly (e.g., 0.001, 0.01, 0.1, 1)
+- **Consistent behavior**: Same step increment regardless of parameter range
+- **Best for**: Parameters where you want consistent, predictable step sizes
+- **Example**: A parameter with range 0-1 using step 0.001 will increment by exactly 0.001
+
+**AutoRange Mode**:
+- **Adaptive step size**: Step size automatically scales based on the parameter's min/max range
+- **Range-aware**: Larger parameter ranges result in larger steps, smaller ranges result in smaller steps
+- **Best for**: Working with parameters of varying ranges while maintaining proportional control
+- **Example**: Step 0.001 on a 0-1 range increments by 0.001, but on a 0-1000 range increments by 1
+
+**Switching Modes**:
+- **Via Parameter**: Set the `Step Mode` custom parameter to "Relative" or "AutoRange"
+- **Via VSN1 Shortcut**: Hold all 4 step buttons simultaneously to toggle between modes
+- **Visual Feedback**: VSN1 screen briefly displays "_REL_" or "_AUTO_" when mode changes, and the circle's outline color switches between white (relative) and colored (auto)
+
+### Secondary Mode (`Secondary Mode`)
+The knob push button functionality can be configured for two different modes:
+
+**Reset Mode**:
+- **Hold the knob push button**: While hovering over or controlling any parameter
+- **Result**: After holding for the configured duration, the parameter resets to its default value
+- **Duration**: Configurable via the `Reset Par Hold Length` parameter
+
+**Step Mode**:
+- **Hold the knob push button and rotate**: While hovering over or controlling any parameter
+- **Result**: Uses an alternate step size for finer or coarser control
+- **Step Size**: Configurable via the `Secondary Step` parameter
+- **Use Case**: Quickly switch between two different precision levels without cycling through step buttons
 
 ### Parameter Pulse (`Pulse Index`)
 - **Press this MIDI button**: While hovering over a parameter
@@ -159,9 +188,12 @@ The component supports multiple banks to organize your parameter slots, dramatic
 
 The following parameters are available to further customize the functionality of the component:
 - **`Step Size`**: Adjustable in each `Step` block.
+- **`Step Mode`**: Choose between "Relative" (fixed step size) or "AutoRange" (step scales with parameter range). Can also be toggled by holding all 4 step buttons simultaneously.
 - **`Persist Step` toggle**: When this is off, the step will be set to default when not holding any step button. When on, it will save the last used step.
 - **`Default Step Size`**: Step size when Persist Step is off and not holding any step button. Set this to zero to avoid accidental parameter adjustments when not holding any button.
-- **`Reset Hold Length`**: Holding the assigned reset button for this specified time will reset hovered parameter to its default value.
+- **`Secondary Mode`**: Choose between "Reset" or "Step" to determine knob push button behavior.
+- **`Reset Hold Length`**: (Reset mode) Duration the knob push button must be held to reset the active parameter to its default value.
+- **`Secondary Step`**: (Step mode) Alternate step size used when holding the knob push button and rotating the knob.
 - **`VSN1 Support`**: Enables VSN1 screen updates and LED feedback, displaying adjusted parameter and value (circle size between param normMin/Max values), using websocket communication --- requires Grid Editor to be open!
 - **`Label Display Mode`**: Choose between "Compressed" (removes vowels/spaces) or "Truncated" (simple cut-off) for parameter label formatting on limited displays
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
@@ -263,4 +295,4 @@ When contributing to this project:
 
 ---
 
-*For technical support or feature requests, please refer to the project documentation or contact @function.str on Discord, or write an Issue ticket here on GitHub!*
+*For technical support or feature requests, please refer to the project documentation or contact @function.str on Discord, or write an Issue ticket here on GitHub*

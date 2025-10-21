@@ -69,7 +69,7 @@ class DisplayManager:
 		# Delegate to renderers with processed data
 		self.vsn1_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
 		
-		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED] and self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE, KnobLedUpdateMode.OFF]:
+		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED] and self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
 			self.vsn1_renderer.update_knob_leds_gradual(0)
 		elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
 			self.vsn1_renderer.update_knob_leds_gradual(percentage)
