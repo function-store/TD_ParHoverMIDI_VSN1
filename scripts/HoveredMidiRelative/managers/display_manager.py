@@ -9,6 +9,7 @@ import re
 from typing import Optional
 from constants import ScreenMessages, VSN1ColorIndex, KnobLedUpdateMode, StepMode
 from formatters import LabelFormatter
+from validators import ParameterValidator
 import math
 
 class DisplayManager:
@@ -17,6 +18,11 @@ class DisplayManager:
 		self.parent = parent_ext
 		self.vsn1_renderer = parent_ext.vsn1_manager
 		self.ui_renderer = parent_ext.ui_manager
+	
+	def show_parameter_error(self, par, error_msg: str):
+		"""Show error message for invalid parameter."""
+		param_label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode)
+		self.update_all_display(0.5, 0, 1, param_label, error_msg, compress=True)
 	
 	def get_slot_state_value(self, slot_idx: int) -> int:
 		"""Centralized slot state logic: 0=free (hover), 127=occupied, 255=active"""
@@ -88,7 +94,13 @@ class DisplayManager:
 		if par.isMenu:
 			val = par.menuIndex
 			min_val, max_val = 0, len(par.menuNames) - 1
-			display_text = str(par.menuLabels[par.menuIndex])
+			
+			# For string menus, show the actual value if it's not in menuNames, otherwise show label
+			if par.isString and par.eval() not in par.menuNames:
+				display_text = str(par.eval())
+			else:
+				display_text = str(par.menuLabels[par.menuIndex])
+			
 			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
 		elif par.isToggle or par.isMomentary:
 			val = 1 if par.eval() else 0

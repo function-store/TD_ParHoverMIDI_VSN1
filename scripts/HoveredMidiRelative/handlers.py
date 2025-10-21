@@ -38,11 +38,17 @@ class MidiMessageHandler:
 	def handle_knob_message(self, index: int, value: int, active_par) -> bool:
 		"""Handle knob control messages"""
 		knob_index = self.parent._safe_get_midi_index(self.parent.evalKnobindex, default=-1)
-		if int(index) != knob_index:
+		if index != knob_index:
 			return False
-			
-		if active_par is not None and active_par.owner != self.parent.ownerComp:
-			self._do_step(self.parent._currStep, value)
+
+		if active_par is None or (active_par.owner == self.parent.ownerComp):
+			return False
+		
+		if error_msg := ParameterValidator.get_validation_error(active_par):
+			self.parent.display_manager.show_parameter_error(active_par, error_msg)
+			return True  # Parameter is invalid, error message shown
+
+		self._do_step(self.parent._currStep, value)
 		return True
 	
 	def handle_push_message(self, index: int, value: int, active_par) -> bool:
@@ -50,8 +56,13 @@ class MidiMessageHandler:
 		push_index = self.parent._safe_get_midi_index(self.parent.evalPushindex, default=-1)
 		if index != push_index:
 			return False
-		if active_par is None or not ParameterValidator.is_valid_parameter(active_par) or (active_par.owner == self.parent.ownerComp):
+		if active_par is None or (active_par.owner == self.parent.ownerComp):
 			return False
+
+		error_msg = ParameterValidator.get_validation_error(active_par)
+		if error_msg:
+			self.parent.display_manager.show_parameter_error(active_par, error_msg)
+			return True  # Parameter is invalid, error message shown
 			
 		if value == MidiConstants.MAX_VELOCITY:
 			if active_par.isPulse:
@@ -90,7 +101,12 @@ class MidiMessageHandler:
 			# Activate slot
 			old_active_slot = self.parent.activeSlot
 			self.parent.activeSlot = block_idx
-			self.parent.display_manager.update_parameter_display(self.parent.slotPars[currBank][block_idx])
+			active_par = self.parent.slotPars[currBank][block_idx]
+			error_msg = ParameterValidator.get_validation_error(active_par)
+			if error_msg:
+				self.parent.display_manager.show_parameter_error(active_par, error_msg)
+			else:
+				self.parent.display_manager.update_parameter_display(active_par)
 			self.parent.bankActiveSlots[currBank] = block_idx
 			# Update LEDs: previous slot and new active slot
 			self.parent.display_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
@@ -126,7 +142,7 @@ class MidiMessageHandler:
 	def _do_step(self, step: float, value: int):
 		"""Apply step value to active parameter based on MIDI input"""
 		active_par = self.parent.activePar
-		if active_par is None or not ParameterValidator.is_valid_parameter(active_par):
+		if active_par is None:
 			return
 			
 		diff = value - MidiConstants.MIDI_CENTER_VALUE
@@ -158,10 +174,18 @@ class MidiMessageHandler:
 			# Handle menu parameters - step through menu options
 			if abs(diff) >= 1:  # Only change on significant step
 				current_index = active_par.menuIndex
+				num_menu_items = len(active_par.menuNames)
 				step_direction = 1 if diff > 0 else -1
-				new_index = current_index + step_direction
-				active_par.menuIndex = new_index
 				
+				if self.parent.evalLoopmenus:
+					# Loop around when reaching the end
+					new_index = (current_index + step_direction) % num_menu_items
+				else:
+					# Clamp at the edges
+					new_index = max(0, min(num_menu_items - 1, current_index + step_direction))
+				
+				active_par.menuIndex = new_index
+					
 		elif active_par.isToggle or active_par.isMomentary:
 			# Handle toggle parameters - step through on/off states
 			current_val = active_par.eval()

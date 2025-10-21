@@ -27,3 +27,13 @@ class ParameterValidator:
 	def is_supported_parameter_type(par) -> bool:
 		"""Check if parameter is supported for MIDI control"""
 		return any(getattr(par, f'is{type.value}') for type in SupportedParameterTypes)
+	
+	@staticmethod
+	def get_validation_error(par) -> str:
+		"""Get validation error message for a parameter.
+		Returns ScreenMessages constant if invalid, None if valid."""
+		if not ParameterValidator.is_supported_parameter_type(par):
+			return ScreenMessages.UNSUPPORTED
+		if not ParameterValidator.is_valid_parameter(par):
+			return ScreenMessages.EXPR
+		return None

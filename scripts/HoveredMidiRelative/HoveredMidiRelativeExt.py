@@ -280,17 +280,9 @@ class HoveredMidiRelativeExt:
 		self.hoveredPar = _par
 		# Handle invalid/unsupported parameters when no active slot
 		if self.activeSlot is None:
-			if not ParameterValidator.is_valid_parameter(_par):
-				param_label = LabelFormatter.get_label_for_parameter(_par, self.labelDisplayMode)
-				self.display_manager.update_all_display(0.5, 0, 1, param_label, 
-														ScreenMessages.EXPR, compress=True)
-				return  # Don't proceed to normal parameter display
-			
-			if not ParameterValidator.is_supported_parameter_type(_par):
-				param_label = LabelFormatter.get_label_for_parameter(_par, self.labelDisplayMode)
-				self.display_manager.update_all_display(0.5, 0, 1, param_label, 
-														ScreenMessages.UNSUPPORTED, compress=True)
-				return  # Don't proceed to normal parameter display
+			if error_msg := ParameterValidator.get_validation_error(_par):
+				self.display_manager.show_parameter_error(_par, error_msg)
+				return  # Parameter is invalid, error message shown
 
 		# Update screen if no active slot (only for valid parameters)
 		if self.activeSlot is None:
