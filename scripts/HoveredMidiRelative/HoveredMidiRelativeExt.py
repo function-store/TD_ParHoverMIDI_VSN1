@@ -34,7 +34,7 @@ class HoveredMidiRelativeExt:
 		
 		# Initialize TD operators
 		self.activeMidi = self.ownerComp.op('midiin_active')
-		self.resetMidi = self.ownerComp.op('midiin_reset')
+		self.pushMidi = self.ownerComp.op('midiin_push')
 		self.slotsLearnMidi = self.ownerComp.op('midiin_slots')
 		self.bankMidi = self.ownerComp.op('midiin_bank')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
@@ -239,6 +239,16 @@ class HoveredMidiRelativeExt:
 		"""Get the current knob LED update mode from component parameter"""
 		return KnobLedUpdateMode(self.evalKnobledupdate)
 
+	@property
+	def secondaryMode(self) -> SecondaryMode:
+		"""Get the current secondary mode from component parameter"""
+		return SecondaryMode(self.evalSecondarymode)
+
+	@property
+	def secondaryPushState(self) -> bool:
+		"""Get the current push state from component parameter"""
+		return self.ownerComp.op('null_push')[0].eval()
+
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
@@ -304,7 +314,7 @@ class HoveredMidiRelativeExt:
 				return
 				
 			# Handle pulse messages
-			if self.midi_handler.handle_pulse_message(index, value, active_par):
+			if self.midi_handler.handle_push_message(index, value, active_par):
 				return
 		
 			# Handle slot selection messages
@@ -333,7 +343,7 @@ class HoveredMidiRelativeExt:
 
 		# Note On: button and step learning
 		elif message == MidiConstants.NOTE_ON:
-			if hovered_par in [self.parPulseindex, self.parResetparindex]:
+			if hovered_par in [self.parPushindex]:
 				hovered_par.val = index
 				
 			if hovered_par in self.seqSteps.blockPars.Index:
@@ -370,7 +380,7 @@ class HoveredMidiRelativeExt:
 
 	def onResetPar(self):
 		"""TouchDesigner callback to reset active parameter"""
-		if self.activePar is not None:
+		if self.activePar is not None and self.secondaryMode == SecondaryMode.RESET:
 			self.activePar.reset()
 			self.display_manager.update_parameter_display(self.activePar)
 
@@ -443,8 +453,7 @@ class HoveredMidiRelativeExt:
 		
 		# Clear MIDI indices
 		self.parKnobindex.val = ''
-		self.parResetparindex.val = ''
-		self.parPulseindex.val = ''
+		self.parPushindex.val = ''
 		
 		# Reset active slot
 		self.activeSlot = None
@@ -469,10 +478,6 @@ class HoveredMidiRelativeExt:
 	def onParKnobindex(self, _par, _val):
 		"""TouchDesigner callback when knob index parameter changes"""
 		self.activeMidi.cook(force=True)
-
-	def onParResetparindex(self, _par, _val):
-		"""TouchDesigner callback when reset parameter index changes"""
-		self.resetMidi.cook(force=True)
 
 	def onParPeriststep(self, _par, _val):
 		"""TouchDesigner callback when persist step parameter changes"""
@@ -517,8 +522,7 @@ class HoveredMidiRelativeExt:
 
 		# Set control indices
 		self.parKnobindex.val = VSN1Constants.KNOB_INDEX
-		self.parResetparindex.val = VSN1Constants.RESET_INDEX
-		self.parPulseindex.val = VSN1Constants.PULSE_INDEX
+		self.parPushindex.val = VSN1Constants.PUSH_INDEX
 
 		# Force cook MIDI operators
 		self._force_cook_midi_operators()
@@ -526,7 +530,7 @@ class HoveredMidiRelativeExt:
 	def _force_cook_midi_operators(self):
 		"""Force cook all MIDI-related operators"""
 		self.activeMidi.cook(force=True)
-		self.resetMidi.cook(force=True)
+		self.pushMidi.cook(force=True)
 		self.slotsLearnMidi.cook(force=True)
 		self.bankMidi.cook(force=True)
 

@@ -24,8 +24,7 @@ class VSN1Constants:
 	BANK_BUTTONS = [42, 43, 44, 45]
 	SLOT_INDICES = [33, 34, 35, 36, 37, 38, 39, 40]
 	KNOB_INDEX = 41
-	RESET_INDEX = 41
-	PULSE_INDEX = 41
+	PUSH_INDEX = 41
 	
 	# Screen constants
 	MAX_LABEL_LENGTH = 9
@@ -60,3 +59,7 @@ class KnobLedUpdateMode(Enum):
 	OFF = 'Off'
 	VALUE = 'Value'
 	STEPS = 'Step'
+
+class SecondaryMode(Enum):
+	RESET = 'Reset'
+	STEP = 'Step'

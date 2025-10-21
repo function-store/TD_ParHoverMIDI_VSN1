@@ -5,7 +5,7 @@ Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.187.toe
 Saveversion : 2023.12120
 Info Header End'''
-from constants import MidiConstants, VSN1ColorIndex, ScreenMessages
+from constants import MidiConstants, VSN1ColorIndex, ScreenMessages, SecondaryMode
 from validators import ParameterValidator
 
 class MidiMessageHandler:
@@ -45,10 +45,10 @@ class MidiMessageHandler:
 			self._do_step(self.parent._currStep, value)
 		return True
 	
-	def handle_pulse_message(self, index: int, value: int, active_par) -> bool:
+	def handle_push_message(self, index: int, value: int, active_par) -> bool:
 		"""Handle pulse button messages"""
-		pulse_index = self.parent._safe_get_midi_index(self.parent.evalPulseindex, default=-1)
-		if index != pulse_index:
+		push_index = self.parent._safe_get_midi_index(self.parent.evalPushindex, default=-1)
+		if index != push_index:
 			return False
 			
 		if active_par is not None and active_par.owner != self.parent.ownerComp:
@@ -126,6 +126,8 @@ class MidiMessageHandler:
 			return
 			
 		diff = value - MidiConstants.MIDI_CENTER_VALUE
+		if self.parent.secondaryPushState and self.parent.secondaryMode == SecondaryMode.STEP:
+			step = self.parent.evalSecondarystep or step
 		step_amount = step * diff
 		
 		if active_par.isNumber:
