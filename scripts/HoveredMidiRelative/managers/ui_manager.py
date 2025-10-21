@@ -5,7 +5,7 @@ Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.193.toe
 Saveversion : 2023.12120
 Info Header End'''
-from constants import VSN1ColorIndex, ScreenMessages
+from constants import VSN1ColorIndex, ScreenMessages, StepMode
 from formatters import LabelFormatter
 
 class UIManager:
@@ -159,3 +159,9 @@ class UIManager:
 			return
 		# Update UI parameter to show current bank
 		self.ui.par.Bankindicatorindex = bank_idx
+
+	def set_stepmode_indicator(self, step_mode: StepMode):
+		"""Set mode indicator in UI"""
+		if not self.ui_enabled:
+			return
+		pass

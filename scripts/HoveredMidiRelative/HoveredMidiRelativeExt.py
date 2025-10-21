@@ -157,6 +157,7 @@ class HoveredMidiRelativeExt:
 													ScreenMessages.HOVER, compress=False)
 
 		self.display_manager.update_all_slot_leds()
+		self.display_manager.set_stepmode_indicator(self.stepMode)
 		
 		# Initialize UI button labels based on current slot assignments
 		if hasattr(self, 'ui_manager'):
@@ -249,6 +250,10 @@ class HoveredMidiRelativeExt:
 		"""Get the current push state from component parameter"""
 		return self.ownerComp.op('null_push')[0].eval()
 
+	@property
+	def stepMode(self) -> StepMode:
+		"""Get the current relative step mode from component parameter"""
+		return StepMode(self.evalStepmode)
 
 	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
@@ -545,6 +550,10 @@ class HoveredMidiRelativeExt:
 		else:
 			# Refresh current bank display to ensure UI is updated
 			self.slot_manager._refresh_bank_display()
+
+	def onParStepmode(self, _par, _val):
+		"""TouchDesigner callback when relative step mode parameter changes"""
+		self.display_manager.set_stepmode_indicator(StepMode(_val))
 
 # endregion parameter callbacks
 

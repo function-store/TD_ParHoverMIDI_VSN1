@@ -7,7 +7,7 @@ Saveversion : 2023.12120
 Info Header End'''
 import re
 from typing import Optional
-from constants import ScreenMessages, VSN1ColorIndex, KnobLedUpdateMode
+from constants import ScreenMessages, VSN1ColorIndex, KnobLedUpdateMode, StepMode
 from formatters import LabelFormatter
 import math
 
@@ -184,3 +184,8 @@ class DisplayManager:
 		"""Send slot feedback to both displays"""
 		self.vsn1_renderer.send_slot_led_feedback(slot_idx, value)
 		self.ui_renderer.send_slot_feedback(slot_idx, value)
+
+	def set_stepmode_indicator(self, step_mode: StepMode):
+		"""Set mode indicator in UI"""
+		self.vsn1_renderer.set_stepmode_indicator(step_mode)
+		self.ui_renderer.set_stepmode_indicator(step_mode)

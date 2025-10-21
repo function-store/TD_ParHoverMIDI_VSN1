@@ -5,7 +5,7 @@ Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.191.toe
 Saveversion : 2023.12120
 Info Header End'''
-from constants import VSN1Constants
+from constants import VSN1Constants, StepMode
 
 class VSN1Manager:
 	"""Manages VSN1 hardware integration - screen updates and LED feedback"""
@@ -141,6 +141,15 @@ class VSN1Manager:
 		# Send Lua command to update bank indicator on screen
 		self.grid_comm.SendLua(f'b={bank_idx};lcd:ldsw()')
 
+	def set_stepmode_indicator(self, step_mode: StepMode):
+		if not self.is_vsn1_enabled():
+			return
+		if step_mode == StepMode.RELATIVE:
+			self.grid_comm.SendLua(f'ci=2')
+		else:
+			self.grid_comm.SendLua(f'ci=3')
+		self.render_display(0.5, 0, 1, '_MODE_', '_REL_' if step_mode == StepMode.RELATIVE else '_AUTO_', 0.5)
+
 	def clear_all_slot_leds(self):
 		"""Clear all slot LEDs (set to 0)"""
 		if not self.is_vsn1_enabled():
@@ -149,3 +158,4 @@ class VSN1Manager:
 		for i in range(len(VSN1Constants.SLOT_INDICES)):
 			led_updates.append((10 + i, 0))
 		self._send_batch_leds(led_updates)
+	

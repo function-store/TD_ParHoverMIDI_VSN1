@@ -5,7 +5,7 @@ Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.187.toe
 Saveversion : 2023.12120
 Info Header End'''
-from constants import MidiConstants, VSN1ColorIndex, ScreenMessages, SecondaryMode
+from constants import MidiConstants, VSN1ColorIndex, ScreenMessages, SecondaryMode, StepMode
 from validators import ParameterValidator
 
 class MidiMessageHandler:
@@ -126,33 +126,44 @@ class MidiMessageHandler:
 			return
 			
 		diff = value - MidiConstants.MIDI_CENTER_VALUE
-		if self.parent.secondaryPushState and self.parent.secondaryMode == SecondaryMode.STEP:
-			step = self.parent.evalSecondarystep or step
-		step_amount = step * diff
 		
 		if active_par.isNumber:
-			# Handle numeric parameters (float/int)
-			current_val = active_par.eval()
-			# for ints step is always 1 # TODO: this is debatable
+			# Apply secondary step if active
+			if self.parent.secondaryPushState and self.parent.secondaryMode == SecondaryMode.STEP:
+				step = self.parent.evalSecondarystep or step
+			
+			# Calculate step amount based on mode
+			if self.parent.stepMode == StepMode.RELATIVE:
+				step_amount = step * diff
+			else: # AutoRange mode - step scales with parameter range
+				min_val, max_val = active_par.normMin, active_par.normMax
+				step_amount = ((max_val - min_val) * step) * diff
+			
+			# Handle integer parameters with different step behavior
 			if active_par.isInt:
-				step_amount = 1 if step_amount > 0 else -1
-			new_val = current_val + step_amount
-			active_par.val = new_val
+				if self.parent.stepMode == StepMode.RELATIVE:
+					# TODO: debatable if this fixed step is good for ints in relative mode. What's the alternative?
+					step_amount = 1 if diff > 0 else -1
+				else:
+					step_amount = max(1, ((max_val - min_val) * step)) * (1 if diff > 0 else -1)
+			
+			# Apply the step to current value
+			active_par.val = active_par.eval() + step_amount
 			
 		elif active_par.isMenu:
 			# Handle menu parameters - step through menu options
 			if abs(diff) >= 1:  # Only change on significant step
 				current_index = active_par.menuIndex
-				step_direction = 1 if step_amount > 0 else -1
+				step_direction = 1 if diff > 0 else -1
 				new_index = current_index + step_direction
 				active_par.menuIndex = new_index
 				
 		elif active_par.isToggle or active_par.isMomentary:
 			# Handle toggle parameters - step through on/off states
 			current_val = active_par.eval()
-			if step_amount > 0 and not current_val:
+			if diff > 0 and not current_val:
 				active_par.val = True
-			elif step_amount < 0 and current_val:
+			elif diff < 0 and current_val:
 				active_par.val = False
 		else:
 			# Unsupported parameter type

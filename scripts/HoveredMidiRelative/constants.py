@@ -63,3 +63,7 @@ class KnobLedUpdateMode(Enum):
 class SecondaryMode(Enum):
 	RESET = 'Reset'
 	STEP = 'Step'
+
+class StepMode(Enum):
+	RELATIVE = 'Relative'
+	AUTORANGE = 'AutoRange'
