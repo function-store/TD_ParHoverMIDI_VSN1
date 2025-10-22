@@ -35,6 +35,11 @@ class SlotManager:
 			# Extend current bank with empty slots as needed
 			self.parent.slotPars[currBank].append(None)
 		
+		# Capture state before assignment (for undo)
+		previous_parameter = self.parent.slotPars[currBank][slot_idx]
+		previous_active_slot = self.parent.activeSlot
+		previous_bank_active_slot = self.parent.bankActiveSlots[currBank]
+		
 		# Store previous active slot for LED updates
 		old_active_slot = self.parent.activeSlot
 		
@@ -56,7 +61,120 @@ class SlotManager:
 		self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		
+		# Add undo support if enabled
+		if self.parent.evalEnableundo:
+			ui.undo.startBlock(f'Assign Slot {slot_idx} in Bank {currBank}')
+			try:
+				undo_info = {
+					'slot_idx': slot_idx,
+					'bank_idx': currBank,
+					'new_parameter': parameter,
+					'previous_parameter': previous_parameter,
+					'previous_active_slot': previous_active_slot,
+					'previous_bank_active_slot': previous_bank_active_slot
+				}
+				ui.undo.addCallback(self._undo_assign_slot_callback, undo_info)
+			finally:
+				ui.undo.endBlock()
+		
 		return True
+	
+	def _undo_assign_slot_callback(self, isUndo, info):
+		"""Undo callback to restore previous state or redo assignment"""
+		slot_idx = info['slot_idx']
+		bank_idx = info['bank_idx']
+		is_current_bank = self.parent.currBank == bank_idx
+		
+		if isUndo:
+			# Restore the previous state (before assignment)
+			previous_parameter = info['previous_parameter']
+			previous_active_slot = info['previous_active_slot']
+			previous_bank_active_slot = info['previous_bank_active_slot']
+			
+			# Restore the slot to its previous state
+			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
+			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
+			
+			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
+			if is_current_bank:
+				self.parent.activeSlot = previous_active_slot
+				
+				# Update UI button label
+				if hasattr(self.parent, 'ui_manager'):
+					if previous_parameter is not None:
+						label = LabelFormatter.get_label_for_parameter(previous_parameter, self.parent.labelDisplayMode)
+					else:
+						label = ScreenMessages.HOVER
+					self.parent.ui_manager._set_button_label(slot_idx, label)
+				
+			# Update display based on what was previously active
+			if previous_active_slot == slot_idx and previous_parameter is not None:
+				# Slot was previously active with a parameter
+				self.parent.display_manager.update_parameter_display(previous_parameter)
+				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+			elif previous_active_slot is not None and previous_active_slot < len(self.parent.slotPars[bank_idx]):
+				# Different slot was active
+				active_par = self.parent.slotPars[bank_idx][previous_active_slot]
+				if active_par is not None:
+					self.parent.display_manager.update_parameter_display(active_par)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+				else:
+					# Return to hover mode
+					self.parent.display_manager.update_all_display(
+						0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+			else:
+				# Return to hover mode
+				self.parent.display_manager.update_all_display(
+					0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+			
+			# Update LEDs - update both the modified slot and the active slot
+			# The modified slot (slot_idx) needs to reflect its restored state
+			if previous_active_slot != slot_idx:
+				# Update the slot that was just un-learned
+				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+			# Update active slot LEDs
+			self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot)
+		else:
+			# Redo: re-assign the parameter
+			new_parameter = info['new_parameter']
+			
+			# Validate parameter still exists and is of supported type
+			try:
+				# Handle ParGroup
+				if ParameterValidator.is_pargroup(new_parameter):
+					has_existing = any(p.valid for p in new_parameter if p is not None)
+					if not has_existing or not ParameterValidator.is_supported_parameter_type(new_parameter):
+						return
+				# Handle single Par
+				elif not new_parameter.valid or not ParameterValidator.is_supported_parameter_type(new_parameter):
+					return
+			except:
+				# Parameter reference is completely invalid
+				return
+			
+			self.parent.slotPars[bank_idx][slot_idx] = new_parameter
+			self.parent.activeSlot = slot_idx
+			self.parent.bankActiveSlots[bank_idx] = slot_idx
+			
+			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
+			if is_current_bank:
+				# Update UI button label
+				if hasattr(self.parent, 'ui_manager'):
+					label = LabelFormatter.get_label_for_parameter(new_parameter, self.parent.labelDisplayMode)
+					self.parent.ui_manager._set_button_label(slot_idx, label)
+				
+				# Update display
+				self.parent.display_manager.update_parameter_display(new_parameter, bottom_text=ScreenMessages.LEARNED)
+				
+				# Update LEDs
+				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+		
+		# Always refresh UI buttons for current bank
+		if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
+			run("args[0].refresh_all_button_states()", self.parent.ui_manager, delayFrames=1)
 	
 	def _undo_clear_slot_callback(self, isUndo, info):
 		"""Undo callback to restore or re-clear a slot"""

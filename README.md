@@ -206,7 +206,7 @@ The following parameters are available to further customize the functionality of
 - **`Reset Hold Length`**: (Reset mode) Duration the knob push button must be held to reset the active parameter to its default value.
 - **`Secondary Step`**: (Step mode) Alternate step size used when holding the knob push button and rotating the knob.
 - **`Loop Menus`**: When enabled, menu parameters loop around (last item → first item). When disabled, menu navigation stops at the edges.
-- **`Enable Undo`**: When enabled, clearing slots can be undone with Ctrl+Z (Cmd+Z on Mac). Undo works across banks and validates parameter existence before restoring.
+- **`Enable Undo`**: When enabled, assinging and clearing slots can be undone with Ctrl+Z (Cmd+Z on Mac). Undo works across banks and validates parameter existence before restoring.
 - **`VSN1 Support`**: Enables VSN1 screen updates and LED feedback, displaying adjusted parameter and value (circle size between param normMin/Max values), using websocket communication --- requires Grid Editor to be open!
 - **`Label Display Mode`**: Choose between "Compressed" (removes vowels/spaces) or "Truncated" (simple cut-off) for parameter label formatting on limited displays
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
