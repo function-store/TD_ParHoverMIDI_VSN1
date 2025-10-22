@@ -40,8 +40,8 @@ class HoveredMidiRelativeExt:
 		self.modeselMidi = self.ownerComp.op('midiin_modesel')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
 		
-		# Initialize state
-		self.hoveredPar: Optional[Par] = None
+		# Initialize state - can be either a single Par or a ParGroup
+		self.hoveredPar: Optional[Union[Par, ParGroup]] = None
 		
 		# Initialize helper classes
 		self.midi_handler = MidiMessageHandler(self)
@@ -137,13 +137,25 @@ class HoveredMidiRelativeExt:
 				self.slotPars[_bank_idx] = []
 				continue
 				
-			for idx, _par in enumerate(bank_slots):
-				if _par is not None and not _par.valid:
-					self.slotPars[_bank_idx][idx] = None
-					if self.currBank == _bank_idx and self.activeSlot == idx:
-						# Invalidate active slot
-						self.activeSlot = None
-						self.bankActiveSlots[_bank_idx] = None
+			for idx, _par_or_group in enumerate(bank_slots):
+				if _par_or_group is not None:
+					# Handle ParGroup
+					if ParameterValidator.is_pargroup(_par_or_group):
+						# Check if any parameters in the group are still valid
+						has_valid = any(p.valid for p in _par_or_group if p is not None)
+						if not has_valid:
+							self.slotPars[_bank_idx][idx] = None
+							if self.currBank == _bank_idx and self.activeSlot == idx:
+								# Invalidate active slot
+								self.activeSlot = None
+								self.bankActiveSlots[_bank_idx] = None
+					# Handle single Par
+					elif not _par_or_group.valid:
+						self.slotPars[_bank_idx][idx] = None
+						if self.currBank == _bank_idx and self.activeSlot == idx:
+							# Invalidate active slot
+							self.activeSlot = None
+							self.bankActiveSlots[_bank_idx] = None
 	
 	def _initialize_VSN1(self):
 		"""Initialize VSN1 screen if enabled"""
@@ -204,8 +216,9 @@ class HoveredMidiRelativeExt:
 		return self.seqSteps.numBlocks
 
 	@property
-	def activePar(self) -> Optional[Par]:
-		"""Get currently active parameter (slot takes priority over hovered)"""
+	def activePar(self) -> Optional[Union[Par, ParGroup]]:
+		"""Get currently active parameter (slot takes priority over hovered)
+		Can return a single Par or a ParGroup"""
 		# Prioritize active slot parameters over hovered parameter
 		if (self.activeSlot is not None and 
 			self.activeSlot < self.numSlots and 
@@ -260,7 +273,7 @@ class HoveredMidiRelativeExt:
 	def stepMode(self, value: StepMode):
 		self.evalStepmode = value.value
 
-	def onHoveredParChange(self, _op, _par, _expr, _bindExpr):
+	def onHoveredParChange(self, _op, _parGroup, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
 		self.hoveredPar = None
 
@@ -268,25 +281,55 @@ class HoveredMidiRelativeExt:
 			return
 			
 		# Validate inputs
-		if _op is None or _par is None:
+		if _op is None:
 			return
 			
 		if not (_op := op(_op)):
 			return
-			
-		if (_par := getattr(_op.par, _par)) is None:
-			return
 		
-		self.hoveredPar = _par
-		# Handle invalid/unsupported parameters when no active slot
-		if self.activeSlot is None:
-			if error_msg := ParameterValidator.get_validation_error(_par):
-				self.display_manager.show_parameter_error(_par, error_msg)
-				return  # Parameter is invalid, error message shown
+		# Detect if we're hovering over a ParGroup or a single Par
+		par_group_obj = getattr(_op.parGroup, _parGroup, None) if _parGroup else None
+		single_par = getattr(_op.par, _par, None) if _par else None
+		
+		# ParGroup detected: parGroup exists AND par doesn't (or is None)
+		if par_group_obj is not None and single_par is None:
+			# Edge case: if ParGroup has only 1 parameter, treat it as a single Par
+			try:
+				par_list = list(par_group_obj)
+				if len(par_list) == 1:
+					# Single parameter in group - treat as individual Par
+					single_par = par_list[0]
+					par_group_obj = None  # Clear group reference
+			except (TypeError, AttributeError):
+				pass  # Can't convert to list, continue with group
+			
+			# Store as ParGroup if it has multiple parameters
+			if par_group_obj is not None:
+				self.hoveredPar = par_group_obj
+				
+				# Handle invalid/unsupported parameters when no active slot
+				if self.activeSlot is None:
+					if error_msg := ParameterValidator.get_validation_error(par_group_obj):
+						self.display_manager.show_parameter_error(par_group_obj, error_msg)
+						return  # Parameter group is invalid, error message shown
+					
+					# Update screen if no active slot (only for valid parameter groups)
+					self.display_manager.update_parameter_display(par_group_obj)
+				return  # Early return to avoid processing as single par
+		
+		# Single Par detected (or extracted from single-item ParGroup)
+		if single_par is not None:
+			self.hoveredPar = single_par
+			
+			# Handle invalid/unsupported parameters when no active slot
+			if self.activeSlot is None:
+				if error_msg := ParameterValidator.get_validation_error(single_par):
+					self.display_manager.show_parameter_error(single_par, error_msg)
+					return  # Parameter is invalid, error message shown
 
-		# Update screen if no active slot (only for valid parameters)
-		if self.activeSlot is None:
-			self.display_manager.update_parameter_display(_par)
+			# Update screen if no active slot (only for valid parameters)
+			if self.activeSlot is None:
+				self.display_manager.update_parameter_display(single_par)
 
 	def onGridConnect(self):
 		"""TouchDesigner callback when grid connects"""
@@ -381,9 +424,17 @@ class HoveredMidiRelativeExt:
 			self.slot_manager.clear_slot(block_idx)
 
 	def onResetPar(self):
-		"""TouchDesigner callback to reset active parameter"""
+		"""TouchDesigner callback to reset active parameter (or ParGroup)"""
 		if self.activePar is not None and self.secondaryMode == SecondaryMode.RESET:
-			self.activePar.reset()
+			# Handle ParGroup
+			if ParameterValidator.is_pargroup(self.activePar):
+				# Reset only valid parameters within the group
+				for par in self.activePar:
+					if par is not None and ParameterValidator.is_valid_parameter(par):
+						par.reset()
+			else:
+				# Handle single Par
+				self.activePar.reset()
 			self.display_manager.update_parameter_display(self.activePar)
 
 	def onReceiveMidiBankSel(self, index: int) -> None:

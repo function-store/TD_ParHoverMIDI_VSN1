@@ -3,9 +3,9 @@
 Name : slot_manager
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.189.toe
-Saveversion : 2023.12120
+Saveversion : 2025.31310
 Info Header End'''
-from typing import Optional
+from typing import Optional, Union
 from constants import ScreenMessages, VSN1ColorIndex
 from validators import ParameterValidator
 from formatters import LabelFormatter
@@ -15,10 +15,13 @@ class SlotManager:
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
 	
-	def assign_slot(self, slot_idx: int, parameter: Par) -> bool:
-		"""Assign a parameter to a slot and activate it. Returns True if successful."""
-		if not ParameterValidator.is_valid_parameter(parameter) or \
-		   not ParameterValidator.is_supported_parameter_type(parameter):
+	def assign_slot(self, slot_idx: int, parameter: Union[Par, ParGroup]) -> bool:
+		"""Assign a parameter (or ParGroup) to a slot and activate it. Returns True if successful.
+		
+		Note: We allow saving parameters with expressions/exports. During manipulation,
+		only valid parameters will be affected (invalid ones are skipped)."""
+		# Only check if the parameter type is supported (not if it's valid/has expressions)
+		if not ParameterValidator.is_supported_parameter_type(parameter):
 			return False
 
 		# Extend number of banks if necessary
@@ -35,7 +38,7 @@ class SlotManager:
 		# Store previous active slot for LED updates
 		old_active_slot = self.parent.activeSlot
 		
-		# Assign parameter and activate slot
+		# Assign parameter (or ParGroup) and activate slot
 		self.parent.slotPars[currBank][slot_idx] = parameter
 		self.parent.activeSlot = slot_idx
 		self.parent.bankActiveSlots[currBank] = slot_idx
@@ -67,10 +70,25 @@ class SlotManager:
 			previous_active_slot = info['previous_active_slot']
 			previous_bank_active_slot = info['previous_bank_active_slot']
 			
-			# Validate parameter still exists and is valid
+			# Validate parameter (or ParGroup) still exists and is of supported type
+			# (We allow parameters with expressions/exports, so don't check validity - just existence and type)
 			try:
-				if previous_parameter is None or not previous_parameter.valid:
+				# Handle ParGroup
+				if ParameterValidator.is_pargroup(previous_parameter):
+					# Check if any parameters in the group still exist
+					has_existing = any(p.valid for p in previous_parameter if p is not None)
+					if not has_existing:
+						# ParGroup no longer exists, cannot restore
+						return
+					# Check if it's still a supported type
+					if not ParameterValidator.is_supported_parameter_type(previous_parameter):
+						return
+				# Handle single Par
+				elif previous_parameter is None or not previous_parameter.valid:
 					# Parameter no longer exists, cannot restore
+					return
+				# Check if single Par is still a supported type
+				elif not ParameterValidator.is_supported_parameter_type(previous_parameter):
 					return
 			except:
 				# Parameter reference is completely invalid
@@ -278,8 +296,8 @@ class SlotManager:
 		self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 	
-	def get_slot_parameter(self, slot_idx: int, bank_idx: Optional[int] = None) -> Optional[Par]:
-		"""Get the parameter assigned to a slot in the specified bank (defaults to current bank)"""
+	def get_slot_parameter(self, slot_idx: int, bank_idx: Optional[int] = None) -> Optional[Union[Par, ParGroup]]:
+		"""Get the parameter (or ParGroup) assigned to a slot in the specified bank (defaults to current bank)"""
 		if bank_idx is None:
 			bank_idx = self.parent.currBank
 			
@@ -289,15 +307,15 @@ class SlotManager:
 		return self.parent.slotPars[bank_idx][slot_idx]
 	
 	def is_slot_occupied(self, slot_idx: int, bank_idx: Optional[int] = None) -> bool:
-		"""Check if a slot has a parameter assigned in the specified bank (defaults to current bank)"""
+		"""Check if a slot has a parameter (or ParGroup) assigned in the specified bank (defaults to current bank)"""
 		return self.get_slot_parameter(slot_idx, bank_idx) is not None
 	
 	def is_slot_active(self, slot_idx: int) -> bool:
 		"""Check if a slot is currently active in the current bank"""
 		return self.parent.activeSlot == slot_idx
 	
-	def get_active_slot_parameter(self) -> Optional[Par]:
-		"""Get the parameter of the currently active slot"""
+	def get_active_slot_parameter(self) -> Optional[Union[Par, ParGroup]]:
+		"""Get the parameter (or ParGroup) of the currently active slot"""
 		if self.parent.activeSlot is None:
 			return None
 		return self.get_slot_parameter(self.parent.activeSlot)

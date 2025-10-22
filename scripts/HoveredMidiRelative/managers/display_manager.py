@@ -6,7 +6,7 @@ Saveorigin : HoveredMidiRelative.201.toe
 Saveversion : 2023.12120
 Info Header End'''
 import re
-from typing import Optional
+from typing import Optional, Union
 from constants import ScreenMessages, VSN1ColorIndex, KnobLedUpdateMode, StepMode
 from formatters import LabelFormatter
 from validators import ParameterValidator
@@ -19,9 +19,9 @@ class DisplayManager:
 		self.vsn1_renderer = parent_ext.vsn1_manager
 		self.ui_renderer = parent_ext.ui_manager
 	
-	def show_parameter_error(self, par, error_msg: str):
-		"""Show error message for invalid parameter."""
-		param_label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode)
+	def show_parameter_error(self, par_or_group: Union[Par, ParGroup], error_msg: str):
+		"""Show error message for invalid parameter (or ParGroup)."""
+		param_label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
 		self.update_all_display(0.5, 0, 1, param_label, error_msg, compress=True)
 	
 	def get_slot_state_value(self, slot_idx: int) -> int:
@@ -83,47 +83,107 @@ class DisplayManager:
 		
 		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
     
-	def update_parameter_display(self, par, bottom_text: str = None, force_knob_leds: bool = False):
-		"""Update displays for a specific parameter - handles ALL logic here"""
-		if par is None:
+	def update_parameter_display(self, par_or_group: Union[Par, ParGroup], bottom_text: str = None, force_knob_leds: bool = False):
+		"""Update displays for a specific parameter (or ParGroup) - handles ALL logic here
+		For ParGroups, displays the first valid parameter's value"""
+		if par_or_group is None:
 			return
-		if not par.valid:
+		
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(par_or_group):
+			# Get first valid parameter from the group
+			first_valid_par = None
+			for p in par_or_group:
+				if p is not None and ParameterValidator.is_valid_parameter(p):
+					first_valid_par = p
+					break
+			
+			if first_valid_par is None:
+				return
+			
+			# Use first valid parameter's value for display
+			if first_valid_par.isMenu:
+				val = first_valid_par.menuIndex
+				min_val, max_val = 0, len(first_valid_par.menuNames) - 1
+				
+				if first_valid_par.isString and first_valid_par.eval() not in first_valid_par.menuNames:
+					display_text = str(first_valid_par.eval())
+				else:
+					display_text = str(first_valid_par.menuLabels[first_valid_par.menuIndex])
+				
+				display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
+			elif first_valid_par.isToggle or first_valid_par.isMomentary:
+				val = 1 if first_valid_par.eval() else 0
+				min_val, max_val = 0, 1
+				display_text = "On" if val else "Off"
+			elif first_valid_par.isPulse:
+				val = 1 if first_valid_par.eval() else 0
+				min_val, max_val = 0, 1
+				display_text = f"_PULSE_"
+			else:
+				# For numeric parameters, show first valid parameter's value
+				val = first_valid_par.eval()
+				min_val = first_valid_par.normMin
+				max_val = first_valid_par.normMax
+				display_text = None
+			
+			if bottom_text is not None:
+				display_text = bottom_text
+			
+			# Use the centralized label method which handles parameter groups
+			label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
+			
+			# Use the unified display logic
+			self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
+			if force_knob_leds:
+				if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
+					percentage = (val - min_val) / (max_val - min_val) if max_val != min_val else 0.5
+					self.vsn1_renderer.update_knob_leds_gradual(percentage)
+				elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
+					index = next((i for i, s in enumerate(self.parent.seqSteps) if s.par.Step.eval() == self.parent._currStep), None)
+					self.vsn1_renderer.update_knob_leds_steps(index)
+				elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.OFF]:
+					self.vsn1_renderer.update_knob_leds_gradual(0)
+			return
+		
+		# Handle single Par
+		if not par_or_group.valid:
 			return
 			
 		# Handle different parameter types - ALL logic here
-		if par.isMenu:
-			val = par.menuIndex
-			min_val, max_val = 0, len(par.menuNames) - 1
+		if par_or_group.isMenu:
+			val = par_or_group.menuIndex
+			min_val, max_val = 0, len(par_or_group.menuNames) - 1
 			
 			# For string menus, show the actual value if it's not in menuNames, otherwise show label
-			if par.isString and par.eval() not in par.menuNames:
-				display_text = str(par.eval())
+			if par_or_group.isString and par_or_group.eval() not in par_or_group.menuNames:
+				display_text = str(par_or_group.eval())
 			else:
-				display_text = str(par.menuLabels[par.menuIndex])
+				display_text = str(par_or_group.menuLabels[par_or_group.menuIndex])
 			
 			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
-		elif par.isToggle or par.isMomentary:
-			val = 1 if par.eval() else 0
+		elif par_or_group.isToggle or par_or_group.isMomentary:
+			val = 1 if par_or_group.eval() else 0
 			min_val, max_val = 0, 1
 			display_text = "On" if val else "Off"
-		elif par.isPulse:
-			val = 1 if par.eval() else 0
+		elif par_or_group.isPulse:
+			val = 1 if par_or_group.eval() else 0
 			min_val, max_val = 0, 1
 			display_text = f"_PULSE_"
 		else:
-			val = par.eval()
-			min_val, max_val = par.normMin, par.normMax
+			val = par_or_group.eval()
+			min_val, max_val = par_or_group.normMin, par_or_group.normMax
 			display_text = None
 
 		if bottom_text is not None:
 			display_text = bottom_text
 
 		# Use the centralized label method which handles parameter groups
-		label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode)
+		label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
 		
 		# Fallback logic for parameters without labels (sequence blocks)
-		if not par.label and (block := par.sequenceBlock):
-			name = par.name
+		if not par_or_group.label and (block := par_or_group.sequenceBlock):
+			name = par_or_group.name
 			name = re.split(r'\d+', name)[-1]
 			if name:
 				if isinstance(block.owner, constantCHOP):

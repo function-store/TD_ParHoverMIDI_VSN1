@@ -8,7 +8,7 @@ Info Header End'''
 """
 Label and value formatting utilities for HoveredMidiRelative
 """
-from typing import Any
+from typing import Any, Union, List
 from constants import VSN1Constants, LabelDisplayMode, ScreenMessages
 
 
@@ -16,22 +16,36 @@ class LabelFormatter:
 	"""Utility class for label compression and formatting"""
 
 	@staticmethod
-	def get_label_for_parameter(par: Par, mode: LabelDisplayMode) -> str:
-		"""Get the label for a parameter"""
-		if par is None:
+	def get_label_for_parameter(par_or_group: Union[Par, ParGroup], mode: LabelDisplayMode) -> str:
+		"""Get the label for a parameter or ParGroup
+		For ParGroups, uses the ParGroup's name with > prefix"""
+		if par_or_group is None:
 			return ScreenMessages.HOVER
 		
-		base_label = par.label
+		# Handle ParGroup
+		if isinstance(par_or_group, ParGroup):
+			# Use ParGroup's name
+			group_name = par_or_group.name if hasattr(par_or_group, 'name') else 'Group'
+			
+			# Add ">" prefix to denote it's a ParGroup
+			base_label = f">{group_name}"
+			
+			# Format the label
+			formatted_label = LabelFormatter.format_label(base_label, mode)
+			return formatted_label
+		
+		# Handle single Par
+		base_label = par_or_group.label
 		
 		# Extract prefix (sequence block index) and suffix (parameter group)
 		prefix = ""
 		suffix = ""
 		
-		if block := par.sequenceBlock:
+		if block := par_or_group.sequenceBlock:
 			prefix = f"{block.index}"
 		
-		if len(par.parGroup) > 1 and not (isinstance(par.parGroup, ParGroupUnit) or isinstance(par.parGroup, ParGroupPulse)):
-			suffix = f"{par.name[-1].capitalize()}"
+		if len(par_or_group.parGroup) > 1 and not (isinstance(par_or_group.parGroup, ParGroupUnit) or isinstance(par_or_group.parGroup, ParGroupPulse)):
+			suffix = f"{par_or_group.name[-1].capitalize()}"
 		
 		# Format with prefix and suffix preservation
 		formatted_label = LabelFormatter._format_label_with_prefix_suffix(base_label, prefix, suffix, mode)

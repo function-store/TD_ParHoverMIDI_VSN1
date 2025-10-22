@@ -18,7 +18,8 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 
 - **VSN1-Optimized Control**: Designed specifically for VSN1's endless encoders and visual feedback system
 - **Hover-based Parameter Control**: Adjust any parameter by hovering your mouse over it
-- **Multiple Parameter Slots**: Assign parameters to VSN1 buttons for instant access and switching
+- **ParGroup Support**: Hover over and control entire parameter groups (like RGB, XYZ) simultaneously - manipulates all valid parameters in the group at once
+- **Multiple Parameter Slots**: Assign parameters or parameter groups to VSN1 buttons for instant access and switching
 - **Multiple Banks**: Organize slots into separate banks using VSN1 buttons for expanded parameter control
 - **Smart Learning System**: Automatically assign VSN1 button mappings for step adjustment and main knob control
 - **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
@@ -95,21 +96,29 @@ The component supports multiple parameter slots that can be assigned to differen
 
 **Slot Assignment**:
 - **Hover over a parameter** you want to assign to a slot
-- **Long-press a slot button** (configured in the Slots sequence) to assign the hovered parameter to that slot
-- **The parameter is now "stored"** in that slot for quick access
+- **Hover over a parameter group** (ParGroup) to assign the entire group to a slot
+- **Long-press a slot button** (configured in the Slots sequence) to assign the hovered parameter/group to that slot
+- **The parameter or group is now "stored"** in that slot for quick access
 - **Clear a slot**: Long-press any slot button while not hovering over any parameter to free up that slot (and return it to **normal hover mode**)
 
 **Slot Activation**:
-- **Press any assigned slot button** to activate that parameter slot
-- **The stored parameter becomes active** for adjustment without needing to hover
-- **VSN1 screen updates** to show the active slot parameter
+- **Press any assigned slot button** to activate that parameter or group slot
+- **The stored parameter/group becomes active** for adjustment without needing to hover
+- **VSN1 screen updates** to show the active slot parameter (for groups, displays first parameter's value)
 - **VSN1 LED feedback**: The active slot button lights up, previous slot LED turns off automatically
 
 **Return to Hover Mode**:
 - **Press an empty slot button** (one without an assigned parameter) to return to normal hover mode
 - **All VSN1 slot LEDs turn off** when returning to hover mode
 
-> Parameter slots are saved with the project file / component.
+**ParGroup Support**:
+- **ParGroups** (like RGB color, XYZ position) are fully supported and can be assigned to slots
+- **Visual indicator**: ParGroup labels display with a `>` prefix (e.g., `>Color`) to distinguish them from single parameters
+- **Simultaneous control**: Rotating the knob adjusts all valid parameters in the group at once
+- **Smart handling**: Parameters with expressions or exports are automatically skipped during manipulation
+- **Single-parameter groups**: If a ParGroup contains only 1 parameter, it's treated as a single parameter (no `>` prefix)
+
+> Parameter slots and ParGroups are saved with the project file / component.
 
 ### Multiple Banks
 The component supports multiple banks to organize your parameter slots, dramatically expanding your control capabilities:
@@ -269,23 +278,29 @@ scripts/HoveredMidiRelative/
 
 **Core Components:**
 - **`HoveredMidiRelativeExt`**: Main extension class with TouchDesigner integration
-- **`MidiMessageHandler`**: Processes MIDI input (steps, knobs, pulses, slots, banks)
+- **`MidiMessageHandler`**: Processes MIDI input (steps, knobs, pulses, slots, banks) with ParGroup support
 - **`DisplayManager`**: Centralizes all display logic and coordinates renderers
 - **`VSN1Manager`**: Handles VSN1 screen updates and LED feedback (with batched LED commands)
 - **`UIManager`**: Manages local TouchDesigner UI elements with bank-aware button states
-- **`SlotManager`**: Handles parameter slot assignment, activation, clearing, and bank switching
-- **`ParameterValidator`**: Validates parameter compatibility and learning eligibility
-- **`LabelFormatter`**: Smart label compression with priority for parameter groups and sequence block indices
+- **`SlotManager`**: Handles parameter/ParGroup slot assignment, activation, clearing, and bank switching
+- **`ParameterValidator`**: Validates parameter compatibility, supports ParGroups with mixed valid/invalid parameters
+- **`LabelFormatter`**: Smart label compression with ParGroup detection (`>` prefix) and priority formatting
 
 **Key Features:**
-- Mouse hover detection and parameter tracking
+- Mouse hover detection with automatic ParGroup vs single parameter detection
+- **Full ParGroup support**: Control entire parameter groups (RGB, XYZ, etc.) simultaneously
+- **Permissive slot assignment**: Allows saving parameters with expressions/exports (automatically skipped during manipulation)
+- **Smart ParGroup handling**: 
+  - Single-parameter groups treated as individual parameters
+  - Invalid parameters within groups are skipped, not blocked
+  - Type consistency validation (all parameters in group must be same type)
 - Robust MIDI input processing with error handling
 - Centralized parameter value calculations with type-specific handling
 - Smart learning system implementation
 - Multiple banks with independent slot management and memory
 - Bank-aware UI updates with comprehensive state management
 - Optimized VSN1 communication with batched LED updates
-- Priority-based label formatting (preserves parameter group suffixes and sequence block prefixes)
+- Priority-based label formatting (ParGroup names with `>` prefix, preserves sequence block prefixes)
 - Unified display architecture with thin renderer pattern
 - Safe handling of empty/invalid MIDI configurations
 
