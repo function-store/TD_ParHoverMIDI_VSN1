@@ -89,121 +89,108 @@ class DisplayManager:
 		if par_or_group is None:
 			return
 		
-		# Handle ParGroup
-		if ParameterValidator.is_pargroup(par_or_group):
-			# Get first valid parameter from the group
-			first_valid_par = None
-			for p in par_or_group:
-				if p is not None and ParameterValidator.is_valid_parameter(p):
-					first_valid_par = p
-					break
-			
-			if first_valid_par is None:
-				return
-			
-			# Use first valid parameter's value for display
-			if first_valid_par.isMenu:
-				val = first_valid_par.menuIndex
-				min_val, max_val = 0, len(first_valid_par.menuNames) - 1
-				
-				if first_valid_par.isString and first_valid_par.eval() not in first_valid_par.menuNames:
-					display_text = str(first_valid_par.eval())
-				else:
-					display_text = str(first_valid_par.menuLabels[first_valid_par.menuIndex])
-				
-				display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
-			elif first_valid_par.isToggle or first_valid_par.isMomentary:
-				val = 1 if first_valid_par.eval() else 0
-				min_val, max_val = 0, 1
-				display_text = "On" if val else "Off"
-			elif first_valid_par.isPulse:
-				val = 1 if first_valid_par.eval() else 0
-				min_val, max_val = 0, 1
-				display_text = f"_PULSE_"
-			else:
-				# For numeric parameters, show first valid parameter's value
-				val = first_valid_par.eval()
-				min_val = first_valid_par.normMin
-				max_val = first_valid_par.normMax
-				display_text = None
-			
-			if bottom_text is not None:
-				display_text = bottom_text
-			
-			# Use the centralized label method which handles parameter groups
-			label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
-			
-			# Use the unified display logic
-			self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
-			if force_knob_leds:
-				if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
-					percentage = (val - min_val) / (max_val - min_val) if max_val != min_val else 0.5
-					self.vsn1_renderer.update_knob_leds_gradual(percentage)
-				elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
-					index = next((i for i, s in enumerate(self.parent.seqSteps) if s.par.Step.eval() == self.parent._currStep), None)
-					self.vsn1_renderer.update_knob_leds_steps(index)
-				elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.OFF]:
-					self.vsn1_renderer.update_knob_leds_gradual(0)
+		# Extract the parameter to display
+		# For ParGroups: get first valid parameter
+		# For single Pars: use as-is
+		display_par = self._get_display_parameter(par_or_group)
+		if display_par is None:
 			return
 		
-		# Handle single Par
-		if not par_or_group.valid:
-			return
-			
-		# Handle different parameter types - ALL logic here
-		if par_or_group.isMenu:
-			val = par_or_group.menuIndex
-			min_val, max_val = 0, len(par_or_group.menuNames) - 1
-			
-			# For string menus, show the actual value if it's not in menuNames, otherwise show label
-			if par_or_group.isString and par_or_group.eval() not in par_or_group.menuNames:
-				display_text = str(par_or_group.eval())
-			else:
-				display_text = str(par_or_group.menuLabels[par_or_group.menuIndex])
-			
-			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
-		elif par_or_group.isToggle or par_or_group.isMomentary:
-			val = 1 if par_or_group.eval() else 0
-			min_val, max_val = 0, 1
-			display_text = "On" if val else "Off"
-		elif par_or_group.isPulse:
-			val = 1 if par_or_group.eval() else 0
-			min_val, max_val = 0, 1
-			display_text = f"_PULSE_"
-		else:
-			val = par_or_group.eval()
-			min_val, max_val = par_or_group.normMin, par_or_group.normMax
-			display_text = None
-
+		# Get display values based on parameter type
+		val, min_val, max_val, display_text = self._get_parameter_display_values(display_par)
+		
+		# Override display text if provided
 		if bottom_text is not None:
 			display_text = bottom_text
-
-		# Use the centralized label method which handles parameter groups
-		label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
+		
+		# Get label (handles both Par and ParGroup)
+		label = self._get_parameter_label(par_or_group, display_par)
+		
+		# Update all displays
+		self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
+		
+		# Handle knob LED updates if forced
+		if force_knob_leds:
+			self._update_knob_leds(val, min_val, max_val)
+	
+	def _get_display_parameter(self, par_or_group: Union[Par, ParGroup]) -> Optional[Par]:
+		"""Extract the parameter to display from either a single Par or ParGroup
+		For ParGroups, returns the first valid parameter"""
+		if ParameterValidator.is_pargroup(par_or_group):
+			# Get first valid parameter from the group
+			for p in par_or_group:
+				if p is not None and ParameterValidator.is_valid_parameter(p):
+					return p
+			return None
+		
+		# Single Par - validate it exists
+		if not par_or_group.valid:
+			return None
+		return par_or_group
+	
+	def _get_parameter_display_values(self, par: Par) -> tuple:
+		"""Get display values (val, min_val, max_val, display_text) for a parameter
+		Returns tuple: (value, min_value, max_value, display_text)"""
+		if par.isMenu:
+			val = par.menuIndex
+			min_val, max_val = 0, len(par.menuNames) - 1
+			
+			# For string menus, show the actual value if it's not in menuNames
+			if par.isString and par.eval() not in par.menuNames:
+				display_text = str(par.eval())
+			else:
+				display_text = str(par.menuLabels[par.menuIndex])
+			
+			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
+			
+		elif par.isToggle or par.isMomentary:
+			val = 1 if par.eval() else 0
+			min_val, max_val = 0, 1
+			display_text = "On" if val else "Off"
+			
+		elif par.isPulse:
+			val = 1 if par.eval() else 0
+			min_val, max_val = 0, 1
+			display_text = "_PULSE_"
+			
+		else:  # Numeric parameter
+			val = par.eval()
+			min_val, max_val = par.normMin, par.normMax
+			display_text = None
+		
+		return val, min_val, max_val, display_text
+	
+	def _get_parameter_label(self, original: Union[Par, ParGroup], display_par: Par) -> str:
+		"""Get formatted label for display
+		Uses ParGroup name for groups, or parameter label for single Pars"""
+		# Use the centralized label method (handles ParGroup with > prefix)
+		label = LabelFormatter.get_label_for_parameter(original, self.parent.labelDisplayMode)
 		
 		# Fallback logic for parameters without labels (sequence blocks)
-		if not par_or_group.label and (block := par_or_group.sequenceBlock):
-			name = par_or_group.name
-			name = re.split(r'\d+', name)[-1]
-			if name:
-				if isinstance(block.owner, constantCHOP):
-					fallback_label = block.par.name.eval()
-				else:
-					fallback_label = name.capitalize()
-				# Apply formatting to the fallback label too
-				label = LabelFormatter.format_label(fallback_label, self.parent.labelDisplayMode)
+		# Only applies to single parameters, not ParGroups
+		if not ParameterValidator.is_pargroup(original) and not display_par.label:
+			if block := display_par.sequenceBlock:
+				name = display_par.name
+				name = re.split(r'\d+', name)[-1]
+				if name:
+					if isinstance(block.owner, constantCHOP):
+						fallback_label = block.par.name.eval()
+					else:
+						fallback_label = name.capitalize()
+					label = LabelFormatter.format_label(fallback_label, self.parent.labelDisplayMode)
 		
-		# Use the unified display logic
-		self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
-		if force_knob_leds:
-			if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
-				percentage = (val - min_val) / (max_val - min_val)
-				self.vsn1_renderer.update_knob_leds_gradual(percentage)
-			elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
-				index = next((i for i, s in enumerate(self.parent.seqSteps) if s.par.Step.eval() == self.parent._currStep), None)
-				self.vsn1_renderer.update_knob_leds_steps(index)
-			elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.OFF]:
-				self.vsn1_renderer.update_knob_leds_gradual(0)
+		return label
+	
+	def _update_knob_leds(self, val: float, min_val: float, max_val: float):
+		"""Update knob LEDs based on current mode"""
+		if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
+			percentage = (val - min_val) / (max_val - min_val) if max_val != min_val else 0.5
+			self.vsn1_renderer.update_knob_leds_gradual(percentage)
+		elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
+			index = next((i for i, s in enumerate(self.parent.seqSteps) if s.par.Step.eval() == self.parent._currStep), None)
+			self.vsn1_renderer.update_knob_leds_steps(index)
+		elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.OFF]:
+			self.vsn1_renderer.update_knob_leds_gradual(0)
 	
 	def update_step_display(self, step: float):
 		"""Update displays with current step value - handles ALL logic here"""

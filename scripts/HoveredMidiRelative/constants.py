@@ -49,7 +49,7 @@ class ScreenMessages:
 	LEARNED = '_LEARNED_'
 	STEP = '_STEP_'
 	EXPR = '_EXPR_'
-	UNSUPPORTED = '__'
+	UNSUPPORTED = '___'
 
 class LabelDisplayMode(Enum):
 	TRUNCATED = 'Truncated'
