@@ -66,13 +66,6 @@ exports.loadPackage = async function (gridController, persistedData) {
     });
   }
 
-  createAction({
-    short: "xwsps",
-    displayName: "Parameter Set",
-    defaultLua: 'gps("package-touchdesigner-parhover", "volume", self:get_auto_value())',
-    actionComponent: "websocket-parameter-set-action",
-  });
-
   wss = new WebSocket.Server({ port: websocketPort });
 
   console.log(
