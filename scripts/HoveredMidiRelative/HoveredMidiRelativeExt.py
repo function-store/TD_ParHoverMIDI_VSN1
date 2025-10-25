@@ -186,6 +186,8 @@ class HoveredMidiRelativeExt:
 		if self.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
 			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), 0)
 			self.vsn1_manager.update_knob_leds_steps(step_idx)
+
+		self.display_manager.update_all_display(0.5, 0, 1, 'TD Hover', '_INIT_', compress=False)
 		
 # region properties
 		

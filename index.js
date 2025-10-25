@@ -19,6 +19,8 @@ let latestUpdateParameMessage = undefined;
 let messageQueTimeoutId = undefined;
 let messageQueTimeout = 50;
 
+let ledState = "auto"; // "auto" or "red"
+
 function queUpdateMessage(message) {
   latestUpdateParameMessage = message;
   if (messageQueTimeoutId === undefined) {
@@ -217,6 +219,12 @@ function activeWindowRequestNoResponse() {
 function handleWebsocketMessage(message) {
   let data = JSON.parse(message);
   console.log({ data });
+  
+  // If we receive any WebSocket message and we're not in auto mode, reset to auto
+  if (ledState !== "auto") {
+    resetLedColorMinOnConnect();
+  }
+  
   if (data.type === "execute-code") {
     controller.sendMessageToEditor({
       type: "execute-lua-script",
@@ -251,6 +259,7 @@ lcd_set_backlight(0);
     type: "execute-lua-script",
     script: luaScript
   });
+  ledState = "red";
 }
 
 function resetLedColorMinOnConnect() {
@@ -265,6 +274,7 @@ lcd_set_backlight(255);
     type: "execute-lua-script",
     script: luaScript
   });
+  ledState = "auto";
 }
 
 function notifyStatusChange() {
