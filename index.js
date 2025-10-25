@@ -86,6 +86,9 @@ exports.loadPackage = async function (gridController, persistedData) {
   if (watchForActiveWindow) {
     setTimeout(tryActivateActiveWindow, 50);
   }
+  
+  // Check initial connection status
+  setTimeout(notifyStatusChange, 100);
 };
 
 exports.unloadPackage = async function () {
@@ -232,10 +235,50 @@ function handleWebsocketMessage(message) {
   }
 }
 
+function executeSetLedForIndices10to17() {
+  const luaScript = `
+for i = 10, 17 do
+  set_ledcolmin(i-10,33,0,0,1);
+  set_led(i, 1, 0);
+end
+lcd:ldaf(0,0,319,239,c[1]);
+lcd:ldrr(3,3,317,237,10,c[2]);
+lcd:ldsw();
+lcd_set_backlight(0);
+`;
+  
+  controller.sendMessageToEditor({
+    type: "execute-lua-script",
+    script: luaScript
+  });
+}
+
+function resetLedColorMinOnConnect() {
+  const luaScript = `
+for i = 10, 17 do
+  set_ledcolmin(i-10,-1,-1,-1,0.05);
+end
+lcd_set_backlight(255);
+`;
+  
+  controller.sendMessageToEditor({
+    type: "execute-lua-script",
+    script: luaScript
+  });
+}
+
 function notifyStatusChange() {
   preferenceMessagePort?.postMessage({
     type: "clientStatus",
     clientConnected: clientWs !== undefined,
     watchForActiveWindow,
   });
+  
+  // Execute set_led for indices 10-17 when not connected
+  if (!clientWs) {
+    executeSetLedForIndices10to17();
+  } else {
+    // Reset LED color minimum when connected
+    resetLedColorMinOnConnect();
+  }
 }
