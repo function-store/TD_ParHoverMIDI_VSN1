@@ -23,6 +23,7 @@
     "menuIcon": "TouchDesigner-icon.svg"
   },
   "dependencies": {
+    "jimp": "^1.6.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

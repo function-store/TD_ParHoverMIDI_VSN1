@@ -2,6 +2,9 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "path": "../../../../Users/Dan/Documents/package-image-stream"
         }
     ],
     "settings": {
