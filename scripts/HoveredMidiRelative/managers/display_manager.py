@@ -165,7 +165,7 @@ class DisplayManager:
 		Uses ParGroup name for groups, or parameter label for single Pars"""
 		# Use the centralized label method (handles ParGroup with > prefix)
 		label = LabelFormatter.get_label_for_parameter(original, self.parent.labelDisplayMode)
-		
+
 		# Fallback logic for parameters without labels (sequence blocks)
 		# Only applies to single parameters, not ParGroups
 		if not ParameterValidator.is_pargroup(original) and not display_par.label:

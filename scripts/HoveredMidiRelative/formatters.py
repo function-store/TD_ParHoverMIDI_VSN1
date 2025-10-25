@@ -16,7 +16,7 @@ class LabelFormatter:
 	"""Utility class for label compression and formatting"""
 
 	@staticmethod
-	def get_label_for_parameter(par_or_group: Union[Par, ParGroup], mode: LabelDisplayMode) -> str:
+	def get_label_for_parameter(par_or_group: Union[Par, ParGroup], mode: LabelDisplayMode, max_length: int = VSN1Constants.MAX_LABEL_LENGTH) -> str:
 		"""Get the label for a parameter or ParGroup
 		For ParGroups, uses the ParGroup's name with > prefix"""
 		if par_or_group is None:
@@ -25,13 +25,23 @@ class LabelFormatter:
 		# Handle ParGroup
 		if isinstance(par_or_group, ParGroup):
 			# Use ParGroup's name
-			group_name = par_or_group.name if hasattr(par_or_group, 'name') else 'Group'
+			group_name = par_or_group.label
+			
+			# Extract sequence block prefix if it exists
+			prefix = ""
+			if len(par_or_group) > 0 and par_or_group[0] is not None:
+				# Get sequence block from first parameter in the group
+				if block := par_or_group[0].sequenceBlock:
+					prefix = f"{block.index}"
 			
 			# Add ">" prefix to denote it's a ParGroup
 			base_label = f">{group_name}"
 			
-			# Format the label
-			formatted_label = LabelFormatter.format_label(base_label, mode)
+			# Format the label with prefix preservation
+			if prefix:
+				formatted_label = LabelFormatter._format_label_with_prefix_suffix(base_label, prefix, "", mode, max_length)
+			else:
+				formatted_label = LabelFormatter.format_label(base_label, mode, max_length)
 			return formatted_label
 		
 		# Handle single Par
@@ -45,10 +55,16 @@ class LabelFormatter:
 			prefix = f"{block.index}"
 		
 		if len(par_or_group.parGroup) > 1 and not (isinstance(par_or_group.parGroup, ParGroupUnit) or isinstance(par_or_group.parGroup, ParGroupPulse)):
-			suffix = f"{par_or_group.name[-1].capitalize()}"
+			# Only add suffix if all parameters in the group share the same base name
+			# This is to display constantCHOP name parameter name correctly, or for new POP parameters that are "groups"
+			# Get base names (name without last character) for all pars in group
+			base_names = set(p.name[:-1] for p in par_or_group.parGroup.pars())
+			# Only add suffix if all share the same base
+			if len(base_names) == 1:
+				suffix = f"{par_or_group.name[-1].capitalize()}"
 		
 		# Format with prefix and suffix preservation
-		formatted_label = LabelFormatter._format_label_with_prefix_suffix(base_label, prefix, suffix, mode)
+		formatted_label = LabelFormatter._format_label_with_prefix_suffix(base_label, prefix, suffix, mode, max_length)
 		return formatted_label
 	
 	@staticmethod

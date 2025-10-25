@@ -21,6 +21,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **ParGroup Support**: Hover over and control entire parameter groups (like RGB, XYZ) simultaneously - manipulates all valid parameters in the group at once
 - **Multiple Parameter Slots**: Assign parameters or parameter groups to VSN1 buttons for instant access and switching
 - **Multiple Banks**: Organize slots into separate banks using VSN1 buttons for expanded parameter control
+- **Bank Slot Overview**: Long-press any bank button to display all slot assignments on the VSN1 screen
 - **Smart Learning System**: Automatically assign VSN1 button mappings for step adjustment and main knob control
 - **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
@@ -142,6 +143,13 @@ The component supports multiple banks to organize your parameter slots, dramatic
 - **Bank indicator** - both VSN1 screen and UI show the current bank number
 - **Independent operation** - each bank operates exactly like the original single-bank system
 
+**Bank Slot Overview**:
+- **Long-press a bank button** to view all slot assignments on the VSN1 screen
+- **Grid display** - shows up to 8 slot names in a 2×4 grid layout (7 characters max per slot)
+- **Empty slots** - displayed as "---" for unassigned slots
+- **Label compression** - parameter names are intelligently compressed to fit the display
+- **Quick reference** - useful for remembering what's assigned to each slot in a bank
+
 **Bank Memory**:
 - **Last active slot** - each bank remembers which slot was last active
 - **Slot assignments** - each bank maintains its own parameter-to-slot mappings
@@ -229,6 +237,7 @@ The VSN1 provides comprehensive visual feedback through LEDs and screen elements
 - **Screen display**: Shows current bank number (e.g., "Bank 0", "Bank 1")
 - **Button updates**: Slot button labels and LEDs update when switching banks
 - **UI indicator**: TouchDesigner UI shows current bank number
+- **Bank slot overview**: Long-press any bank button to display all 8 slot names in a 2×4 grid on screen
 
 ### **Step Size Indicators**:
 - **Screen display**: Shows current step value when step size changes

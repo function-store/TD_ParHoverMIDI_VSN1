@@ -451,6 +451,18 @@ class HoveredMidiRelativeExt:
 			return
 		# set step mode to the opposite of the current step mode
 		self.stepMode = StepMode.FIXED if self.stepMode == StepMode.ADAPTIVE else StepMode.ADAPTIVE
+
+	def onReceiveMidiInfo(self, index: int):
+		"""TouchDesigner callback for MIDI info input"""
+		if not self.evalActive:
+			return
+		# get bank index from the given index
+		blocks = self._index_to_blocks(index, self.seqBanks)
+		if not blocks:
+			return
+		bank_idx = blocks[0].index
+		# show info message for the slot at the given index
+		self.vsn1_manager.show_info_message(self.slotPars[bank_idx])
 				
 
 # endregion midi callbacks

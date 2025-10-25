@@ -6,6 +6,8 @@ Saveorigin : HoveredMidiRelative.191.toe
 Saveversion : 2023.12120
 Info Header End'''
 from constants import VSN1Constants, StepMode
+from formatters import LabelFormatter
+from constants import VSN1ColorIndex
 
 class VSN1Manager:
 	"""Manages VSN1 hardware integration - screen updates and LED feedback"""
@@ -105,8 +107,8 @@ class VSN1Manager:
 		
 		self._send_batch_leds(led_updates)
 
-	def update_outline_color_index(self, color_index: int):
-		self.grid_comm.SendLua(f'rc={color_index};lcd:ldrr(3,3,317,237,10,c[rc])lcd:ldsw()')
+	def update_outline_color_index(self, color_index: int, do_sw = True):
+		self.grid_comm.SendLua(f'rc={color_index};lcd:ldrr(3,3,317,237,10,c[rc]){"lcd:ldsw()" if do_sw else ""}')
 
 	def update_knob_leds_gradual(self, fill: float):
 		"""Update knob LEDs with batch sending"""
@@ -159,3 +161,32 @@ class VSN1Manager:
 			led_updates.append((10 + i, 0))
 		self._send_batch_leds(led_updates)
 	
+	def show_info_message(self, _slot_pars):
+		"""Display slot parameter info message on VSN1 screen in a 2x4 grid"""
+		if not self.is_vsn1_enabled():
+			return
+		self.clear_screen()
+		# Display labels in 2x4 grid
+		# fill with none up to length of number of slots in VSN1Constants.SLOT_INDICES
+		_slot_pars = _slot_pars + [None] * (len(VSN1Constants.SLOT_INDICES) - len(_slot_pars))
+		for i, par in enumerate(_slot_pars):
+			if par is not None:
+				label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode, max_length=7)
+			else:
+				label = "  ---"	
+			# Calculate grid position (2 rows, 4 columns)
+			row = i // 4  # 0 or 1
+			col = i % 4   # 0, 1, 2, or 3
+			
+			# Calculate x and y positions
+			# Columns: 10, 90, 170, 250 (80px spacing)
+			# Rows: 180, 210 (30px spacing)
+			x = 10 + (col * 80)
+			y = 180 + (row * 30)
+			
+			self.grid_comm.SendLua(f'dtx("{label}", {x}, {y}, 26, 2)')
+		self.grid_comm.SendLua(f'doBank()')
+		# Set outline color based on current state
+		self.update_outline_color_index(VSN1ColorIndex.WHITE.value if self.parent.activeSlot is not None else VSN1ColorIndex.COLOR.value, do_sw=False)  # Active slot
+		
+		self.grid_comm.SendLua(f'lcd:ldsw()')
