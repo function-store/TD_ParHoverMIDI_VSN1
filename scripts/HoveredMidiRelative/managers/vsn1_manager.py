@@ -27,7 +27,6 @@ class VSN1Manager:
 			
 		# Simple Lua function call - ONLY difference from UI renderer
 		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator})"
-
 		self.grid_comm.SendLua(lua_code, queue=True)
 	
 	def clear_screen(self):
@@ -114,16 +113,8 @@ class VSN1Manager:
 		"""Update knob LEDs with batch sending"""
 		if not self.is_vsn1_enabled():
 			return
-			
-		# Batch all knob LED updates
-		led_updates = []
-		total_fill = fill * 255 * len(VSN1Constants.KNOB_LED_IDXS)
-		for idx, led_idx in enumerate(VSN1Constants.KNOB_LED_IDXS):
-			this_fill = 255 if total_fill >= 255 else int(total_fill % 255)
-			led_updates.append((led_idx, this_fill * self.knob_led_dampen))
-			total_fill -= this_fill
-		
-		self._send_batch_leds(led_updates)
+		fill = tdu.clamp(fill, 0, 1)
+		self.parent.midiOut.sendControl(self.parent.evalChannel, VSN1Constants.ROTARY_LED_FEEDBACK_INDEX, fill)
 
 	def update_knob_leds_steps(self, step_indicator_idx: int):
 		"""Update knob LEDs with steps"""
@@ -134,6 +125,7 @@ class VSN1Manager:
 		led_updates = []
 		for idx, led_idx in enumerate(VSN1Constants.KNOB_LED_IDXS):
 			led_updates.append((led_idx, (step_indicator_idx == idx) * 255 * self.knob_led_dampen))
+			
 		self._send_batch_leds(led_updates)
 
 	def set_bank_indicator(self, bank_idx: int):

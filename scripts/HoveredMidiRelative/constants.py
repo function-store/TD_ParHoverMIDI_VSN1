@@ -25,6 +25,7 @@ class VSN1Constants:
 	SLOT_INDICES = [33, 34, 35, 36, 37, 38, 39, 40]
 	KNOB_INDEX = 41
 	PUSH_INDEX = 41
+	ROTARY_LED_FEEDBACK_INDEX = 128
 	
 	# Screen constants
 	MAX_LABEL_LENGTH = 9

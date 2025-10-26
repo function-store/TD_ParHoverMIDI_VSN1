@@ -77,7 +77,8 @@ class DisplayManager:
 		
 		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED] and self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
 			self.vsn1_renderer.update_knob_leds_gradual(0)
-		elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
+		elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE] and step_indicator is None:
+			percentage = tdu.clamp(percentage, 0, 1)
 			self.vsn1_renderer.update_knob_leds_gradual(percentage)
 
 		
@@ -86,6 +87,10 @@ class DisplayManager:
 	def update_parameter_display(self, par_or_group: Union[Par, ParGroup], bottom_text: str = None, force_knob_leds: bool = False):
 		"""Update displays for a specific parameter (or ParGroup) - handles ALL logic here
 		For ParGroups, displays the first valid parameter's value"""
+		
+		if getattr(self, 'step_updated', False) and self.parent.knobLedUpdateMode not in [KnobLedUpdateMode.STEPS]:
+			self.vsn1_renderer.update_knob_leds_steps(-1)
+			self.step_updated = False
 		if par_or_group is None:
 			return
 		
@@ -216,8 +221,11 @@ class DisplayManager:
 		
 		self.update_all_display(mapped_step, min_step, max_step, ScreenMessages.STEP, 
 							   display_text=str(step), step_indicator=index, compress=False)
-		if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
-			self.vsn1_renderer.update_knob_leds_steps(index)
+		#if self.parent.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
+		self.vsn1_renderer.update_knob_leds_gradual(0)
+		self.vsn1_renderer.update_knob_leds_steps(index)
+		if self.parent.knobLedUpdateMode not in [KnobLedUpdateMode.STEPS]:
+			self.step_updated = True
 
 	def set_bank_indicator(self, bank_idx: int):
 		self.vsn1_renderer.set_bank_indicator(bank_idx)

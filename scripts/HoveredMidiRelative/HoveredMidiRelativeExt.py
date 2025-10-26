@@ -39,6 +39,7 @@ class HoveredMidiRelativeExt:
 		self.bankMidi = self.ownerComp.op('midiin_bank')
 		self.modeselMidi = self.ownerComp.op('midiin_modesel')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
+		self.midiOut = self.ownerComp.op('midiout1')
 		
 		# Initialize state - can be either a single Par or a ParGroup
 		self.hoveredPar: Optional[Union[Par, ParGroup]] = None
@@ -565,12 +566,17 @@ class HoveredMidiRelativeExt:
 		if not self.evalPersiststep:
 			self._currStep = _val
 
-	def onParKnobledupdate(self, _par, _val):
+	def onParKnobledupdate(self, _val):
 		"""TouchDesigner callback when knob LED update mode parameter changes"""
-		if KnobLedUpdateMode(_val) in [KnobLedUpdateMode.VALUE, KnobLedUpdateMode.OFF]:
+		if KnobLedUpdateMode(_val) in [KnobLedUpdateMode.VALUE]:
+			self.vsn1_manager.update_knob_leds_steps(-1)
 			self.display_manager.update_parameter_display(self.activePar, force_knob_leds=True)
-		else:
+		elif KnobLedUpdateMode(_val) in [KnobLedUpdateMode.OFF]:
+			self.vsn1_manager.update_knob_leds_gradual(0)
+			self.vsn1_manager.update_knob_leds_steps(-1)
+		else:#
 			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), None)
+			self.vsn1_manager.update_knob_leds_gradual(0)
 			self.vsn1_manager.update_knob_leds_steps(step_idx)
 
 	def onParVsn1support(self, _par, _val):
