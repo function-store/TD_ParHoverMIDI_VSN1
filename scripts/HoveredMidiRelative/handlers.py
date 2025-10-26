@@ -37,6 +37,20 @@ class MidiMessageHandler:
 				# Clear the slot containing this invalid parameter
 				self.parent.slot_manager.clear_slot_in_bank(slot_idx, bank_idx)
 	
+	def _create_undo_for_parameter(self, active_par: Union['Par', 'ParGroup']):
+		"""Create undo action for parameter or ParGroup (only if initial value was captured).
+		
+		Args:
+			active_par: The parameter or ParGroup to create undo for
+		"""
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(active_par):
+			for par in active_par:
+				if par is not None and ParameterValidator.is_valid_parameter(par):
+					self.parent._create_parameter_undo(par)
+		else:
+			# Handle single Par
+			self.parent._create_parameter_undo(active_par)
 	
 	def handle_step_message(self, index: int, value: int) -> bool:
 		"""Handle step change messages"""
@@ -64,8 +78,21 @@ class MidiMessageHandler:
 		if error_msg := ParameterValidator.get_validation_error(active_par):
 			self.parent.display_manager.show_parameter_error(active_par, error_msg)
 			return True  # Parameter is invalid, error message shown
-
+		
+		# Only process actual knob movement (not center/idle position)
+		if value == MidiConstants.MIDI_CENTER_VALUE:
+			return True
+		
+		# Create undo action on first knob movement
+		self._create_undo_for_parameter(active_par)
+		
+		# Apply parameter change
 		self._do_step(self.parent._currStep, value)
+		
+		# Restart timeout on every movement (resets the 2s timer)
+		# After 2s of inactivity, will clear captured values for new undo checkpoint
+		self.parent._start_undo_timeout(timeout_ms=2000)
+		
 		return True
 	
 	def handle_push_message(self, index: int, value: int, active_par) -> bool:

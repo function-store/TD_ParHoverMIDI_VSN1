@@ -52,6 +52,11 @@ class HoveredMidiRelativeExt:
 		self.display_manager = DisplayManager(self)
 
 		self.display_run_obj = None
+		
+		# Track initial parameter values for undo
+		self.parameterInitialValues = {}  # Maps parameter path to initial value
+		self.parameterUndoCreated = {}  # Maps parameter path to True if undo was created
+		self.undo_timeout_run_obj = None  # Run object for undo timeout
 
 		# Initialize storage
 		storedItems = [
@@ -308,11 +313,188 @@ class HoveredMidiRelativeExt:
 					self.display_run_obj.kill()
 			except (AttributeError, tdError):
 				pass
+	
+	def _clear_unused_captured_values(self, par_or_group: Union['Par', 'ParGroup']):
+		"""Clear captured initial values that never resulted in undo actions.
+		
+		Args:
+			par_or_group: The parameter or ParGroup to clear captured values for
+		"""
+		from validators import ParameterValidator
+		
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(par_or_group):
+			for par in par_or_group:
+				if par is not None:
+					par_path = f"{par.owner.path}:{par.name}"
+					if par_path in self.parameterInitialValues:
+						del self.parameterInitialValues[par_path]
+					if par_path in self.parameterUndoCreated:
+						del self.parameterUndoCreated[par_path]
+		else:
+			# Handle single Par
+			par_path = f"{par_or_group.owner.path}:{par_or_group.name}"
+			if par_path in self.parameterInitialValues:
+				del self.parameterInitialValues[par_path]
+			if par_path in self.parameterUndoCreated:
+				del self.parameterUndoCreated[par_path]
+	
+	def _capture_initial_parameter_value(self, par: 'Par'):
+		"""Capture the initial value of a parameter (lightweight, no undo action yet).
+		
+		Args:
+			par: The parameter to capture initial value for
+		"""
+		if not self.evalEnableundo:
+			return
+		
+		# Use parameter path as unique key
+		par_path = f"{par.owner.path}:{par.name}"
+		
+		# Only capture if we don't already have one for this parameter
+		if par_path in self.parameterInitialValues:
+			return
+		
+		# Store initial value based on parameter type (just capture, don't create undo yet)
+		if par.isMenu:
+			initial_value = par.menuIndex
+		else:
+			initial_value = par.eval()
+		debug(f'capturing initial value for {par_path} = {initial_value}')
+		self.parameterInitialValues[par_path] = initial_value
+	
+	def _create_parameter_undo(self, par: 'Par'):
+		"""Create undo action for parameter using previously captured initial value.
+		
+		Args:
+			par: The parameter to create undo for
+		"""
+		if not self.evalEnableundo:
+			return
+		
+		# Use parameter path as unique key
+		par_path = f"{par.owner.path}:{par.name}"
+		
+		# If no initial value captured (e.g., after timeout), capture current value as new checkpoint
+		if par_path not in self.parameterInitialValues:
+			self._capture_initial_parameter_value(par)
+			return  # Don't create undo yet, wait for next movement
+		
+		# Skip if we already created an undo for this parameter (ongoing adjustment)
+		if par_path in self.parameterUndoCreated:
+			return
+		
+		initial_value = self.parameterInitialValues[par_path]
+		
+		# Create undo action
+		ui.undo.startBlock(f'Change {par.name}')
+		try:
+			undo_info = {
+				'par_path': par_path,
+				'initial_value': initial_value,
+				'is_menu': par.isMenu,
+				'par_name': par.name
+			}
+			ui.undo.addCallback(self._undo_parameter_change_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+		
+		# Mark that undo was created (keep in dict for timeout management)
+		self.parameterUndoCreated[par_path] = True
+	
+	def _start_undo_timeout(self, timeout_ms: int = 2000):
+		"""Start/restart timeout to clear captured parameter values after inactivity.
+		
+		Args:
+			timeout_ms: Timeout in milliseconds before clearing captured values
+		"""
+		# Check if timeout is already running
+		try:
+			if self.undo_timeout_run_obj is not None and self.undo_timeout_run_obj.active:
+				# Reset the timer by setting remainingMilliseconds
+				self.undo_timeout_run_obj.remainingMilliseconds = timeout_ms
+				return
+		except (AttributeError, tdError):
+			pass
+		
+		# Start new timeout if not already running
+		self.undo_timeout_run_obj = run(
+			"args[0]._clear_all_captured_values()",
+			self,
+			delayMilliSeconds=timeout_ms,
+			delayRef=op.TDResources
+		)
+	
+	def _kill_undo_timeout(self):
+		"""Kill the undo timeout if it's running."""
+		try:
+			if self.undo_timeout_run_obj is not None and self.undo_timeout_run_obj.active:
+				self.undo_timeout_run_obj.kill()
+		except (AttributeError, tdError):
+			pass
+	
+	def _clear_all_captured_values(self):
+		"""Clear all captured initial values (called after timeout)."""
+		debug(f'clearing all captured values')
+		self.parameterInitialValues.clear()
+		self.parameterUndoCreated.clear()
+	
+	def _undo_parameter_change_callback(self, isUndo, info):
+		"""Callback for undoing parameter value changes.
+		
+		Args:
+			isUndo: True if undoing, False if redoing
+			info: Dictionary containing undo information
+		"""
+		par_path = info['par_path']
+		is_menu = info['is_menu']
+		
+		# Parse parameter path
+		try:
+			owner_path, par_name = par_path.rsplit(':', 1)
+			owner_op = op(owner_path)
+			
+			if owner_op is None:
+				return
+			
+			par = owner_op.par[par_name]
+			if par is None:
+				return
+			
+			# Get current value
+			if is_menu:
+				current_value = par.menuIndex
+			else:
+				current_value = par.eval()
+			
+			# Get the value to restore (stored in info)
+			value_to_restore = info['initial_value']
+			
+			# Apply the stored value
+			if is_menu:
+				par.menuIndex = value_to_restore
+			else:
+				par.val = value_to_restore
+			
+			# Update info with current value for next undo/redo (swap values)
+			info['initial_value'] = current_value
+			
+			# Update display if this parameter is currently active
+			if self.activePar == par:
+				self.display_manager.update_parameter_display(par)
+			
+		except Exception as e:
+			pass
 
 # endregion helper methods
 
 	def onHoveredParChange(self, _op, _parGroup, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
+		# Clear any captured initial values that never resulted in undo actions
+		# (user hovered but didn't adjust)
+		if self.hoveredPar is not None and self.evalEnableundo:
+			self._clear_unused_captured_values(self.hoveredPar)
+		
 		self.hoveredPar = None
 
 		if not self.evalActive:
@@ -356,6 +538,11 @@ class HoveredMidiRelativeExt:
 						self.display_manager.show_parameter_error(par_group_obj, error_msg)
 						return  # Parameter group is invalid, error message shown
 					
+					# Capture initial values for undo when hovering
+					for par in par_group_obj:
+						if par is not None and ParameterValidator.is_valid_parameter(par):
+							self._capture_initial_parameter_value(par)
+					
 					# Update screen if no active slot (only for valid parameter groups)
 					self.display_manager.update_parameter_display(par_group_obj)
 				return  # Early return to avoid processing as single par
@@ -369,6 +556,9 @@ class HoveredMidiRelativeExt:
 				if error_msg := ParameterValidator.get_validation_error(single_par):
 					self.display_manager.show_parameter_error(single_par, error_msg)
 					return  # Parameter is invalid, error message shown
+				
+				# Capture initial value for undo when hovering
+				self._capture_initial_parameter_value(single_par)
 
 			# Update screen if no active slot (only for valid parameters)
 			if self.activeSlot is None:

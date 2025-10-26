@@ -5,6 +5,7 @@ Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.189.toe
 Saveversion : 2023.12120
 Info Header End'''
+
 from typing import Optional, Union
 from constants import ScreenMessages, VSN1ColorIndex
 from validators import ParameterValidator
@@ -64,6 +65,7 @@ class SlotManager:
 		# Add undo support if enabled
 		if self.parent.evalEnableundo:
 			ui.undo.startBlock(f'Assign Slot {slot_idx} in Bank {currBank}')
+			debug(f'Assign Slot {slot_idx} in Bank {currBank} with value {parameter.eval()}')
 			try:
 				undo_info = {
 					'slot_idx': slot_idx,
@@ -296,6 +298,7 @@ class SlotManager:
 		# Add undo support if enabled
 		if self.parent.evalEnableundo:
 			ui.undo.startBlock(f'Clear Slot {slot_idx} in Bank {currBank}')
+			debug(f'Clear Slot {slot_idx} in Bank {currBank} with value {previous_parameter.eval()}')
 			try:
 				undo_info = {
 					'slot_idx': slot_idx,
@@ -316,12 +319,27 @@ class SlotManager:
 			self.parent.slotPars[currBank][slot_idx] is None):
 			return False
 		
+		# Clear any unused captured values from previous slot
+		if (self.parent.activeSlot is not None and 
+			self.parent.activeSlot < len(self.parent.slotPars[currBank]) and
+			self.parent.slotPars[currBank][self.parent.activeSlot] is not None):
+			old_slot_par = self.parent.slotPars[currBank][self.parent.activeSlot]
+			self.parent._clear_unused_captured_values(old_slot_par)
+		
 		old_active_slot = self.parent.activeSlot
 		self.parent.activeSlot = slot_idx
 		self.parent.bankActiveSlots[currBank] = slot_idx
 		
 		# Update display with slot parameter
 		if slot_par := self.parent.slotPars[currBank][slot_idx]:
+			# Capture initial values for undo when slot is activated
+			if ParameterValidator.is_pargroup(slot_par):
+				for par in slot_par:
+					if par is not None and ParameterValidator.is_valid_parameter(par):
+						self.parent._capture_initial_parameter_value(par)
+			else:
+				self.parent._capture_initial_parameter_value(slot_par)
+			
 			self.parent.display_manager.update_parameter_display(slot_par)
 		
 			# Update LEDs and outline color
@@ -337,12 +355,20 @@ class SlotManager:
 		if bank_idx < 0 or bank_idx >= self.parent.numBanks:
 			return False
 		
+		# Clear any unused captured values from current bank's active slot
+		old_bank = self.parent.currBank
+		if (self.parent.activeSlot is not None and 
+			old_bank < len(self.parent.slotPars) and
+			self.parent.activeSlot < len(self.parent.slotPars[old_bank]) and
+			self.parent.slotPars[old_bank][self.parent.activeSlot] is not None):
+			old_slot_par = self.parent.slotPars[old_bank][self.parent.activeSlot]
+			self.parent._clear_unused_captured_values(old_slot_par)
+		
 		# Save current active slot for current bank
 		if self.parent.currBank < len(self.parent.bankActiveSlots):
 			self.parent.bankActiveSlots[self.parent.currBank] = self.parent.activeSlot
 		
 		# Switch to new bank
-		old_bank = self.parent.currBank
 		self.parent.currBank = bank_idx
 		
 		# Ensure bank structure exists
@@ -357,6 +383,15 @@ class SlotManager:
 			if (previous_slot < len(self.parent.slotPars[bank_idx]) and 
 				self.parent.slotPars[bank_idx][previous_slot] is not None):
 				self.parent.activeSlot = previous_slot
+				
+				# Capture initial values for undo when recalling slot
+				slot_par = self.parent.slotPars[bank_idx][previous_slot]
+				if ParameterValidator.is_pargroup(slot_par):
+					for par in slot_par:
+						if par is not None and ParameterValidator.is_valid_parameter(par):
+							self.parent._capture_initial_parameter_value(par)
+				else:
+					self.parent._capture_initial_parameter_value(slot_par)
 			else:
 				self.parent.activeSlot = None
 				self.parent.bankActiveSlots[bank_idx] = None
