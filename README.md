@@ -22,7 +22,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **Multiple Parameter Slots**: Assign parameters or parameter groups to VSN1 buttons for instant access and switching
 - **Multiple Banks**: Organize slots into separate banks using VSN1 buttons for expanded parameter control
 - **Bank Slot Overview**: Long-press any bank button to display all slot assignments on the VSN1 screen
-- **Smart Learning System**: Automatically assign VSN1 button mappings for step adjustment and main knob control
+- **Smart Learning System**: Automatically assign VSN1 button mapping
 - **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
 - **Step Mode**: Choose between Fixed (fixed step size) or Adaptive (step scales with parameter range)
@@ -65,9 +65,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 1. On your VSN1 device, look for, and import `TouchDesigner Par Hover Control` from the Grid Editor 
 2. Keep Grid Editor open at all times when using VSN1 (exclusive access to port `9642` required)
 
-**Grid Device Configuration:**
-- The grid device is configured as **channel 16** (which appears as **15** in the Grid Editor interface)
-- MIDI indices correspond to the **element indices** in the grid configuration (**1-indexed** in TouchDesigner, **0-indexed** in Grid Editor)
+> For mapping configuration details, see [MIDI Mapping Configuration](#midi-mapping-configuration)
 
 ### TouchDesigner
 
@@ -81,20 +79,37 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 0. Download `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest)
 1. **Setup**: Place the `ParHoverMIDI_VSN1.tox` component in your network (suggested at root `/`)
 2. **MIDI Configuration**: Ensure your MIDI device is recognized in TouchDesigner's Device Manager
-3. **MIDI Setup**: Set your `Device ID` and MIDI `Channel` in the component parameters
-1. **VSN1 Settings**: On the component, pulse `Use Defaults for VSN1` to automatically configure all mappings
-2. **Alternative Manual Setup** (for non-VSN1 users):
-   - Map MIDI indices manually using the custom parameters
-   - Use `Learn` mode to map controls by hovering over empty mappings and moving your MIDI knobs/buttons
-3. **Modify Step Size**: When using `Learning Mode` the step sizes will be automatically set to 0.001, 0.01, 0.1, 1
-4. **Adjust Step Size**: Use assigned MIDI buttons to cycle through different step sizes for fine/coarse control 
-5. **Usage**: Hover over any parameter and twist your MIDI controller to adjust that specific parameter's value
-6. Check [Parameter Slots System](#parameter-slots-system) to save and recall parameters to control!
-7.  **Multiple Banks**: Use [Multiple Banks](#multiple-banks) to organize slots into separate banks for expanded control
+3. **MIDI Mapping**: Configure your MIDI mappings - see [MIDI Mapping Configuration](#midi-mapping-configuration)
+   - **VSN1 users**: Pulse `Use Defaults for VSN1` to automatically configure everything
+   - **Other controllers**: Use manual mapping or Learn Mode
+4. **Usage**: Hover over any parameter and twist your MIDI controller to adjust that specific parameter's value
+5. **Step Sizes**: Use assigned MIDI buttons to cycle through different step sizes for fine/coarse control
+    - Configure step sizes in the **Mapping** tab (default: 0.001, 0.01, 0.1, 1)
+6. **Parameter Slots**: Check [Parameter Slots System](#parameter-slots-system) to save and recall parameters to control!
+7. **Multiple Banks**: Use [Multiple Banks](#multiple-banks) to organize slots into separate banks for expanded control
 
-## Special MIDI Functions
+## MIDI Mapping Configuration
 
-Beyond step size adjustment, there are two special MIDI button functions:
+### Default VSN1 Mapping
+For VSN1 users, the `Use Defaults for VSN1` button automatically configures all MIDI mappings according to the Grid Editor package defaults:
+- **MIDI Channel**: 16 (appears as **15** in Grid Editor interface)
+- **MIDI Indices**: Correspond to **element indices** in the grid configuration (**1-indexed** in TouchDesigner, **0-indexed** in Grid Editor)
+
+### Manual Mapping
+For custom configurations or non-VSN1 users wanting to adapt to their devices:
+
+**In Grid Editor (VSN1):**
+- The **System** element defines the channel as global variable `gch`
+- Each element's MIDI block can be customized if needed
+- 
+**In TouchDesigner:**
+- Set your `Device ID` and MIDI `Channel` in the component's **Mapping** tab parameters
+- Map MIDI indices manually using the custom parameters in the **Mapping** tab
+- Use **Learn Mode**: Hover over empty mapping fields and move your MIDI knobs/buttons to automatically assign them
+
+
+## Functions
+
 
 ### Parameter Slots System
 The component supports multiple parameter slots that can be assigned to different MIDI buttons for quick access:
@@ -204,6 +219,7 @@ The knob push button functionality can be configured for two different modes:
 ### Parameter Pulse (`Pulse Index`)
 - **Press this MIDI button**: While hovering over a parameter
 - **For Pulse parameters**: Triggers the pulse action
+- **For Momentary parameters**: Can be held for momentary trigger
 - **For Toggle parameters**: Toggles the parameter on/off
 - **Other parameter types**: No action (returns false)
 
@@ -212,8 +228,6 @@ The knob push button functionality can be configured for two different modes:
 The following parameters are available to further customize the functionality of the component:
 - **`Step Size`**: Adjustable in each `Step` block.
 - **`Step Mode`**: Choose between "Fixed" (fixed step size) or "Adaptive" (step scales with parameter range). Can also be toggled by holding all 4 step buttons simultaneously.
-- **`Persist Step` toggle**: When this is off, the step will be set to default when not holding any step button. When on, it will save the last used step.
-- **`Default Step Size`**: Step size when Persist Step is off and not holding any step button. Set this to zero to avoid accidental parameter adjustments when not holding any button.
 - **`Secondary Mode`**: Choose between "Reset" or "Step" to determine knob push button behavior.
 - **`Reset Hold Length`**: (Reset mode) Duration the knob push button must be held to reset the active parameter to its default value.
 - **`Secondary Step`**: (Step mode) Alternate step size used when holding the knob push button and rotating the knob.
@@ -262,7 +276,6 @@ This visual system makes it immediately clear whether you're in hover mode or sl
 - ✅ **Bank memory**: Implemented - each bank remembers its last active slot and assignments
 - ✅ **Visual bank indicators**: Implemented - screen and UI show current bank number
 - **Enhanced visual indicators**: Additional color-coded LEDs or screen indicators for different slot states
-- **Slot persistence improvements**: Better handling of slot assignments across sessions
 
 
 ## Known Issues

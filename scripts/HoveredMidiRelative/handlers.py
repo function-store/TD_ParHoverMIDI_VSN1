@@ -30,10 +30,9 @@ class MidiMessageHandler:
 			return False
 			
 		block = blocks[0]
-		if value == 0 and not self.isFromBankOff:
-			self.parent._currStep = block.par.Step.eval()
-		elif not self.parent.evalPersiststep and value == 0:
-			self.parent._currStep = self.parent.evalDefaultstepsize
+		if not self.isFromBankOff:
+			if value == 0:
+				self.parent._currStep = block.par.Step.eval()
 		return True
 	
 	def handle_knob_message(self, index: int, value: int, active_par) -> bool:

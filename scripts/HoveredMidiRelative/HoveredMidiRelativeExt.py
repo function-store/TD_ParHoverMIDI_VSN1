@@ -69,7 +69,7 @@ class HoveredMidiRelativeExt:
 			},
 			{
 				'name': 'currStep',
-				'default': self.evalDefaultstepsize,
+				'default': 0.001,
 				'readOnly': False,
 				'property': True,
 				'dependable': False
@@ -555,16 +555,6 @@ class HoveredMidiRelativeExt:
 	def onParKnobindex(self, _par, _val):
 		"""TouchDesigner callback when knob index parameter changes"""
 		self.activeMidi.cook(force=True)
-
-	def onParPeriststep(self, _par, _val):
-		"""TouchDesigner callback when persist step parameter changes"""
-		if not _val:
-			self._currStep = self.evalDefaultstepsize
-			
-	def onParDefaultstepsize(self, _par, _val):
-		"""TouchDesigner callback when default step size parameter changes"""
-		if not self.evalPersiststep:
-			self._currStep = _val
 
 	def onParKnobledupdate(self, _val):
 		"""TouchDesigner callback when knob LED update mode parameter changes"""
