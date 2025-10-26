@@ -52,6 +52,7 @@ class ScreenMessages:
 	STEP = '_STEP_'
 	EXPR = '_EXPR_'
 	UNSUPPORTED = '___'
+	INVALID = '_INVALID_'
 
 class LabelDisplayMode(Enum):
 	TRUNCATED = 'Truncated'

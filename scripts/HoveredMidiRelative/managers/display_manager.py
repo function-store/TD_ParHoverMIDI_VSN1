@@ -21,7 +21,10 @@ class DisplayManager:
 	
 	def show_parameter_error(self, par_or_group: Union[Par, ParGroup], error_msg: str):
 		"""Show error message for invalid parameter (or ParGroup)."""
-		param_label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
+		if par_or_group.valid:
+			param_label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
+		else:
+			param_label = ScreenMessages.INVALID	
 		self.update_all_display(0.5, 0, 1, param_label, error_msg, compress=True)
 	
 	def get_slot_state_value(self, slot_idx: int) -> int:

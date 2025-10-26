@@ -51,6 +51,8 @@ class HoveredMidiRelativeExt:
 		self.slot_manager = SlotManager(self)
 		self.display_manager = DisplayManager(self)
 
+		self.display_run_obj = None
+
 		# Initialize storage
 		storedItems = [
 			{
@@ -276,17 +278,57 @@ class HoveredMidiRelativeExt:
 	def stepMode(self, value: StepMode):
 		self.evalStepmode = value.value
 
+# endregion properties
+
+# region helper methods
+
+	def _manage_empty_operator_display(self, should_show: bool):
+		"""Manage the delayed display message when no operator is hovered.
+		
+		Args:
+			should_show: True to show the empty operator message, False to kill it
+		"""
+		if should_show:
+			# Check if we need to show the empty operator message
+			should_run = True
+			try:
+				should_run = self.display_run_obj is None or not self.display_run_obj.active
+			except (AttributeError, tdError):
+				pass
+			
+			if should_run:
+				debug('Creating run object for empty operator message')
+				self.display_run_obj = run(
+					"args[0].display_manager.update_all_display(0, 0, 1, 'TD Hover', args[1], compress=False)", 
+					self, ScreenMessages.UNSUPPORTED, delayMilliSeconds=1000, delayRef=op.TDResources
+				)
+		else:
+			# Kill any existing display run when we have a valid operator
+			try:
+				if self.display_run_obj is not None and self.display_run_obj.active:
+					debug('Killing run object for empty operator message')
+					self.display_run_obj.kill()
+			except (AttributeError, tdError):
+				pass
+
+# endregion helper methods
+
 	def onHoveredParChange(self, _op, _parGroup, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
 		self.hoveredPar = None
 
 		if not self.evalActive:
 			return
-			
-		# Validate inputs
+
 		if _op is None:
+			# Only show empty operator message if we don't have an active valid parameter
+			# (activePar already checks for active slot with valid parameter)
+			has_active_param = self.activePar is not None and self.activePar.valid
+			self._manage_empty_operator_display(should_show=not has_active_param)
 			return
-			
+		else:
+			self._manage_empty_operator_display(should_show=False)
+		
 		if not (_op := op(_op)):
 			return
 		
@@ -359,19 +401,23 @@ class HoveredMidiRelativeExt:
 		if message == MidiConstants.NOTE_ON:
 			# Handle step change messages
 			if self.midi_handler.handle_step_message(index, value):
+				self._manage_empty_operator_display(should_show=False)
 				return
 				
 			# Handle pulse messages
 			if self.midi_handler.handle_push_message(index, value, active_par):
+				self._manage_empty_operator_display(should_show=False)
 				return
 		
 			# Handle slot selection messages
 			if self.midi_handler.handle_slot_message(index, value):
+				self._manage_empty_operator_display(should_show=False)
 				return
 			
 		elif message == MidiConstants.CONTROL_CHANGE:
 			# Handle knob control messages
 			if self.midi_handler.handle_knob_message(index, value, active_par):
+				self._manage_empty_operator_display(should_show=False)
 				return
 
 
@@ -625,7 +671,15 @@ class HoveredMidiRelativeExt:
 		self.display_manager.set_stepmode_indicator(StepMode(_val))
 
 # endregion parameter callbacks
-
+	def onProjectPreSave(self):
+		"""TouchDesigner callback when project is pre-saved"""
+		# Validate all banks and all slot parameters
+		for bank_idx in range(len(self.slotPars)):
+			for slot_idx in range(len(self.slotPars[bank_idx])):
+				par = self.slotPars[bank_idx][slot_idx]
+				if par is not None and not par.valid:
+					# Clear invalid parameters silently during save
+					self.slot_manager.clear_slot_in_bank(slot_idx, bank_idx)
 # endregion
 
 

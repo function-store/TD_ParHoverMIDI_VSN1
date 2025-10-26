@@ -3,7 +3,7 @@
 Name : slot_manager
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.189.toe
-Saveversion : 2025.31310
+Saveversion : 2023.12120
 Info Header End'''
 from typing import Optional, Union
 from constants import ScreenMessages, VSN1ColorIndex
@@ -437,3 +437,46 @@ class SlotManager:
 		if self.parent.activeSlot is None:
 			return None
 		return self.get_slot_parameter(self.parent.activeSlot)
+	
+	def find_slot_for_parameter(self, parameter: Union[Par, ParGroup], bank_idx: Optional[int] = None) -> Optional[int]:
+		"""Find which slot contains the given parameter in the specified bank (defaults to current bank).
+		Returns slot index if found, None otherwise."""
+		if bank_idx is None:
+			bank_idx = self.parent.currBank
+		
+		if bank_idx >= len(self.parent.slotPars):
+			return None
+		
+		for slot_idx, slot_par in enumerate(self.parent.slotPars[bank_idx]):
+			if slot_par is parameter:
+				return slot_idx
+		
+		return None
+	
+	def clear_slot_in_bank(self, slot_idx: int, bank_idx: int):
+		"""Clear a slot in a specific bank (internal method for invalidation, no undo support)"""
+		if (bank_idx >= len(self.parent.slotPars) or 
+			slot_idx >= len(self.parent.slotPars[bank_idx])):
+			return
+		
+		# Clear the slot
+		self.parent.slotPars[bank_idx][slot_idx] = None
+		
+		# If this was the active slot in this bank, deactivate it
+		if (bank_idx < len(self.parent.bankActiveSlots) and 
+			self.parent.bankActiveSlots[bank_idx] == slot_idx):
+			self.parent.bankActiveSlots[bank_idx] = None
+			
+		# If we're currently in this bank, update UI
+		if bank_idx == self.parent.currBank:
+			if self.parent.activeSlot == slot_idx:
+				self.parent.activeSlot = None
+				
+			# Clear UI button label
+			if hasattr(self.parent, 'ui_manager'):
+				self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
+			
+			# Update displays
+			self.parent.display_manager.update_slot_leds(current_slot=None, previous_slot=slot_idx)
+			if self.parent.activeSlot is None:
+				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)

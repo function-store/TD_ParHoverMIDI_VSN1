@@ -22,6 +22,21 @@ class MidiMessageHandler:
 		"""
 		return self.parent.ownerComp.op('null_midibank')[0].eval() == 1 or self.parent.ownerComp.op('null_midiinfo')[0].eval() == 1 or self.parent.ownerComp.op('null_modesel')[0].eval() == 1
 	
+	def _clear_invalid_parameter_from_slots(self, active_par: Union['Par', 'ParGroup']) -> None:
+		"""Clear invalid parameter from all slots across all banks and show error message"""
+		if active_par is None or active_par.valid:
+			return
+		
+		# Show error message on displays
+		self.parent.display_manager.show_parameter_error(active_par, ScreenMessages.INVALID)
+		
+		# Check all banks for this parameter and clear any slots containing it
+		for bank_idx in range(len(self.parent.slotPars)):
+			slot_idx = self.parent.slot_manager.find_slot_for_parameter(active_par, bank_idx)
+			if slot_idx is not None:
+				# Clear the slot containing this invalid parameter
+				self.parent.slot_manager.clear_slot_in_bank(slot_idx, bank_idx)
+	
 	
 	def handle_step_message(self, index: int, value: int) -> bool:
 		"""Handle step change messages"""
@@ -41,7 +56,9 @@ class MidiMessageHandler:
 		if index != knob_index:
 			return False
 
-		if active_par is None or (active_par.owner == self.parent.ownerComp):
+		if active_par is None or not active_par.valid or (active_par.owner == self.parent.ownerComp):
+			# Clear invalid parameter from all slots
+			self._clear_invalid_parameter_from_slots(active_par)
 			return False
 		
 		if error_msg := ParameterValidator.get_validation_error(active_par):
@@ -56,7 +73,12 @@ class MidiMessageHandler:
 		push_index = self.parent._safe_get_midi_index(self.parent.evalPushindex, default=-1)
 		if index != push_index:
 			return False
-		
+			
+		if active_par is None or not active_par.valid or (active_par.owner == self.parent.ownerComp):
+			# Clear invalid parameter from all slots
+			self._clear_invalid_parameter_from_slots(active_par)
+			return False
+
 		# Handle ParGroup
 		if ParameterValidator.is_pargroup(active_par):
 			# Check if any valid parameter is from ownerComp
@@ -94,8 +116,6 @@ class MidiMessageHandler:
 			return True
 		
 		# Handle single Par
-		if active_par is None or (active_par.owner == self.parent.ownerComp):
-			return False
 
 		error_msg = ParameterValidator.get_validation_error(active_par)
 		if error_msg:
@@ -140,6 +160,11 @@ class MidiMessageHandler:
 			old_active_slot = self.parent.activeSlot
 			self.parent.activeSlot = block_idx
 			active_par = self.parent.slotPars[currBank][block_idx]
+			# validate if parameter is valid
+			if not active_par.valid:
+				# Clear invalid parameter from all slots
+				self._clear_invalid_parameter_from_slots(active_par)
+				return False
 			error_msg = ParameterValidator.get_validation_error(active_par)
 			if error_msg:
 				self.parent.display_manager.show_parameter_error(active_par, error_msg)
