@@ -297,7 +297,6 @@ class HoveredMidiRelativeExt:
 				pass
 			
 			if should_run:
-				debug('Creating run object for empty operator message')
 				self.display_run_obj = run(
 					"args[0].display_manager.update_all_display(0, 0, 1, 'TD Hover', args[1], compress=False)", 
 					self, ScreenMessages.UNSUPPORTED, delayMilliSeconds=1000, delayRef=op.TDResources
@@ -306,7 +305,6 @@ class HoveredMidiRelativeExt:
 			# Kill any existing display run when we have a valid operator
 			try:
 				if self.display_run_obj is not None and self.display_run_obj.active:
-					debug('Killing run object for empty operator message')
 					self.display_run_obj.kill()
 			except (AttributeError, tdError):
 				pass

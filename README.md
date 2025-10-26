@@ -285,7 +285,7 @@ This visual system makes it immediately clear whether you're in hover mode or sl
 
 
 ## Known Issues
-- When **`Knob LED Update`** is set to "Value", laggy updates can be observed on the hardware unit, but it does not affect actual value updates.
+- You tell me!
 
 ## Development
 
