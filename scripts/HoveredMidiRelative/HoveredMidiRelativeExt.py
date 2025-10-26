@@ -586,6 +586,8 @@ class HoveredMidiRelativeExt:
 
 	def onParUsedefaultsforvsn1(self):
 		"""TouchDesigner callback to set VSN1 hardware defaults"""
+		# Set default channel
+		self.evalChannel = VSN1Constants.CHANNEL
 		# Configure step buttons with their respective step values
 		self.seqSteps.numBlocks = len(VSN1Constants.STEP_BUTTONS)
 		for i, (button, step) in enumerate(VSN1Constants.STEP_BUTTONS.items()):

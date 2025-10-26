@@ -65,6 +65,10 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 1. On your VSN1 device, look for, and import `TouchDesigner Par Hover Control` from the Grid Editor 
 2. Keep Grid Editor open at all times when using VSN1 (exclusive access to port `9642` required)
 
+**Grid Device Configuration:**
+- The grid device is configured as **channel 16** (which appears as **15** in the Grid Editor interface)
+- MIDI indices correspond to the **element indices** in the grid configuration (**1-indexed** in TouchDesigner, **0-indexed** in Grid Editor)
+
 ### TouchDesigner
 
 1. Connect your MIDI controller to your system
@@ -180,7 +184,7 @@ The component supports two different step calculation modes that determine how p
 
 **Switching Modes**:
 - **Via Parameter**: Set the `Step Mode` custom parameter to "Fixed" or "Adaptive"
-- **Via VSN1 Shortcut**: Hold all 4 step buttons simultaneously to toggle between modes
+- **Via VSN1 Shortcut**: Press the leftmost and the rightmost step buttons simultaneously to toggle between modes
 - **Visual Feedback**: VSN1 screen briefly displays "_FIXED_" or "_ADAPT_" when mode changes, and the circle's outline color switches between white (Fixed) and colored (Adaptive)
 
 ### Secondary Mode (`Secondary Mode`)

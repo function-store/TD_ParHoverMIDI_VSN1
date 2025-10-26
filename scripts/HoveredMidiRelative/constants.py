@@ -20,11 +20,12 @@ class MidiConstants:
 
 class VSN1Constants:
 	# VSN1 Hardware mappings
-	STEP_BUTTONS = {42: 0.001, 43: 0.01, 44: 0.1, 45: 1}
-	BANK_BUTTONS = [42, 43, 44, 45]
-	SLOT_INDICES = [33, 34, 35, 36, 37, 38, 39, 40]
-	KNOB_INDEX = 41
-	PUSH_INDEX = 41
+	CHANNEL = 16
+	STEP_BUTTONS = {10: 0.001, 11: 0.01, 12: 0.1, 13: 1}
+	BANK_BUTTONS = [10, 11, 12, 13]
+	SLOT_INDICES = [1, 2, 3, 4, 5, 6, 7, 8]
+	KNOB_INDEX = 9
+	PUSH_INDEX = 9
 	ROTARY_LED_FEEDBACK_INDEX = 128
 	
 	# Screen constants
