@@ -157,17 +157,20 @@ class UndoManager:
 		finally:
 			ui.undo.endBlock()
 	
-	def start_undo_timeout(self, timeout_ms: int = 2000):
+	def start_undo_timeout(self, timeout_ms: float = None):
 		"""Start/restart timeout to clear captured parameter values after inactivity.
 		
 		Args:
 			timeout_ms: Timeout in milliseconds before clearing captured values
 		"""
 		# Check if timeout is already running
+		if timeout_ms is None:
+			timeout_ms = self.parent.evalUndotimeout*1000
+		
 		try:
 			if self.undo_timeout_run_obj is not None and self.undo_timeout_run_obj.active:
 				# Reset the timer by setting remainingMilliseconds
-				self.undo_timeout_run_obj.remainingMilliseconds = timeout_ms
+				self.undo_timeout_run_obj.remainingMilliseconds = int(timeout_ms)
 				return
 		except (AttributeError, tdError):
 			pass

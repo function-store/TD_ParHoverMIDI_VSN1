@@ -285,6 +285,7 @@ The following parameters are available to further customize the functionality of
 - **`Secondary Step`**: (Step mode) Alternate step size used when holding the knob push button and rotating the knob.
 - **`Loop Menus`**: When enabled, menu parameters loop around (last item → first item). When disabled, menu navigation stops at the edges.
 - **`Enable Undo`**: When enabled, all operations (parameter value changes, parameter resets, slot assignments, and slot clearing) can be undone/redone. Undo/redo works across banks and validates parameter existence before restoring.
+- **`Undo Timeout (ValueChange)`**: Defines how long (in seconds) after a parameter value change the system waits before pushing it to the undo stack. This allows for continuous adjustments to be grouped into a single undo action, preventing excessive undo history entries during rapid knob movements. Default: 1 seconds.
 - **`VSN1 Support`**: Enables VSN1 screen updates and LED feedback, displaying adjusted parameter and value (circle size between param normMin/Max values), using websocket communication --- requires Grid Editor to be open!
 - **`Label Display Mode`**: Choose between "Compressed" (removes vowels/spaces) or "Truncated" (simple cut-off) for parameter label formatting on limited displays
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.

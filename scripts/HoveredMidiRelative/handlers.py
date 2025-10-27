@@ -3,7 +3,7 @@
 Name : handlers
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.187.toe
-Saveversion : 2025.31310
+Saveversion : 2023.12120
 Info Header End'''
 from constants import MidiConstants, VSN1ColorIndex, ScreenMessages, SecondaryMode, StepMode
 from validators import ParameterValidator
@@ -89,7 +89,7 @@ class MidiMessageHandler:
 		
 		# Restart timeout on every movement (resets the 2s timer)
 		# After 2s of inactivity, will clear captured values for new undo checkpoint
-		self.parent.undo_manager.start_undo_timeout(timeout_ms=2000)
+		self.parent.undo_manager.start_undo_timeout(timeout_ms=self.parent.evalUndotimeout*1000)
 		
 		return True
 	
