@@ -3,7 +3,7 @@
 Name : slot_manager
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.189.toe
-Saveversion : 2023.12120
+Saveversion : 2025.31310
 Info Header End'''
 
 from typing import Optional, Union
@@ -362,7 +362,7 @@ class SlotManager:
 			self.parent.activeSlot < len(self.parent.slotPars[currBank]) and
 			self.parent.slotPars[currBank][self.parent.activeSlot] is not None):
 			old_slot_par = self.parent.slotPars[currBank][self.parent.activeSlot]
-			self.parent._clear_unused_captured_values(old_slot_par)
+			self.parent.undo_manager.clear_unused_captured_values(old_slot_par)
 		
 		old_active_slot = self.parent.activeSlot
 		self.parent.activeSlot = slot_idx
@@ -377,9 +377,9 @@ class SlotManager:
 			if ParameterValidator.is_pargroup(slot_par):
 				for par in slot_par:
 					if par is not None and ParameterValidator.is_valid_parameter(par):
-						self.parent._capture_initial_parameter_value(par)
+						self.parent.undo_manager.capture_initial_parameter_value(par)
 			else:
-				self.parent._capture_initial_parameter_value(slot_par)
+				self.parent.undo_manager.capture_initial_parameter_value(slot_par)
 			
 			self.parent.display_manager.update_parameter_display(slot_par)
 		
@@ -403,7 +403,7 @@ class SlotManager:
 			self.parent.activeSlot < len(self.parent.slotPars[old_bank]) and
 			self.parent.slotPars[old_bank][self.parent.activeSlot] is not None):
 			old_slot_par = self.parent.slotPars[old_bank][self.parent.activeSlot]
-			self.parent._clear_unused_captured_values(old_slot_par)
+			self.parent.undo_manager.clear_unused_captured_values(old_slot_par)
 		
 		# Save current active slot for current bank
 		if self.parent.currBank < len(self.parent.bankActiveSlots):
@@ -433,9 +433,9 @@ class SlotManager:
 				if ParameterValidator.is_pargroup(slot_par):
 					for par in slot_par:
 						if par is not None and ParameterValidator.is_valid_parameter(par):
-							self.parent._capture_initial_parameter_value(par)
+							self.parent.undo_manager.capture_initial_parameter_value(par)
 				else:
-					self.parent._capture_initial_parameter_value(slot_par)
+					self.parent.undo_manager.capture_initial_parameter_value(slot_par)
 			else:
 				self.parent.activeSlot = None
 				self.parent.bankActiveSlots[bank_idx] = None

@@ -45,10 +45,10 @@ class MidiMessageHandler:
 		"""
 		# Handle ParGroup - create single undo block for all parameters
 		if ParameterValidator.is_pargroup(active_par):
-			self.parent._create_pargroup_undo(active_par)
+			self.parent.undo_manager.create_pargroup_undo(active_par)
 		else:
 			# Handle single Par
-			self.parent._create_parameter_undo(active_par)
+			self.parent.undo_manager.create_parameter_undo(active_par)
 	
 	def handle_step_message(self, index: int, value: int) -> bool:
 		"""Handle step change messages"""
@@ -89,7 +89,7 @@ class MidiMessageHandler:
 		
 		# Restart timeout on every movement (resets the 2s timer)
 		# After 2s of inactivity, will clear captured values for new undo checkpoint
-		self.parent._start_undo_timeout(timeout_ms=2000)
+		self.parent.undo_manager.start_undo_timeout(timeout_ms=2000)
 		
 		return True
 	
