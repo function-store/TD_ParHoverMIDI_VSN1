@@ -70,3 +70,31 @@ class SecondaryMode(Enum):
 class StepMode(Enum):
 	FIXED = 'Fixed'
 	ADAPTIVE = 'Adaptive'
+
+class OverrideUIElements:
+	"""
+	List of parameters to override in the UI.
+	These are the parameters that are used to display the UI elements.
+	Notes:
+		- .selected.loc is darkest
+		- .selected is middle (+ 0.025)
+		- .loc is lightest (+ 0.05) of .selected, (+ 0.075) of .selected.loc
+		- for menubar, button it's the opposite (.sel is darker)
+		- toggle thumb on is 0.65 lighter than off
+	"""#
+	PARMS = \
+		[
+			'parms.button.bg.loc',
+			'parms.button.bg.sel',
+			'parms.field.numeric.bg.loc',
+			'parms.field.numeric.bg.selected',
+			'parms.field.numeric.bg.selected.loc',
+			'parms.field.string.bg.loc',
+			'parms.field.string.bg.selected',
+			'parms.field.string.bg.selected.loc',
+			'parms.slider.thumb.loc',
+			'parms.menubar.bg.loc',
+			'parms.menubar.bg.sel',
+			'parms.toggle.thumb.off.loc',
+			'parms.toggle.thumb.on.loc'
+		]

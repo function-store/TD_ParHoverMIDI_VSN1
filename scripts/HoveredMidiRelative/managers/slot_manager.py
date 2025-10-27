@@ -49,6 +49,9 @@ class SlotManager:
 		self.parent.activeSlot = slot_idx
 		self.parent.bankActiveSlots[currBank] = slot_idx
 		
+		# Turn off hovered UI color when assigning a slot
+		self.parent.ui_manager.set_hovered_ui_color(-1)
+		
 		# Update UI button label
 		if hasattr(self.parent, 'ui_manager'):
 			label = LabelFormatter.get_label_for_parameter(parameter, self.parent.labelDisplayMode)
@@ -65,7 +68,6 @@ class SlotManager:
 		# Add undo support if enabled
 		if self.parent.evalEnableundo:
 			ui.undo.startBlock(f'Assign Slot {slot_idx} in Bank {currBank}')
-			debug(f'Assign Slot {slot_idx} in Bank {currBank} with value {parameter.eval()}')
 			try:
 				undo_info = {
 					'slot_idx': slot_idx,
@@ -100,6 +102,17 @@ class SlotManager:
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
 				self.parent.activeSlot = previous_active_slot
+				
+				# Update hovered UI color based on restored active slot
+				if previous_active_slot is None:
+					# Restoring to hover mode
+					if self.parent.evalColorhoveredui:
+						self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+					else:
+						self.parent.ui_manager.set_hovered_ui_color(-1)
+				else:
+					# Restoring to slot mode
+					self.parent.ui_manager.set_hovered_ui_color(-1)
 				
 				# Update UI button label
 				if hasattr(self.parent, 'ui_manager'):
@@ -159,6 +172,9 @@ class SlotManager:
 			self.parent.slotPars[bank_idx][slot_idx] = new_parameter
 			self.parent.activeSlot = slot_idx
 			self.parent.bankActiveSlots[bank_idx] = slot_idx
+			
+			# Turn off hovered UI color when restoring deleted slot
+			self.parent.ui_manager.set_hovered_ui_color(-1)
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
@@ -221,6 +237,17 @@ class SlotManager:
 			if is_current_bank:
 				self.parent.activeSlot = previous_active_slot
 				
+				# Update hovered UI color based on restored active slot
+				if previous_active_slot is None:
+					# Restoring to hover mode
+					if self.parent.evalColorhoveredui:
+						self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+					else:
+						self.parent.ui_manager.set_hovered_ui_color(-1)
+				else:
+					# Restoring to slot mode
+					self.parent.ui_manager.set_hovered_ui_color(-1)
+				
 				# Restore UI button label
 				if hasattr(self.parent, 'ui_manager'):
 					label = LabelFormatter.get_label_for_parameter(previous_parameter, self.parent.labelDisplayMode)
@@ -246,6 +273,12 @@ class SlotManager:
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
 				self.parent.activeSlot = None
+				
+				# Restore hovered UI color if enabled (redoing clear)
+				if self.parent.evalColorhoveredui:
+					self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+				else:
+					self.parent.ui_manager.set_hovered_ui_color(-1)
 				
 				if hasattr(self.parent, 'ui_manager'):
 					self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
@@ -283,6 +316,12 @@ class SlotManager:
 		self.parent.activeSlot = None
 		self.parent.bankActiveSlots[currBank] = None
 		
+		# Restore hovered UI color if enabled (now in hover mode)
+		if self.parent.evalColorhoveredui:
+			self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+		else:
+			self.parent.ui_manager.set_hovered_ui_color(-1)
+		
 		# Clear UI button label
 		if hasattr(self.parent, 'ui_manager'):
 			self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
@@ -298,7 +337,6 @@ class SlotManager:
 		# Add undo support if enabled
 		if self.parent.evalEnableundo:
 			ui.undo.startBlock(f'Clear Slot {slot_idx} in Bank {currBank}')
-			debug(f'Clear Slot {slot_idx} in Bank {currBank} with value {previous_parameter.eval()}')
 			try:
 				undo_info = {
 					'slot_idx': slot_idx,
@@ -329,6 +367,9 @@ class SlotManager:
 		old_active_slot = self.parent.activeSlot
 		self.parent.activeSlot = slot_idx
 		self.parent.bankActiveSlots[currBank] = slot_idx
+		
+		# Turn off hovered UI color when activating a slot
+		self.parent.ui_manager.set_hovered_ui_color(-1)
 		
 		# Update display with slot parameter
 		if slot_par := self.parent.slotPars[currBank][slot_idx]:
@@ -384,6 +425,9 @@ class SlotManager:
 				self.parent.slotPars[bank_idx][previous_slot] is not None):
 				self.parent.activeSlot = previous_slot
 				
+				# Turn off hovered UI color when recalling a slot
+				self.parent.ui_manager.set_hovered_ui_color(-1)
+				
 				# Capture initial values for undo when recalling slot
 				slot_par = self.parent.slotPars[bank_idx][previous_slot]
 				if ParameterValidator.is_pargroup(slot_par):
@@ -395,8 +439,20 @@ class SlotManager:
 			else:
 				self.parent.activeSlot = None
 				self.parent.bankActiveSlots[bank_idx] = None
+				
+				# Restore hovered UI color if enabled (no active slot)
+				if self.parent.evalColorhoveredui:
+					self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+				else:
+					self.parent.ui_manager.set_hovered_ui_color(-1)
 		else:
 			self.parent.activeSlot = None
+			
+			# Restore hovered UI color if enabled (no active slot)
+			if self.parent.evalColorhoveredui:
+				self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+			else:
+				self.parent.ui_manager.set_hovered_ui_color(-1)
 		
 		# Refresh display and UI for new bank
 		self._refresh_bank_display()
@@ -439,11 +495,29 @@ class SlotManager:
 			return
 		
 		old_active_slot = self.parent.activeSlot
-		self.parent.activeSlot = None
+		currBank = self.parent.currBank
 		
-		# Update display to hover mode
-		self.parent.display_manager.update_all_display(
-			0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+		# Clear active slot
+		self.parent.activeSlot = None
+		if currBank < len(self.parent.bankActiveSlots):
+			self.parent.bankActiveSlots[currBank] = None
+		
+		# Restore hovered UI color if enabled (now in hover mode)
+		if self.parent.evalColorhoveredui:
+			self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+		else:
+			self.parent.ui_manager.set_hovered_ui_color(-1)
+		
+		# Get label for hovered parameter (or ParGroup)
+		if self.parent.hoveredPar is not None:
+			# Use formatter to get proper label (handles both Par and ParGroup)
+			from formatters import LabelFormatter
+			label = LabelFormatter.get_label_for_parameter(self.parent.hoveredPar, self.parent.labelDisplayMode)
+		else:
+			label = ScreenMessages.HOVER
+		
+		compress = False if label == ScreenMessages.HOVER else True
+		self.parent.display_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=compress)
 		
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)
@@ -506,6 +580,12 @@ class SlotManager:
 		if bank_idx == self.parent.currBank:
 			if self.parent.activeSlot == slot_idx:
 				self.parent.activeSlot = None
+				
+				# Restore hovered UI color if enabled (now in hover mode)
+				if self.parent.evalColorhoveredui:
+					self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+				else:
+					self.parent.ui_manager.set_hovered_ui_color(-1)
 				
 			# Clear UI button label
 			if hasattr(self.parent, 'ui_manager'):

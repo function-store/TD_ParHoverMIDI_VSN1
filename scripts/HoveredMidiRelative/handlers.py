@@ -175,55 +175,32 @@ class MidiMessageHandler:
 		block = blocks[0]
 		block_idx = block.index
 		
-		# Get previous slot index for LED feedback
-		prev_slot_index = self.parent.activeSlot
+		currBank = self.parent.currBank
 		
 		# Check if slot exists and has a parameter in current bank
-		currBank = self.parent.currBank
 		if (currBank < len(self.parent.slotPars) and 
 			block_idx < len(self.parent.slotPars[currBank]) and 
 			self.parent.slotPars[currBank][block_idx] is not None):
-			# Activate slot
-			old_active_slot = self.parent.activeSlot
-			self.parent.activeSlot = block_idx
+			
+			# Validate parameter before activating
 			active_par = self.parent.slotPars[currBank][block_idx]
-			# validate if parameter is valid
 			if not active_par.valid:
 				# Clear invalid parameter from all slots
 				self._clear_invalid_parameter_from_slots(active_par)
 				return False
+			
+			# Check for validation errors
 			error_msg = ParameterValidator.get_validation_error(active_par)
 			if error_msg:
 				self.parent.display_manager.show_parameter_error(active_par, error_msg)
-			else:
-				self.parent.display_manager.update_parameter_display(active_par)
-			self.parent.bankActiveSlots[currBank] = block_idx
-			# Update LEDs: previous slot and new active slot
-			self.parent.display_manager.update_slot_leds(current_slot=block_idx, previous_slot=old_active_slot)
-			# Update outline color for active slot
-			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+				return True
+			
+			# Activate the slot using slot_manager
+			return self.parent.slot_manager.activate_slot(block_idx)
 		else:
-			# Deactivate slot (return to hover mode)
-			old_active_slot = self.parent.activeSlot
-			self.parent.activeSlot = None
-			if currBank < len(self.parent.bankActiveSlots):
-				self.parent.bankActiveSlots[currBank] = None
-			
-			# Get label for hovered parameter (or ParGroup)
-			if self.parent.hoveredPar is not None:
-				# Use formatter to get proper label (handles both Par and ParGroup)
-				from formatters import LabelFormatter
-				label = LabelFormatter.get_label_for_parameter(self.parent.hoveredPar, self.parent.labelDisplayMode)
-			else:
-				label = ScreenMessages.HOVER
-			
-			compress = False if label == ScreenMessages.HOVER else True
-			self.parent.display_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=compress)
-			# Update LED: turn off the previously active slot
-			self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)
-			# Update outline color for hover mode
-			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
-		return True
+			# Deactivate slot (return to hover mode) using slot_manager
+			self.parent.slot_manager.deactivate_current_slot()
+			return True
 
 	def handle_bank_message(self, index: int) -> bool:
 		"""Handle bank change messages"""

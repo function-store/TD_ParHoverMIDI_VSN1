@@ -104,6 +104,14 @@ class HoveredMidiRelativeExt:
 		# Initialize screen
 		self._initialize_VSN1()
 
+		if self.activeSlot is None and self.evalColorhoveredui:
+			self.ui_manager.set_hovered_ui_color(self.evalColorindex-1)
+		else:
+			self.ui_manager.set_hovered_ui_color(-1)
+
+		# set UI stuff based on current evalStepmode
+		self.ui_manager.set_stepmode_indicator(self.stepMode)
+
 
 	def _validate_storage(self):
 		"""Validate storage and ensure proper structure for dynamic bank changes"""
@@ -348,6 +356,10 @@ class HoveredMidiRelativeExt:
 		if not self.evalEnableundo:
 			return
 		
+		# Skip pulse parameters (momentary actions don't need undo)
+		if par.isPulse:
+			return
+		
 		# Use parameter path as unique key
 		par_path = f"{par.owner.path}:{par.name}"
 		
@@ -360,7 +372,7 @@ class HoveredMidiRelativeExt:
 			initial_value = par.menuIndex
 		else:
 			initial_value = par.eval()
-		debug(f'capturing initial value for {par_path} = {initial_value}')
+		
 		self.parameterInitialValues[par_path] = initial_value
 	
 	def _create_parameter_undo(self, par: 'Par'):
@@ -370,6 +382,10 @@ class HoveredMidiRelativeExt:
 			par: The parameter to create undo for
 		"""
 		if not self.evalEnableundo:
+			return
+		
+		# Skip pulse parameters (momentary actions don't need undo)
+		if par.isPulse:
 			return
 		
 		# Use parameter path as unique key
@@ -435,7 +451,6 @@ class HoveredMidiRelativeExt:
 	
 	def _clear_all_captured_values(self):
 		"""Clear all captured initial values (called after timeout)."""
-		debug(f'clearing all captured values')
 		self.parameterInitialValues.clear()
 		self.parameterUndoCreated.clear()
 	
@@ -834,7 +849,19 @@ class HoveredMidiRelativeExt:
 
 		# Force cook MIDI operators
 		self._force_cook_midi_operators()
-	
+
+	def onParColorhoveredui(self, _val):
+		if _val and self.activeSlot is None:
+			self.ui_manager.set_hovered_ui_color(self.evalColorindex-1)
+		else:
+			self.ui_manager.set_hovered_ui_color(-1)
+
+	def onParColorindex(self, _val):
+		if self.activeSlot is None and self.evalColorhoveredui:
+			self.ui_manager.set_hovered_ui_color(self.evalColorindex-1)
+		else:
+			self.ui_manager.set_hovered_ui_color(-1)
+
 	def _force_cook_midi_operators(self):
 		"""Force cook all MIDI-related operators"""
 		self.activeMidi.cook(force=True)

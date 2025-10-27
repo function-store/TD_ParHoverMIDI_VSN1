@@ -5,7 +5,7 @@ Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.193.toe
 Saveversion : 2023.12120
 Info Header End'''
-from constants import VSN1ColorIndex, ScreenMessages, StepMode
+from constants import VSN1ColorIndex, ScreenMessages, StepMode, OverrideUIElements
 from formatters import LabelFormatter
 
 class UIManager:
@@ -13,7 +13,17 @@ class UIManager:
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
 		self.ui = self.parent.ownerComp.op('_UI/UI')
-		
+
+		self.default_ui_colors = {}
+		for _row in self.parent.ownerComp.op('table_default_ui_cols').rows():
+			_element = _row[0].val
+			_col = (float(_row[1].val), float(_row[2].val), float(_row[3].val))
+			self.default_ui_colors[_element] = _col
+
+		self.page_cols = []
+		for _row in self.ui.op('null_page_cols').rows():
+			_cols = (float(_cell.val) for _cell in _row)
+			self.page_cols.append(list(_cols))
 
 	@property
 	def buttons(self):
@@ -166,3 +176,19 @@ class UIManager:
 			return
 		self.ui.par.Modecolorindex = 1 if step_mode == StepMode.FIXED else 2
 		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', 0.5)
+
+	def set_hovered_ui_color(self, color_index: int):#
+		"""Set hovered UI color"""
+		page_col = self.page_cols[color_index % 4]
+
+		for _element in OverrideUIElements.PARMS:
+			try:
+				if color_index != -1:#
+					_curr_color = ui.colors[_element]
+					ui.colors[_element] = [_col * 0.75 for _col in page_col]
+				else:
+					# reset to default, stored in table_default_ui_colors
+					_default_color = self.default_ui_colors[_element]
+					ui.colors[_element] = _default_color
+			except:
+				pass
