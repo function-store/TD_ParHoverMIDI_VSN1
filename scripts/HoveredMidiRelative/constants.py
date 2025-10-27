@@ -81,7 +81,7 @@ class OverrideUIElements:
 		- .loc is lightest (+ 0.05) of .selected, (+ 0.075) of .selected.loc
 		- for menubar, button it's the opposite (.sel is darker)
 		- toggle thumb on is 0.65 lighter than off
-	"""#
+	"""
 	PARMS = \
 		[
 			'parms.button.bg.loc',
@@ -93,5 +93,6 @@ class OverrideUIElements:
 			'parms.menubar.bg.loc',
 			'parms.menubar.bg.sel',
 			'parms.toggle.thumb.off.loc',
-			'parms.toggle.thumb.on.loc'
+			'parms.toggle.thumb.on.loc',
+			'parms.label.fg.loc'
 		]
