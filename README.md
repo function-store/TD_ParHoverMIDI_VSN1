@@ -18,6 +18,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 
 - **VSN1-Optimized Control**: Designed specifically for VSN1's endless encoders and visual feedback system
 - **Hover-based Parameter Control**: Adjust any parameter by hovering your mouse over it
+- **UI Parameter Highlighting**: Visual feedback in TouchDesigner UI - hovered parameters are highlighted in color, and editable parameters (those that can be adjusted) are shown in a distinct color
 - **ParGroup Support**: Hover over and control entire parameter groups (like RGB, XYZ) simultaneously - manipulates all valid parameters in the group at once
 - **Multiple Parameter Slots**: Assign parameters or parameter groups to VSN1 buttons for instant access and switching
 - **Multiple Banks**: Organize slots into separate banks using VSN1 buttons for expanded parameter control
@@ -27,6 +28,8 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
 - **Step Mode**: Choose between Fixed (fixed step size) or Adaptive (step scales with parameter range)
 - **Secondary Mode**: Knob push functionality with two modes - Reset (hold to reset parameter) or Step (hold and rotate for alternate step size)
+- **Quick Reset**: Press the first two step/bank buttons simultaneously to reset the currently hovered or active parameter to its default value
+- **Value Undo/Redo**: Full undo/redo support for parameter value adjustments using standard keyboard shortcuts (Ctrl+Z/Ctrl+Y on Windows, Cmd+Z/Cmd+Shift+Z on Mac)
 - **Real-time VSN1 Feedback**: Full integration with VSN1's built-in screen and LED system
   - **LED Feedback**: Color-coded LEDs showing slot states (dark/dim/bright)
   - **Screen Display**: Parameter names, values, and bank indicators on VSN1 screen
@@ -229,6 +232,46 @@ The knob push button functionality can be configured for two different modes:
 - **For Toggle parameters**: Toggles the parameter on/off
 - **Other parameter types**: No action (returns false)
 
+### Quick Parameter Reset
+A convenient shortcut for resetting parameters to their default values:
+
+**Quick Reset Shortcut**:
+- **Press the first two step/bank buttons simultaneously**: While hovering over or controlling any parameter
+- **Result**: The parameter instantly resets to its default value
+- **Use Case**: Faster than using Secondary Mode's reset hold functionality
+- **Compatibility**: Works with all parameter types that have default values
+
+This provides an alternative to the Secondary Mode reset functionality, allowing for instant parameter resets without the hold delay.
+
+### Parameter Value Undo/Redo
+Full undo/redo support for parameter value adjustments, allowing you to experiment freely and revert changes if needed:
+
+**Undo/Redo Operations**:
+- **Undo**: Press `Ctrl+Z` (Windows/Linux) or `Cmd+Z` (Mac) to undo the last parameter value change
+- **Redo**: Press `Ctrl+Y` (Windows/Linux) or `Cmd+Shift+Z` (Mac) to redo a previously undone change
+- **History Tracking**: Maintains a complete history of all parameter value adjustments made through the component
+- **Cross-Parameter**: Undo/redo works across different parameters - revert changes to any parameter you've adjusted
+- **Bank-Aware**: Works seamlessly across bank switches - undo changes from any bank
+- **Smart Validation**: Automatically validates that parameters still exist before restoring values
+
+**What Gets Tracked**:
+- All parameter value changes made via MIDI knob rotation
+- Changes to individual parameters and ParGroups
+- Adjustments across different banks and slots
+
+**Note**: This is separate from the slot assignment undo feature (enabled via `Enable Undo` parameter). Value undo/redo is always active and tracks actual parameter value changes.
+
+### UI Parameter Highlighting
+Visual feedback in the TouchDesigner UI helps identify which parameters can be controlled:
+
+**Parameter Color Coding**:
+- **Hovered Parameters**: When you hover over a parameter, it's highlighted in a distinct color in the UI
+- **Editable Parameters**: Parameters that can be adjusted (valid for control) are shown in a different color
+- **Visual Feedback**: Makes it immediately clear which parameter is currently targeted and which parameters are controllable
+- **Real-time Updates**: Colors update instantly as you move your mouse across different parameters
+
+This visual system provides clear feedback about parameter states directly in the TouchDesigner interface, complementing the VSN1's screen and LED feedback.
+
 ## Customization Parameters
 
 The following parameters are available to further customize the functionality of the component:
@@ -244,32 +287,41 @@ The following parameters are available to further customize the functionality of
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
 - **`Knob LED Update`**: Choose between "Off", "Value" and "Step" to determine what is indicated on the knob LEDs of VSN1. **NOTE**: Currently when set to "Value", laggy updates can be observed on the hardware unit.
 
-## VSN1 Visual Feedback
+## Visual Feedback
 
-The VSN1 provides comprehensive visual feedback through LEDs and screen elements:
+The component provides comprehensive visual feedback through both VSN1 hardware and TouchDesigner UI:
 
-### **Button LED States**:
+### **VSN1 Hardware Feedback**
+
+**Button LED States**:
 - **Dark**: Slot is free and available for assignment (hover mode)
 - **Dim**: Slot has a parameter assigned but is not currently active
 - **Bright**: Slot is currently active and controlling this parameter
 
-### **Screen Outline Colors**:
+**Screen Outline Colors**:
 - **Color outline**: Currently in hover mode - move mouse to select parameters
 - **White outline**: Currently in slot mode - a parameter slot is active
 
-### **Bank Indicators**:
+**Bank Indicators**:
 - **Screen display**: Shows current bank number (e.g., "Bank 0", "Bank 1")
 - **Button updates**: Slot button labels and LEDs update when switching banks
-- **UI indicator**: TouchDesigner UI shows current bank number
 - **Bank slot overview**: Long-press any bank button to display all 8 slot names in a 2×4 grid on screen
 
-### **Step Size Indicators**:
+**Step Size Indicators**:
 - **Screen display**: Shows current step value when step size changes
 
-### **Knob LEDs**: 
-- **Knob ring LEDs** show visual feedback of value-based gradual fill or step-based indicators, depending on setting.
+**Knob LEDs**: 
+- **Knob ring LEDs** show visual feedback of value-based gradual fill or step-based indicators, depending on setting
 
-This visual system makes it immediately clear whether you're in hover mode or slot mode, which bank you're currently using, which slots are available, occupied, or active, and what precision level you're currently using for parameter adjustments.
+### **TouchDesigner UI Feedback**
+
+**Parameter Highlighting**:
+- **Hovered Parameters**: Color-highlighted to indicate current mouse hover target
+- **Editable Parameters**: Distinct color coding for parameters that can be adjusted
+- **Bank Indicator**: Current bank number displayed in the UI
+- **Real-time Updates**: Visual feedback updates instantly as you interact with parameters
+
+This comprehensive visual system makes it immediately clear whether you're in hover mode or slot mode, which bank you're currently using, which slots are available, occupied, or active, which parameters can be controlled, and what precision level you're currently using for parameter adjustments.
 
 ## Known Issues
 - Screen updates can be laggy (it is trying its best though)

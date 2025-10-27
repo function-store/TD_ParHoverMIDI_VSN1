@@ -3,7 +3,7 @@
 Name : handlers
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.187.toe
-Saveversion : 2023.12120
+Saveversion : 2025.31310
 Info Header End'''
 from constants import MidiConstants, VSN1ColorIndex, ScreenMessages, SecondaryMode, StepMode
 from validators import ParameterValidator
@@ -43,11 +43,9 @@ class MidiMessageHandler:
 		Args:
 			active_par: The parameter or ParGroup to create undo for
 		"""
-		# Handle ParGroup
+		# Handle ParGroup - create single undo block for all parameters
 		if ParameterValidator.is_pargroup(active_par):
-			for par in active_par:
-				if par is not None and ParameterValidator.is_valid_parameter(par):
-					self.parent._create_parameter_undo(par)
+			self.parent._create_pargroup_undo(active_par)
 		else:
 			# Handle single Par
 			self.parent._create_parameter_undo(active_par)

@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : HoveredMidiRelativeExt
 Author : Dan@DAN-4090
-Saveversion : 2023.12120
+Saveversion : 2025.31310
 Info Header End'''
 import json
 import math
@@ -375,18 +375,19 @@ class HoveredMidiRelativeExt:
 		
 		self.parameterInitialValues[par_path] = initial_value
 	
-	def _create_parameter_undo(self, par: 'Par'):
+	def _create_parameter_undo(self, par: 'Par', skip_block: bool = False):
 		"""Create undo action for parameter using previously captured initial value.
 		
 		Args:
 			par: The parameter to create undo for
+			skip_block: If True, don't create startBlock/endBlock (for use in ParGroup)
 		"""
 		if not self.evalEnableundo:
-			return
+			return False
 		
 		# Skip pulse parameters (momentary actions don't need undo)
 		if par.isPulse:
-			return
+			return False
 		
 		# Use parameter path as unique key
 		par_path = f"{par.owner.path}:{par.name}"
@@ -394,16 +395,17 @@ class HoveredMidiRelativeExt:
 		# If no initial value captured (e.g., after timeout), capture current value as new checkpoint
 		if par_path not in self.parameterInitialValues:
 			self._capture_initial_parameter_value(par)
-			return  # Don't create undo yet, wait for next movement
+			return False  # Don't create undo yet, wait for next movement
 		
 		# Skip if we already created an undo for this parameter (ongoing adjustment)
 		if par_path in self.parameterUndoCreated:
-			return
+			return False
 		
 		initial_value = self.parameterInitialValues[par_path]
 		
 		# Create undo action
-		ui.undo.startBlock(f'Change {par.name}')
+		if not skip_block:
+			ui.undo.startBlock(f'Change {par.name}')
 		try:
 			undo_info = {
 				'par_path': par_path,
@@ -413,10 +415,55 @@ class HoveredMidiRelativeExt:
 			}
 			ui.undo.addCallback(self._undo_parameter_change_callback, undo_info)
 		finally:
-			ui.undo.endBlock()
+			if not skip_block:
+				ui.undo.endBlock()
 		
 		# Mark that undo was created (keep in dict for timeout management)
 		self.parameterUndoCreated[par_path] = True
+		return True
+	
+	def _create_pargroup_undo(self, par_group: 'ParGroup'):
+		"""Create a single undo action for all parameters in a ParGroup.
+		
+		Args:
+			par_group: The ParGroup to create undo for
+		"""
+		if not self.evalEnableundo:
+			return
+		
+		from validators import ParameterValidator
+		
+		# Collect all valid parameters that need undo
+		pars_to_undo = []
+		for par in par_group:
+			if par is not None and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
+				par_path = f"{par.owner.path}:{par.name}"
+				# Check if we have captured initial value and haven't created undo yet
+				if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
+					pars_to_undo.append(par)
+		
+		# If no parameters need undo, check if we need to capture initial values
+		if not pars_to_undo:
+			for par in par_group:
+				if par is not None and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
+					par_path = f"{par.owner.path}:{par.name}"
+					if par_path not in self.parameterInitialValues:
+						self._capture_initial_parameter_value(par)
+			return
+		
+		# Get group name safely
+		try:
+			group_name = next((p.owner.name for p in pars_to_undo if p is not None), "ParGroup")
+		except:
+			group_name = "ParGroup"
+		
+		# Create single undo block for all parameters in the group
+		ui.undo.startBlock(f'Change {group_name} ParGroup')
+		try:
+			for par in pars_to_undo:
+				self._create_parameter_undo(par, skip_block=True)
+		finally:
+			ui.undo.endBlock()
 	
 	def _start_undo_timeout(self, timeout_ms: int = 2000):
 		"""Start/restart timeout to clear captured parameter values after inactivity.
@@ -495,6 +542,153 @@ class HoveredMidiRelativeExt:
 			info['initial_value'] = current_value
 			
 			# Update display if this parameter is currently active
+			if self.activePar == par:
+				self.display_manager.update_parameter_display(par)
+			
+		except Exception as e:
+			pass
+	
+	def _create_reset_undo_for_parameter(self, par: 'Par'):
+		"""Create undo action for resetting a parameter.
+		
+		Args:
+			par: The parameter to reset
+		"""
+		if not self.evalEnableundo:
+			par.reset()
+			return
+		
+		# Skip pulse parameters
+		if par.isPulse:
+			par.reset()
+			return
+		
+		# Capture current value before reset
+		par_path = f"{par.owner.path}:{par.name}"
+		if par.isMenu:
+			current_value = par.menuIndex
+		else:
+			current_value = par.eval()
+		
+		# Perform the reset
+		par.reset()
+		
+		# Get reset value
+		if par.isMenu:
+			reset_value = par.menuIndex
+		else:
+			reset_value = par.eval()
+		
+		# Create undo action
+		ui.undo.startBlock(f'Reset {par.name}')
+		try:
+			undo_info = {
+				'par_path': par_path,
+				'old_value': current_value,
+				'new_value': reset_value,
+				'is_menu': par.isMenu,
+				'par_name': par.name
+			}
+			ui.undo.addCallback(self._undo_reset_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def _create_reset_undo_for_pargroup(self, par_group: 'ParGroup'):
+		"""Create undo action for resetting all parameters in a ParGroup.
+		
+		Args:
+			par_group: The ParGroup to reset
+		"""
+		if not self.evalEnableundo:
+			# Reset without undo
+			for par in par_group:
+				if par is not None and ParameterValidator.is_valid_parameter(par):
+					par.reset()
+			return
+		
+		from validators import ParameterValidator
+		
+		# Capture current values for all valid parameters
+		reset_info_list = []
+		for par in par_group:
+			if par is not None and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
+				par_path = f"{par.owner.path}:{par.name}"
+				if par.isMenu:
+					current_value = par.menuIndex
+				else:
+					current_value = par.eval()
+				
+				# Perform the reset
+				par.reset()
+				
+				# Get reset value
+				if par.isMenu:
+					reset_value = par.menuIndex
+				else:
+					reset_value = par.eval()
+				
+				reset_info_list.append({
+					'par_path': par_path,
+					'old_value': current_value,
+					'new_value': reset_value,
+					'is_menu': par.isMenu,
+					'par_name': par.name
+				})
+		
+		if not reset_info_list:
+			return
+		
+		# Get group name
+		try:
+			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
+		except:
+			group_name = "ParGroup"
+		
+		# Create single undo block for all parameters
+		ui.undo.startBlock(f'Reset {group_name} ParGroup')
+		try:
+			for reset_info in reset_info_list:
+				ui.undo.addCallback(self._undo_reset_callback, reset_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def _undo_reset_callback(self, isUndo, info):
+		"""Callback for undoing parameter reset.
+		
+		Args:
+			isUndo: True if undoing, False if redoing
+			info: Dictionary containing reset information
+		"""
+		par_path = info['par_path']
+		is_menu = info['is_menu']
+		
+		# Parse parameter path
+		try:
+			owner_path, par_name = par_path.rsplit(':', 1)
+			owner_op = op(owner_path)
+			
+			if owner_op is None:
+				return
+			
+			par = owner_op.par[par_name]
+			if par is None:
+				return
+			
+			# Set value based on undo/redo
+			if isUndo:
+				# Restore old value
+				target_value = info['old_value']
+			else:
+				# Restore reset value
+				target_value = info['new_value']
+			
+			# Apply value
+			if is_menu:
+				par.menuIndex = target_value
+			else:
+				par.val = target_value
+			
+			# Update display if this is the active parameter
 			if self.activePar == par:
 				self.display_manager.update_parameter_display(par)
 			
@@ -680,13 +874,11 @@ class HoveredMidiRelativeExt:
 		if force or (self.activePar is not None and self.secondaryMode == SecondaryMode.RESET):
 			# Handle ParGroup
 			if ParameterValidator.is_pargroup(self.activePar):
-				# Reset only valid parameters within the group
-				for par in self.activePar:
-					if par is not None and ParameterValidator.is_valid_parameter(par):
-						par.reset()
+				self._create_reset_undo_for_pargroup(self.activePar)
 			else:
 				# Handle single Par
-				self.activePar.reset()
+				self._create_reset_undo_for_parameter(self.activePar)
+			
 			self.display_manager.update_parameter_display(self.activePar)
 
 	def onReceiveMidiBankSel(self, index: int) -> None:
