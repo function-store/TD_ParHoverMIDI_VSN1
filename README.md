@@ -243,32 +243,35 @@ A convenient shortcut for resetting parameters to their default values:
 
 This provides an alternative to the Secondary Mode reset functionality, allowing for instant parameter resets without the hold delay.
 
-### Parameter Value Undo/Redo
-Full undo/redo support for parameter value adjustments, allowing you to experiment freely and revert changes if needed:
+### Undo/Redo Operations
+Full undo/redo support for both parameter value adjustments and slot management, allowing you to experiment freely and revert changes if needed:
 
-**Undo/Redo Operations**:
-- **Undo**: Press `Ctrl+Z` (Windows/Linux) or `Cmd+Z` (Mac) to undo the last parameter value change
-- **Redo**: Press `Ctrl+Y` (Windows/Linux) or `Cmd+Shift+Z` (Mac) to redo a previously undone change
-- **History Tracking**: Maintains a complete history of all parameter value adjustments made through the component
-- **Cross-Parameter**: Undo/redo works across different parameters - revert changes to any parameter you've adjusted
-- **Bank-Aware**: Works seamlessly across bank switches - undo changes from any bank
-- **Smart Validation**: Automatically validates that parameters still exist before restoring values
+**Keyboard Shortcuts**:
+- **Undo**: Press `Ctrl+Z` (Windows/Linux) or `Cmd+Z` (Mac) to undo the last action
+- **Redo**: Press `Ctrl+Y` (Windows/Linux) or `Cmd+Shift+Z` (Mac) to redo a previously undone action
 
 **What Gets Tracked**:
 - All parameter value changes made via MIDI knob rotation
 - Changes to individual parameters and ParGroups
-- Adjustments across different banks and slots
+- Parameter value adjustments across different banks and slots
+- Parameter resets (via Secondary Mode, Quick Reset, or button shortcuts)
+- Slot assignments (assigning parameters to slots)
+- Slot clearing (removing parameters from slots)
 
-**Note**: This is separate from the slot assignment undo feature (enabled via `Enable Undo` parameter). Value undo/redo is always active and tracks actual parameter value changes.
+**Key Features**:
+- **History Tracking**: Maintains a complete history of all actions made through the component
+- **Cross-Parameter**: Undo/redo works across different parameters - revert changes to any parameter you've adjusted
+- **Bank-Aware**: Works seamlessly across bank switches - undo changes from any bank
+- **Smart Validation**: Automatically validates that parameters still exist before restoring values
+
+**Note**: All undo/redo functionality is controlled by the `Enable Undo` parameter in the component settings. When enabled, both parameter value changes and slot assignments/clearing are tracked.
 
 ### UI Parameter Highlighting
 Visual feedback in the TouchDesigner UI helps identify which parameters can be controlled:
 
 **Parameter Color Coding**:
 - **Hovered Parameters**: When you hover over a parameter, it's highlighted in a distinct color in the UI
-- **Editable Parameters**: Parameters that can be adjusted (valid for control) are shown in a different color
-- **Visual Feedback**: Makes it immediately clear which parameter is currently targeted and which parameters are controllable
-- **Real-time Updates**: Colors update instantly as you move your mouse across different parameters
+- **UI Mirroring**: The component mirrors the hardware states and makes it immediately clear which parameter is currently targeted and which parameters are controllable, etc.
 
 This visual system provides clear feedback about parameter states directly in the TouchDesigner interface, complementing the VSN1's screen and LED feedback.
 
@@ -281,7 +284,7 @@ The following parameters are available to further customize the functionality of
 - **`Reset Hold Length`**: (Reset mode) Duration the knob push button must be held to reset the active parameter to **its** default value.
 - **`Secondary Step`**: (Step mode) Alternate step size used when holding the knob push button and rotating the knob.
 - **`Loop Menus`**: When enabled, menu parameters loop around (last item → first item). When disabled, menu navigation stops at the edges.
-- **`Enable Undo`**: When enabled, assinging and clearing slots can be undone with Ctrl+Z (Cmd+Z on Mac). Undo works across banks and validates parameter existence before restoring.
+- **`Enable Undo`**: When enabled, all operations (parameter value changes, parameter resets, slot assignments, and slot clearing) can be undone/redone. Undo/redo works across banks and validates parameter existence before restoring.
 - **`VSN1 Support`**: Enables VSN1 screen updates and LED feedback, displaying adjusted parameter and value (circle size between param normMin/Max values), using websocket communication --- requires Grid Editor to be open!
 - **`Label Display Mode`**: Choose between "Compressed" (removes vowels/spaces) or "Truncated" (simple cut-off) for parameter label formatting on limited displays
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
