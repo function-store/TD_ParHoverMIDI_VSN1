@@ -675,9 +675,9 @@ class HoveredMidiRelativeExt:
 			# No hovered parameter - clear the slot
 			self.slot_manager.clear_slot(block_idx)
 
-	def onResetPar(self):
+	def onResetPar(self, force: bool = False):
 		"""TouchDesigner callback to reset active parameter (or ParGroup)"""
-		if self.activePar is not None and self.secondaryMode == SecondaryMode.RESET:
+		if force or (self.activePar is not None and self.secondaryMode == SecondaryMode.RESET):
 			# Handle ParGroup
 			if ParameterValidator.is_pargroup(self.activePar):
 				# Reset only valid parameters within the group
