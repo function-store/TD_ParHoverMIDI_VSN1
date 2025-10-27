@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : HoveredMidiRelativeExt
 Author : Dan@DAN-4090
-Saveversion : 2025.31310
+Saveversion : 2023.12120
 Info Header End'''
 import json
 import math
@@ -40,7 +40,15 @@ class HoveredMidiRelativeExt:
 		self.bankMidi = self.ownerComp.op('midiin_bank')
 		self.modeselMidi = self.ownerComp.op('midiin_modesel')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
-		self.midiOut = self.ownerComp.op('midiout1')
+		self.midiOut = self.ownerComp.op('midiout1')#
+
+		# UI Mod init
+		if _uimod := self.ownerComp.op('td_ui_mod'):
+			if hasattr(_uimod, 'Install'):
+				try:
+					_uimod.Install()
+				except Exception as error:
+					pass
 		
 		# Initialize state - can be either a single Par or a ParGroup
 		self.hoveredPar: Optional[Union[Par, ParGroup]] = None
@@ -95,6 +103,9 @@ class HoveredMidiRelativeExt:
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
 
+		self.postInit()
+
+	def postInit(self):
 		# Needed to clear pickle errors due to missing parameters in storage, before we can even validate
 		self._validate_storage()
 
@@ -578,6 +589,15 @@ class HoveredMidiRelativeExt:
 # endregion helper functions
 # region parameter callbacks
 
+	def onParActive(self, val):
+		if val:
+			self.postInit()
+		else:
+			self.ui_manager.set_hovered_ui_color(-1)
+			self.vsn1_manager.clear_all_slot_leds()
+			self.display_manager.clear_screen()
+
+
 	def onParClear(self):
 		"""TouchDesigner callback to clear all MIDI mappings"""
 		# Clear all slot LEDs before resetting
@@ -700,6 +720,9 @@ class HoveredMidiRelativeExt:
 	def onParStepmode(self, _par, _val):
 		"""TouchDesigner callback when relative step mode parameter changes"""
 		self.display_manager.set_stepmode_indicator(StepMode(_val))
+
+	def onParShowbuiltin(self, _val):
+		self.ownerComp.showCustomOnly  = not _val
 
 # endregion parameter callbacks
 	def onProjectPreSave(self):

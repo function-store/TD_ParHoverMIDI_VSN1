@@ -273,6 +273,12 @@ Visual feedback in the TouchDesigner UI helps identify which parameters can be c
 - **Hovered Parameters**: When you hover over a parameter, it's highlighted in a distinct color in the UI
 - **UI Mirroring**: The component mirrors the hardware states and makes it immediately clear which parameter is currently targeted and which parameters are controllable, etc.
 
+**Component UI Button**:
+The component includes a convenient button in the top-right corner of TD's UI for quick access:
+- **Left Click**: Opens the component's parameters dialog
+- **Right Click**: Opens the component's UI (user interface view)
+- **Middle Click**: Toggles UI coloring on/off - enables or disables the parameter highlighting feature
+
 This visual system provides clear feedback about parameter states directly in the TouchDesigner interface, complementing the VSN1's screen and LED feedback.
 
 ## Customization Parameters

@@ -31,7 +31,7 @@ class VSN1Manager:
 	
 	def clear_screen(self):
 		"""Clear the VSN1 screen"""
-		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])"
+		lua_code = "--[[@cb]] lcd:ldaf(0,0,319,239,c[1])lcd:ldrr(3,3,317,237,10,c[2])lcd:ldsw()"
 		self.grid_comm.SendLua(lua_code)
 	
 	def set_step_indicator(self, index: int):

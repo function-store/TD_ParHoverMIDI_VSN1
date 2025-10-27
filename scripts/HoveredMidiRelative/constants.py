@@ -87,7 +87,6 @@ class OverrideUIElements:
 			'parms.button.bg.loc',
 			'parms.button.bg.sel',
 			'parms.field.numeric.bg.loc',
-			'parms.field.numeric.bg.selected',
 			'parms.field.numeric.bg.selected.loc',
 			'parms.slider.thumb.loc',
 			'parms.menubar.bg.loc',
