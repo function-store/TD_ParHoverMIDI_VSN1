@@ -267,7 +267,8 @@ class MidiMessageHandler:
 			# Apply the step to current value
 			active_par.val = active_par.eval() + step_amount
 			
-		elif active_par.isMenu:
+		elif active_par.isMenu and not active_par.isString:
+			# NOTE: we don't act on string menus, if we need to, remove the not active_par.isString check
 			# Handle menu parameters - step through menu options
 			if abs(diff) >= 1:  # Only change on significant step
 				current_index = active_par.menuIndex

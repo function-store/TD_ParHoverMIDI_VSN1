@@ -21,7 +21,7 @@ class UIManager:
 			self.default_ui_colors[_element] = _col
 
 		self.page_cols = []
-		for _row in self.ui.op('null_page_cols').rows():
+		for _row in self.parent.ownerComp.op('null_page_cols').rows():
 			_cols = (float(_cell.val) for _cell in _row)
 			self.page_cols.append(list(_cols))
 
@@ -177,17 +177,63 @@ class UIManager:
 		self.ui.par.Modecolorindex = 1 if step_mode == StepMode.FIXED else 2
 		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', 0.5)
 
-	def set_hovered_ui_color(self, color_index: int):#
-		"""Set hovered UI color"""
+	def set_hovered_ui_color(self, color_index: int):
+		"""Set hovered UI color with proper brightness adjustments per element type.
+		
+		Color relationships from OverrideUIElements:
+		- .selected.loc is darkest (base)
+		- .selected is middle (+ 0.025)
+		- .loc is lightest (+ 0.05 of .selected, + 0.075 of .selected.loc)
+		- For menubar/button it's opposite (.sel is darker)
+		- Toggle thumb on is 0.65 lighter than off
+		"""
 		page_col = self.page_cols[color_index % 4]
-
+		multiplier = 1 if color_index != 2 else 0.5
 		for _element in OverrideUIElements.PARMS:
 			try:
-				if color_index != -1:#
-					_curr_color = ui.colors[_element]
-					ui.colors[_element] = [_col * 0.75 for _col in page_col]
+				if color_index != -1:
+					# Calculate base color (darkest variant)
+					base_color = [_col * multiplier for _col in page_col]
+					
+					# Apply brightness adjustments based on element type
+					if '.selected.loc' in _element:
+						# Darkest variant (base)
+						ui.colors[_element] = base_color
+					elif '.selected' in _element:
+						# Middle variant (+ 0.025)
+						ui.colors[_element] = [min(1.0, c + 0.025) for c in base_color]
+					elif '.loc' in _element:
+						# Check if it's button/menubar (opposite logic)
+						if 'button' in _element or 'menubar' in _element:
+							# For button/menubar, .loc is darker than .sel
+							if '.sel' in _element:
+								# .sel is lightest for button/menubar
+								ui.colors[_element] = [min(1.0, c + 0.075) for c in base_color]
+							else:
+								# .loc is darker (base)
+								ui.colors[_element] = base_color
+						elif 'toggle.thumb.on' in _element:
+							# Toggle on is 0.65 lighter than off
+							ui.colors[_element] = [min(1.0, c + 0.25) for c in base_color]
+						elif 'toggle.thumb.off' in _element:
+							# Toggle off is base
+							ui.colors[_element] = base_color
+						else:
+							# Standard .loc is lightest (+ 0.075)
+							ui.colors[_element] = [min(1.0, c + 0.075) for c in base_color]
+					elif '.sel' in _element:
+						# For button/menubar .sel without .loc
+						if 'button' in _element or 'menubar' in _element:
+							# .sel is lightest for button/menubar
+							ui.colors[_element] = [min(1.0, c + 0.075) for c in base_color]
+						else:
+							# Standard .sel (shouldn't normally hit this)
+							ui.colors[_element] = [min(1.0, c + 0.05) for c in base_color]
+					else:
+						# Fallback
+						ui.colors[_element] = base_color
 				else:
-					# reset to default, stored in table_default_ui_colors
+					# Reset to default, stored in table_default_ui_colors
 					_default_color = self.default_ui_colors[_element]
 					ui.colors[_element] = _default_color
 			except:

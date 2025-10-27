@@ -144,6 +144,7 @@ class DisplayManager:
 			min_val, max_val = 0, len(par.menuNames) - 1
 			
 			# For string menus, show the actual value if it's not in menuNames
+			# NOTE: we actually don't act on string menus but keeping this in case we need it later
 			if par.isString and par.eval() not in par.menuNames:
 				display_text = str(par.eval())
 			else:
