@@ -3,7 +3,7 @@
 Name : validators
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.179.toe
-Saveversion : 2025.31310
+Saveversion : 2023.12120
 Info Header End'''
 from constants import *
 from typing import Union
@@ -83,7 +83,7 @@ class ParameterValidator:
 			
 			# Check all parameters are of supported types
 			all_supported = all(
-				any(getattr(p, f'is{type.value}') for type in SupportedParameterTypes)
+				any(getattr(p, f'is{type.value}') for type in SupportedParameterTypes) and not p.isString
 				for p in all_pars
 			)
 			
@@ -104,7 +104,7 @@ class ParameterValidator:
 			return True
 		
 		# Handle single Par - just check if it's a supported type
-		return any(getattr(par_or_group, f'is{type.value}') for type in SupportedParameterTypes)
+		return any(getattr(par_or_group, f'is{type.value}') for type in SupportedParameterTypes) and not par_or_group.isString
 	
 	@staticmethod
 	def get_validation_error(par_or_group: Union[Par, ParGroup]) -> str:

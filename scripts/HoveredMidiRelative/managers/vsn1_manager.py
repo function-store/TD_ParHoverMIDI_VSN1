@@ -20,13 +20,31 @@ class VSN1Manager:
 	def is_vsn1_enabled(self) -> bool:
 		return self.parent.evalVsn1support
 	
-	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, percentage: float, step_indicator = None):
+	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, step_indicator = None, norm_default = None, info = None):
 		"""Render display data to VSN1 screen - ONLY the Lua output, no logic"""
 		if not self.is_vsn1_enabled():
 			return
+		if info is None:
+			# list current active parameters
+			_slot_pars = self.parent.slotPars[self.parent.currBank]
+			_slot_pars = _slot_pars + [None] * (len(VSN1Constants.SLOT_INDICES) - len(_slot_pars))
+			_labels = []
+			for i, par in enumerate(_slot_pars):
+				if par is not None:
+					label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode, max_length=6)
+					if self.parent.activeSlot is not None and ((_activePar := self.parent.slotPars[self.parent.currBank][self.parent.activeSlot]) is not None):
+						if _activePar.owner == par.owner and _activePar.name == par.name:
+							label = '`'+label
+				else:
+					label = "---"
+				_labels.append(label)	
+			info = _labels
+		if norm_default is None:
+			norm_default = -1
 			
-		# Simple Lua function call - ONLY difference from UI renderer
-		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator})"
+		info_lua = '{' + ','.join(f"'{s}'" for s in info) + '}' if info else '{}'
+		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator}, {norm_default}, {info_lua})"
+
 		self.grid_comm.SendLua(lua_code, queue=True)
 	
 	def clear_screen(self):
@@ -142,7 +160,7 @@ class VSN1Manager:
 			self.grid_comm.SendLua(f'ci=2')
 		else:
 			self.grid_comm.SendLua(f'ci=3')
-		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', 0.5)
+		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_')
 
 	def clear_all_slot_leds(self):
 		"""Clear all slot LEDs (set to 0)"""
@@ -152,33 +170,3 @@ class VSN1Manager:
 		for i in range(len(VSN1Constants.SLOT_INDICES)):
 			led_updates.append((10 + i, 0))
 		self._send_batch_leds(led_updates)
-	
-	def show_info_message(self, _slot_pars):
-		"""Display slot parameter info message on VSN1 screen in a 2x4 grid"""
-		if not self.is_vsn1_enabled():
-			return
-		self.clear_screen()
-		# Display labels in 2x4 grid
-		# fill with none up to length of number of slots in VSN1Constants.SLOT_INDICES
-		_slot_pars = _slot_pars + [None] * (len(VSN1Constants.SLOT_INDICES) - len(_slot_pars))
-		for i, par in enumerate(_slot_pars):
-			if par is not None:
-				label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode, max_length=7)
-			else:
-				label = "  ---"	
-			# Calculate grid position (2 rows, 4 columns)
-			row = i // 4  # 0 or 1
-			col = i % 4   # 0, 1, 2, or 3
-			
-			# Calculate x and y positions
-			# Columns: 10, 90, 170, 250 (80px spacing)
-			# Rows: 180, 210 (30px spacing)
-			x = 10 + (col * 80)
-			y = 180 + (row * 30)
-			
-			self.grid_comm.SendLua(f'dtx("{label}", {x}, {y}, 26, 2)')
-		self.grid_comm.SendLua(f'doBank()')
-		# Set outline color based on current state
-		self.update_outline_color_index(VSN1ColorIndex.WHITE.value if self.parent.activeSlot is not None else VSN1ColorIndex.COLOR.value, do_sw=False)  # Active slot
-		
-		self.grid_comm.SendLua(f'lcd:ldsw()')

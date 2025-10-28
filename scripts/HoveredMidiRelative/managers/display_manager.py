@@ -25,7 +25,7 @@ class DisplayManager:
 			param_label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
 		else:
 			param_label = ScreenMessages.INVALID	
-		self.update_all_display(0.5, 0, 1, param_label, error_msg, compress=True)
+		self.update_all_display(0, 0, 1, param_label, error_msg, compress=True)
 	
 	def get_slot_state_value(self, slot_idx: int) -> int:
 		"""Centralized slot state logic: 0=free (hover), 127=occupied, 255=active"""
@@ -48,7 +48,7 @@ class DisplayManager:
 		self.ui_renderer.clear_screen()
 	
 	def update_all_display(self, val, norm_min, norm_max, 
-						  label: str, display_text: Optional[str] = None, step_indicator = None, compress: bool = True):
+						  label: str, display_text: Optional[str] = None, step_indicator = None, compress: bool = True, norm_default = None):
 		"""Update all displays with parameter info - handles ALL logic here"""
 		if compress:
 		# Process label based on display mode and compression setting
@@ -74,9 +74,9 @@ class DisplayManager:
 			bottom_text = display_text
 		else:
 			bottom_text = LabelFormatter.format_value(val)
-		
+
 		# Delegate to renderers with processed data
-		self.vsn1_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
+		self.vsn1_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, step_indicator=step_indicator, norm_default=norm_default)
 		
 		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED] and self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
 			self.vsn1_renderer.update_knob_leds_gradual(0)
@@ -85,7 +85,7 @@ class DisplayManager:
 			self.vsn1_renderer.update_knob_leds_gradual(percentage)
 
 		
-		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator)
+		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator=step_indicator, norm_default=norm_default)
     
 	def update_parameter_display(self, par_or_group: Union[Par, ParGroup], bottom_text: str = None, force_knob_leds: bool = False):
 		"""Update displays for a specific parameter (or ParGroup) - handles ALL logic here
@@ -105,7 +105,7 @@ class DisplayManager:
 			return
 		
 		# Get display values based on parameter type
-		val, min_val, max_val, display_text = self._get_parameter_display_values(display_par)
+		val, min_val, max_val, display_text, norm_default = self._get_parameter_display_values(display_par)
 		
 		# Override display text if provided
 		if bottom_text is not None:
@@ -115,12 +115,12 @@ class DisplayManager:
 		label = self._get_parameter_label(par_or_group, display_par)
 		
 		# Update all displays
-		self.update_all_display(val, min_val, max_val, label, display_text, compress=True)
+		self.update_all_display(val, min_val, max_val, label, display_text, compress=True, norm_default=norm_default)
 		
 		# Handle knob LED updates if forced
 		if force_knob_leds:
 			self._update_knob_leds(val, min_val, max_val)
-	
+
 	def _get_display_parameter(self, par_or_group: Union[Par, ParGroup]) -> Optional[Par]:
 		"""Extract the parameter to display from either a single Par or ParGroup
 		For ParGroups, returns the first valid parameter"""
@@ -139,7 +139,7 @@ class DisplayManager:
 	def _get_parameter_display_values(self, par: Par) -> tuple:
 		"""Get display values (val, min_val, max_val, display_text) for a parameter
 		Returns tuple: (value, min_value, max_value, display_text)"""
-		if par.isMenu:
+		if par.isMenu and not par.isString:
 			val = par.menuIndex
 			min_val, max_val = 0, len(par.menuNames) - 1
 			
@@ -151,23 +151,33 @@ class DisplayManager:
 				display_text = str(par.menuLabels[par.menuIndex])
 			
 			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
-			
+			default = par.default
+			# find default in menuNames
+			# check if default is in menuNames
+			if default in par.menuNames:
+				default_idx = par.menuNames.index(default)
+				norm_default = default_idx / (len(par.menuNames) - 1)
+			else:
+				norm_default = 0
 		elif par.isToggle or par.isMomentary:
 			val = 1 if par.eval() else 0
 			min_val, max_val = 0, 1
 			display_text = "On" if val else "Off"
+			norm_default = 1 if par.default else 0
 			
 		elif par.isPulse:
 			val = 1 if par.eval() else 0
 			min_val, max_val = 0, 1
 			display_text = "_PULSE_"
+			norm_default = -1
 			
 		else:  # Numeric parameter
 			val = par.eval()
 			min_val, max_val = par.normMin, par.normMax
 			display_text = None
-		
-		return val, min_val, max_val, display_text
+			norm_default = tdu.remap(par.default, min_val, max_val, 0, 1)
+			norm_default = tdu.clamp(norm_default, 0, 1)
+		return val, min_val, max_val, display_text, norm_default
 	
 	def _get_parameter_label(self, original: Union[Par, ParGroup], display_par: Par) -> str:
 		"""Get formatted label for display

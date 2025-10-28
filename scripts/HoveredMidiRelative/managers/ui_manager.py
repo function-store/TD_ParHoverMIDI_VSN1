@@ -40,7 +40,7 @@ class UIManager:
 		self.ui.par.Bottomtext.val = text
 
 	def _set_circle_fill(self, percentage: float):
-		self.ui.par.Circlefill = tdu.clamp(tdu.remap(percentage, 0, 1, 0.05, 1), 0.05, 1)
+		self.ui.par.Circlefill = tdu.clamp(tdu.remap(percentage, 0, 1, 0.0, 1), 0.0, 1)
 
 	def _set_button_color(self, index: int, color_phase_idx: int):
 		button = self.buttons[index]
@@ -48,8 +48,11 @@ class UIManager:
 			return
 		button.par.Colorphaseidx = color_phase_idx
 
+	def _set_defaultnotch(self, norm_default: float):
+		self.ui.par.Normdefault = norm_default
+
 	
-	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, percentage: float, step_indicator = None):
+	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, percentage: float, step_indicator = None, norm_default = None):
 		"""Render display data to UI - ONLY the UI parameter updates, no logic"""
 		if not self.ui_enabled:
 			return
@@ -57,6 +60,9 @@ class UIManager:
 		self._set_circle_fill(percentage)
 		self._set_top_text(processed_label)
 		self._set_bottom_text(bottom_text)
+		if norm_default is None:
+			norm_default = -1
+		self._set_defaultnotch(norm_default)
 		
 		# Set step indicator if provided
 		if step_indicator is not None:
@@ -69,6 +75,7 @@ class UIManager:
 		self._set_circle_fill(0.5)
 		self._set_top_text("")
 		self._set_bottom_text("")
+		self._set_defaultnotch(-1)
 
 	def set_step_indicator(self, index: int):
 		if not self.ui_enabled:

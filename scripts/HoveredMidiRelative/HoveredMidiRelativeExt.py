@@ -190,7 +190,7 @@ class HoveredMidiRelativeExt:
 		if self.activePar is not None:
 			self.display_manager.update_parameter_display(self.activePar, force_knob_leds=True)
 		else:
-			self.display_manager.update_all_display(0.5, 0, 1, ScreenMessages.HOVER, 
+			self.display_manager.update_all_display(0, 0, 1, ScreenMessages.HOVER, 
 													ScreenMessages.HOVER, compress=False)
 
 		self.display_manager.update_all_slot_leds()
@@ -211,7 +211,7 @@ class HoveredMidiRelativeExt:
 			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), 0)
 			self.vsn1_manager.update_knob_leds_steps(step_idx)
 
-		self.display_manager.update_all_display(0.5, 0, 1, 'TD Hover', '_INIT_', compress=False)
+		self.display_manager.update_all_display(1, 0, 1, 'TD Hover', '_INIT_', compress=False)
 		
 # region properties
 		
@@ -401,11 +401,11 @@ class HoveredMidiRelativeExt:
 					self.display_manager.show_parameter_error(single_par, error_msg)
 					return  # Parameter is invalid, error message shown
 			
-			# Capture initial value for undo when hovering
-			self.undo_manager.capture_initial_parameter_value(single_par)
 
 			# Update screen if no active slot (only for valid parameters)
 			if self.activeSlot is None:
+				# Capture initial value for undo when hovering
+				self.undo_manager.capture_initial_parameter_value(single_par)
 				self.display_manager.update_parameter_display(single_par)
 
 	def onGridConnect(self):
@@ -506,7 +506,10 @@ class HoveredMidiRelativeExt:
 
 	def onResetPar(self, force: bool = False):
 		"""TouchDesigner callback to reset active parameter (or ParGroup)"""
-		if force or (self.activePar is not None and self.secondaryMode == SecondaryMode.RESET):
+		if self.activePar is None:
+			return
+		
+		if force or self.secondaryMode == SecondaryMode.RESET:
 			# Handle ParGroup
 			if ParameterValidator.is_pargroup(self.activePar):
 				self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
@@ -530,18 +533,6 @@ class HoveredMidiRelativeExt:
 			return
 		# set step mode to the opposite of the current step mode
 		self.stepMode = StepMode.FIXED if self.stepMode == StepMode.ADAPTIVE else StepMode.ADAPTIVE
-
-	def onReceiveMidiInfo(self, index: int):
-		"""TouchDesigner callback for MIDI info input"""
-		if not self.evalActive:
-			return
-		# get bank index from the given index
-		blocks = self._index_to_blocks(index, self.seqBanks)
-		if not blocks:
-			return
-		bank_idx = blocks[0].index
-		# show info message for the slot at the given index
-		self.vsn1_manager.show_info_message(self.slotPars[bank_idx])
 				
 
 # endregion midi callbacks

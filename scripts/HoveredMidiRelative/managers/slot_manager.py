@@ -136,12 +136,12 @@ class SlotManager:
 				else:
 					# Return to hover mode
 					self.parent.display_manager.update_all_display(
-						0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 			else:
 				# Return to hover mode
 				self.parent.display_manager.update_all_display(
-					0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 			
 			# Update LEDs - update both the modified slot and the active slot
@@ -260,7 +260,7 @@ class SlotManager:
 				else:
 					# Return to hover mode if slot wasn't active
 					self.parent.display_manager.update_all_display(
-						0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 				
 				# Restore LEDs
@@ -284,7 +284,7 @@ class SlotManager:
 					self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
 				
 				self.parent.display_manager.update_all_display(
-					0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 				
 				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
 				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
@@ -328,7 +328,7 @@ class SlotManager:
 		
 		# Update display to hover mode
 		self.parent.display_manager.update_all_display(
-			0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+			0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 		
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
@@ -351,16 +351,18 @@ class SlotManager:
 	
 	def activate_slot(self, slot_idx: int) -> bool:
 		"""Activate an existing slot. Returns True if successful."""
+
 		currBank = self.parent.currBank
 		if (currBank >= len(self.parent.slotPars) or 
 			slot_idx >= len(self.parent.slotPars[currBank]) or 
 			self.parent.slotPars[currBank][slot_idx] is None):
 			return False
-		
+
 		# Clear any unused captured values from previous slot
 		if (self.parent.activeSlot is not None and 
 			self.parent.activeSlot < len(self.parent.slotPars[currBank]) and
 			self.parent.slotPars[currBank][self.parent.activeSlot] is not None):
+			
 			old_slot_par = self.parent.slotPars[currBank][self.parent.activeSlot]
 			self.parent.undo_manager.clear_unused_captured_values(old_slot_par)
 		
@@ -372,7 +374,7 @@ class SlotManager:
 		self.parent.ui_manager.set_hovered_ui_color(-1)
 		
 		# Update display with slot parameter
-		if slot_par := self.parent.slotPars[currBank][slot_idx]:
+		if (slot_par := self.parent.slotPars[currBank][slot_idx]) is not None:
 			# Capture initial values for undo when slot is activated
 			if ParameterValidator.is_pargroup(slot_par):
 				for par in slot_par:
@@ -485,7 +487,7 @@ class SlotManager:
 				self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
 			else:
 				self.parent.display_manager.update_all_display(
-					0.5, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
+					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
 				)
 			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 	
@@ -517,7 +519,7 @@ class SlotManager:
 			label = ScreenMessages.HOVER
 		
 		compress = False if label == ScreenMessages.HOVER else True
-		self.parent.display_manager.update_all_display(0.5, 0, 1, label, ScreenMessages.HOVER, compress=compress)
+		self.parent.display_manager.update_all_display(0, 0, 1, label, ScreenMessages.HOVER, compress=compress)
 		
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)

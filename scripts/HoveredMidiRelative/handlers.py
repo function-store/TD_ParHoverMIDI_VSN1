@@ -20,7 +20,7 @@ class MidiMessageHandler:
 		"""Used for checking if a bank off message coincides with a step message
 		since by default these two messages are assigned to the same MIDI button
 		"""
-		return self.parent.ownerComp.op('null_midibank')[0].eval() == 1 or self.parent.ownerComp.op('null_midiinfo')[0].eval() == 1 or self.parent.ownerComp.op('null_modesel')[0].eval() == 1 or self.parent.ownerComp.op('null_resetpar')[0].eval() == 1
+		return self.parent.ownerComp.op('null_midibank')[0].eval() == 1 or self.parent.ownerComp.op('null_modesel')[0].eval() == 1 or self.parent.ownerComp.op('null_resetpar')[0].eval() == 1
 	
 	def _clear_invalid_parameter_from_slots(self, active_par: Union['Par', 'ParGroup']) -> None:
 		"""Clear invalid parameter from all slots across all banks and show error message"""
@@ -151,12 +151,12 @@ class MidiMessageHandler:
 			if active_par.isPulse:
 				active_par.pulse()
 			elif active_par.isMomentary:
-				active_par.val = True
+				active_par.val = not active_par.default
 			elif active_par.isToggle:
 				active_par.val = not active_par.eval()
 		if value == 0:
 			if active_par.isMomentary:
-				active_par.val = False
+				active_par.val = active_par.default
 		self.parent.display_manager.update_parameter_display(active_par)
 		
 		return True
