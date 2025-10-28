@@ -22,17 +22,16 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **ParGroup Support**: Hover over and control entire parameter groups (like RGB, XYZ) simultaneously - manipulates all valid parameters in the group at once
 - **Multiple Parameter Slots**: Assign parameters or parameter groups to VSN1 buttons for instant access and switching
 - **Multiple Banks**: Organize slots into separate banks using VSN1 buttons for expanded parameter control
-- **Bank Slot Overview**: Long-press any bank button to display all slot assignments on the VSN1 screen
 - **Smart Learning System**: Automatically assign VSN1 button mapping
 - **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
 - **Step Mode**: Choose between Fixed (fixed step size) or Adaptive (step scales with parameter range)
 - **Secondary Mode**: Knob push functionality with two modes - Reset (hold to reset parameter) or Step (hold and rotate for alternate step size)
-- **Quick Reset**: Press the first two step/bank buttons simultaneously to reset the currently hovered or active parameter to its default value
+- **Parameter Value Shortcuts**: Multiple button combinations for quick operations (reset, set default, set normMin/Max)
 - **Value Undo/Redo**: Full undo/redo support for parameter value adjustments using standard keyboard shortcuts (Ctrl+Z/Ctrl+Y on Windows, Cmd+Z/Cmd+Shift+Z on Mac)
 - **Real-time VSN1 Feedback**: Full integration with VSN1's built-in screen and LED system
   - **LED Feedback**: Color-coded LEDs showing slot states (dark/dim/bright)
-  - **Screen Display**: Parameter names, values, and bank indicators on VSN1 screen
+  - **Enhanced Screen Display**: Always-visible slot names, parameter values with default value notch, bank indicators
   - **Visual State Indicators**: Screen outline colors indicate current mode (hover/slot active)
 - **Generic MIDI Compatibility**: Also works with other endless/relative MIDI encoders (without visual feedback)
 
@@ -171,13 +170,6 @@ The component supports multiple banks to organize your parameter slots, dramatic
 - **Bank indicator** - both VSN1 screen and UI show the current bank number
 - **Independent operation** - each bank operates exactly like the original single-bank system
 
-**Bank Slot Overview**:
-- **Long-press a bank button** to view all slot assignments on the VSN1 screen
-- **Grid display** - shows up to 8 slot names in a 2×4 grid layout (7 characters max per slot)
-- **Empty slots** - displayed as "---" for unassigned slots
-- **Label compression** - parameter names are intelligently compressed to fit the display
-- **Quick reference** - useful for remembering what's assigned to each slot in a bank
-
 **Bank Memory**:
 - **Last active slot** - each bank remembers which slot was last active
 - **Slot assignments** - each bank maintains its own parameter-to-slot mappings
@@ -232,16 +224,20 @@ The knob push button functionality can be configured for two different modes:
 - **For Toggle parameters**: Toggles the parameter on/off
 - **Other parameter types**: No action (returns false)
 
-### Quick Parameter Reset
-A convenient shortcut for resetting parameters to their default values:
+### Shortcuts
+Convenient button combinations for quick parameter operations:
 
-**Quick Reset Shortcut**:
-- **Press the first two step/bank buttons simultaneously**: While hovering over or controlling any parameter
-- **Result**: The parameter instantly resets to its default value
-- **Use Case**: Faster than using Secondary Mode's reset hold functionality
-- **Compatibility**: Works with all parameter types that have default values
+**Button Combinations**:
+- **First + Second step/bank buttons**: Reset parameter to its default value
+- **First + Third step/bank buttons**: Set current value as default (parameter will reset to this value)
+- **Second + Third step/bank buttons**: Set current value as normMin (slider minimum)
+- **Second + Fourth step/bank buttons**: Set current value as normMax (slider maximum)
 
-This provides an alternative to the Secondary Mode reset functionality, allowing for instant parameter resets without the hold delay.
+**Usage**:
+- Press and hold the button combinations while hovering over or controlling any parameter
+- These shortcuts provide quick access to common parameter operations without opening dialogs
+- Faster than using Secondary Mode's reset hold functionality
+- **Compatibility**: Works with all numeric parameter types
 
 ### Undo/Redo Operations
 Full undo/redo support for both parameter value adjustments and slot management, allowing you to experiment freely and revert changes if needed:
@@ -254,7 +250,7 @@ Full undo/redo support for both parameter value adjustments and slot management,
 - All parameter value changes made via MIDI knob rotation
 - Changes to individual parameters and ParGroups
 - Parameter value adjustments across different banks and slots
-- Parameter resets (via Secondary Mode, Quick Reset, or button shortcuts)
+- Parameter resets and value shortcuts (via Secondary Mode or button combinations)
 - Slot assignments (assigning parameters to slots)
 - Slot clearing (removing parameters from slots)
 
@@ -308,17 +304,20 @@ The component provides comprehensive visual feedback through both VSN1 hardware 
 - **Dim**: Slot has a parameter assigned but is not currently active
 - **Bright**: Slot is currently active and controlling this parameter
 
-**Screen Outline Colors**:
-- **Color outline**: Currently in hover mode - move mouse to select parameters
-- **White outline**: Currently in slot mode - a parameter slot is active
+**Screen Display**:
+- **Parameter Value**: Shows current parameter name and value in a circle indicator
+- **Slot Names**: All slot names are always displayed on screen for quick reference
+  - *The active slot name is highlighted!*
+- **Default Value Notch**: A visual notch on the circle indicates the parameter's default value position
+- **Screen Outline Colors**:
+  - **Color outline**: Currently in hover mode - move mouse to select parameters
+  - **White outline**: Currently in slot mode - a parameter slot is active
+- **Bank Indicator**: Shows current bank number (e.g., "Bank 0", "Bank 1")
+- **Step Size**: Displays current step value when step size changes
 
-**Bank Indicators**:
-- **Screen display**: Shows current bank number (e.g., "Bank 0", "Bank 1")
-- **Button updates**: Slot button labels and LEDs update when switching banks
-- **Bank slot overview**: Long-press any bank button to display all 8 slot names in a 2×4 grid on screen
-
-**Step Size Indicators**:
-- **Screen display**: Shows current step value when step size changes
+**Button Updates**:
+- Slot button labels and LEDs update when switching banks
+- Label compression intelligently fits parameter names to display
 
 **Knob LEDs**: 
 - **Knob ring LEDs** show visual feedback of value-based gradual fill or step-based indicators, depending on setting

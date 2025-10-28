@@ -337,7 +337,7 @@ class HoveredMidiRelativeExt:
 		# Clear any captured initial values that never resulted in undo actions
 		# (user hovered but didn't adjust)
 		if self.hoveredPar is not None and self.evalEnableundo:
-			self.undo_manager.clear_unused_captured_values(self.hoveredPar)
+			self.undo_manager.on_parameter_unhovered(self.hoveredPar)
 		
 		self.hoveredPar = None
 
@@ -382,13 +382,11 @@ class HoveredMidiRelativeExt:
 						self.display_manager.show_parameter_error(par_group_obj, error_msg)
 						return  # Parameter group is invalid, error message shown
 					
-					# Capture initial values for undo when hovering
-				for par in par_group_obj:
-					if par is not None and ParameterValidator.is_valid_parameter(par):
-						self.undo_manager.capture_initial_parameter_value(par)
-					
-					# Update screen if no active slot (only for valid parameter groups)
-					self.display_manager.update_parameter_display(par_group_obj)
+				# Capture initial values for undo when hovering
+				self.undo_manager.on_parameter_hovered(par_group_obj)
+				
+				# Update screen if no active slot (only for valid parameter groups)
+				self.display_manager.update_parameter_display(par_group_obj)
 				return  # Early return to avoid processing as single par
 		
 		# Single Par detected (or extracted from single-item ParGroup)
@@ -402,11 +400,11 @@ class HoveredMidiRelativeExt:
 					return  # Parameter is invalid, error message shown
 			
 
-			# Update screen if no active slot (only for valid parameters)
-			if self.activeSlot is None:
-				# Capture initial value for undo when hovering
-				self.undo_manager.capture_initial_parameter_value(single_par)
-				self.display_manager.update_parameter_display(single_par)
+		# Update screen if no active slot (only for valid parameters)
+		if self.activeSlot is None:
+			# Capture initial value for undo when hovering
+			self.undo_manager.on_parameter_hovered(single_par)
+			self.display_manager.update_parameter_display(single_par)
 
 	def onGridConnect(self):
 		"""TouchDesigner callback when grid connects"""
@@ -518,6 +516,25 @@ class HoveredMidiRelativeExt:
 				self.undo_manager.create_reset_undo_for_parameter(self.activePar)
 			
 			self.display_manager.update_parameter_display(self.activePar)
+
+	def onSetDefault(self):
+		"""TouchDesigner callback to set default parameter value"""
+		if self.activePar is None or not self.activePar.isCustom:
+			return
+		self.activePar.default = self.activePar.eval()
+		# update display
+		self.display_manager.update_parameter_display(self.activePar)
+
+	def onSetNorm(self, min_max: str):
+		"""TouchDesigner callback to set norm min or max value"""
+		if self.activePar is None or not self.activePar.isCustom:
+			return
+		if min_max == 'min':
+			self.activePar.normMin = self.activePar.eval()
+		else:
+			self.activePar.normMax = self.activePar.eval()
+		# update display
+		self.display_manager.update_parameter_display(self.activePar)
 
 	def onReceiveMidiBankSel(self, index: int) -> None:
 		"""TouchDesigner callback for bank selection MIDI input"""

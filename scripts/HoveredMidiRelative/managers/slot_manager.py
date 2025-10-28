@@ -66,234 +66,16 @@ class SlotManager:
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		
 		# Add undo support if enabled
-		if self.parent.evalEnableundo:
-			ui.undo.startBlock(f'Assign Slot {slot_idx} in Bank {currBank}')
-			try:
-				undo_info = {
-					'slot_idx': slot_idx,
-					'bank_idx': currBank,
-					'new_parameter': parameter,
-					'previous_parameter': previous_parameter,
-					'previous_active_slot': previous_active_slot,
-					'previous_bank_active_slot': previous_bank_active_slot
-				}
-				ui.undo.addCallback(self._undo_assign_slot_callback, undo_info)
-			finally:
-				ui.undo.endBlock()
+		self.parent.undo_manager.create_assign_slot_undo(
+			slot_idx=slot_idx,
+			bank_idx=currBank,
+			new_parameter=parameter,
+			previous_parameter=previous_parameter,
+			previous_active_slot=previous_active_slot,
+			previous_bank_active_slot=previous_bank_active_slot
+		)
 		
 		return True
-	
-	def _undo_assign_slot_callback(self, isUndo, info):
-		"""Undo callback to restore previous state or redo assignment"""
-		slot_idx = info['slot_idx']
-		bank_idx = info['bank_idx']
-		is_current_bank = self.parent.currBank == bank_idx
-		
-		if isUndo:
-			# Restore the previous state (before assignment)
-			previous_parameter = info['previous_parameter']
-			previous_active_slot = info['previous_active_slot']
-			previous_bank_active_slot = info['previous_bank_active_slot']
-			
-			# Restore the slot to its previous state
-			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
-			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
-			
-			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
-			if is_current_bank:
-				self.parent.activeSlot = previous_active_slot
-				
-				# Update hovered UI color based on restored active slot
-				if previous_active_slot is None:
-					# Restoring to hover mode
-					if self.parent.evalColorhoveredui:
-						self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
-					else:
-						self.parent.ui_manager.set_hovered_ui_color(-1)
-				else:
-					# Restoring to slot mode
-					self.parent.ui_manager.set_hovered_ui_color(-1)
-				
-				# Update UI button label
-				if hasattr(self.parent, 'ui_manager'):
-					if previous_parameter is not None:
-						label = LabelFormatter.get_label_for_parameter(previous_parameter, self.parent.labelDisplayMode)
-					else:
-						label = ScreenMessages.HOVER
-					self.parent.ui_manager._set_button_label(slot_idx, label)
-				
-			# Update display based on what was previously active
-			if previous_active_slot == slot_idx and previous_parameter is not None:
-				# Slot was previously active with a parameter
-				self.parent.display_manager.update_parameter_display(previous_parameter)
-				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
-			elif previous_active_slot is not None and previous_active_slot < len(self.parent.slotPars[bank_idx]):
-				# Different slot was active
-				active_par = self.parent.slotPars[bank_idx][previous_active_slot]
-				if active_par is not None:
-					self.parent.display_manager.update_parameter_display(active_par)
-					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
-				else:
-					# Return to hover mode
-					self.parent.display_manager.update_all_display(
-						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
-					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
-			else:
-				# Return to hover mode
-				self.parent.display_manager.update_all_display(
-					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
-				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
-			
-			# Update LEDs - update both the modified slot and the active slot
-			# The modified slot (slot_idx) needs to reflect its restored state
-			if previous_active_slot != slot_idx:
-				# Update the slot that was just un-learned
-				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
-			# Update active slot LEDs
-			self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot)
-		else:
-			# Redo: re-assign the parameter
-			new_parameter = info['new_parameter']
-			
-			# Validate parameter still exists and is of supported type
-			try:
-				# Handle ParGroup
-				if ParameterValidator.is_pargroup(new_parameter):
-					has_existing = any(p.valid for p in new_parameter if p is not None)
-					if not has_existing or not ParameterValidator.is_supported_parameter_type(new_parameter):
-						return
-				# Handle single Par
-				elif not new_parameter.valid or not ParameterValidator.is_supported_parameter_type(new_parameter):
-					return
-			except:
-				# Parameter reference is completely invalid
-				return
-			
-			self.parent.slotPars[bank_idx][slot_idx] = new_parameter
-			self.parent.activeSlot = slot_idx
-			self.parent.bankActiveSlots[bank_idx] = slot_idx
-			
-			# Turn off hovered UI color when restoring deleted slot
-			self.parent.ui_manager.set_hovered_ui_color(-1)
-			
-			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
-			if is_current_bank:
-				# Update UI button label
-				if hasattr(self.parent, 'ui_manager'):
-					label = LabelFormatter.get_label_for_parameter(new_parameter, self.parent.labelDisplayMode)
-					self.parent.ui_manager._set_button_label(slot_idx, label)
-				
-				# Update display
-				self.parent.display_manager.update_parameter_display(new_parameter, bottom_text=ScreenMessages.LEARNED)
-				
-				# Update LEDs
-				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
-				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
-		
-		# Always refresh UI buttons for current bank
-		if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
-			run("args[0].refresh_all_button_states()", self.parent.ui_manager, delayFrames=1)
-	
-	def _undo_clear_slot_callback(self, isUndo, info):
-		"""Undo callback to restore or re-clear a slot"""
-		slot_idx = info['slot_idx']
-		bank_idx = info['bank_idx']
-		is_current_bank = self.parent.currBank == bank_idx
-		
-		if isUndo:
-			# Restore the slot
-			previous_parameter = info['previous_parameter']
-			previous_active_slot = info['previous_active_slot']
-			previous_bank_active_slot = info['previous_bank_active_slot']
-			
-			# Validate parameter (or ParGroup) still exists and is of supported type
-			# (We allow parameters with expressions/exports, so don't check validity - just existence and type)
-			try:
-				# Handle ParGroup
-				if ParameterValidator.is_pargroup(previous_parameter):
-					# Check if any parameters in the group still exist
-					has_existing = any(p.valid for p in previous_parameter if p is not None)
-					if not has_existing:
-						# ParGroup no longer exists, cannot restore
-						return
-					# Check if it's still a supported type
-					if not ParameterValidator.is_supported_parameter_type(previous_parameter):
-						return
-				# Handle single Par
-				elif previous_parameter is None or not previous_parameter.valid:
-					# Parameter no longer exists, cannot restore
-					return
-				# Check if single Par is still a supported type
-				elif not ParameterValidator.is_supported_parameter_type(previous_parameter):
-					return
-			except:
-				# Parameter reference is completely invalid
-				return
-			
-			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
-			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
-			
-			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
-			if is_current_bank:
-				self.parent.activeSlot = previous_active_slot
-				
-				# Update hovered UI color based on restored active slot
-				if previous_active_slot is None:
-					# Restoring to hover mode
-					if self.parent.evalColorhoveredui:
-						self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
-					else:
-						self.parent.ui_manager.set_hovered_ui_color(-1)
-				else:
-					# Restoring to slot mode
-					self.parent.ui_manager.set_hovered_ui_color(-1)
-				
-				# Restore UI button label
-				if hasattr(self.parent, 'ui_manager'):
-					label = LabelFormatter.get_label_for_parameter(previous_parameter, self.parent.labelDisplayMode)
-					self.parent.ui_manager._set_button_label(slot_idx, label)
-				
-				# Restore display
-				if previous_active_slot == slot_idx:
-					self.parent.display_manager.update_parameter_display(previous_parameter)
-					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
-				else:
-					# Return to hover mode if slot wasn't active
-					self.parent.display_manager.update_all_display(
-						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
-					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
-				
-				# Restore LEDs
-				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot)
-		else:
-			# Redo: clear the slot again
-			self.parent.slotPars[bank_idx][slot_idx] = None
-			self.parent.bankActiveSlots[bank_idx] = None
-			
-			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
-			if is_current_bank:
-				self.parent.activeSlot = None
-				
-				# Restore hovered UI color if enabled (redoing clear)
-				if self.parent.evalColorhoveredui:
-					self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
-				else:
-					self.parent.ui_manager.set_hovered_ui_color(-1)
-				
-				if hasattr(self.parent, 'ui_manager'):
-					self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
-				
-				self.parent.display_manager.update_all_display(
-					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
-				
-				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
-				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
-		
-		# Always refresh UI buttons for current bank to ensure correct state
-		# (TouchDesigner's undo system may revert some UI states)
-		if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
-			#self.parent.ui_manager.refresh_all_button_states()
-			run("args[0].refresh_all_button_states()", self.parent.ui_manager, delayFrames=1)
 	
 	def clear_slot(self, slot_idx: int):
 		"""Clear a slot and return to hover mode"""
@@ -335,19 +117,13 @@ class SlotManager:
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 		
 		# Add undo support if enabled
-		if self.parent.evalEnableundo:
-			ui.undo.startBlock(f'Clear Slot {slot_idx} in Bank {currBank}')
-			try:
-				undo_info = {
-					'slot_idx': slot_idx,
-					'bank_idx': currBank,
-					'previous_parameter': previous_parameter,
-					'previous_active_slot': previous_active_slot,
-					'previous_bank_active_slot': previous_bank_active_slot
-				}
-				ui.undo.addCallback(self._undo_clear_slot_callback, undo_info)
-			finally:
-				ui.undo.endBlock()
+		self.parent.undo_manager.create_clear_slot_undo(
+			slot_idx=slot_idx,
+			bank_idx=currBank,
+			previous_parameter=previous_parameter,
+			previous_active_slot=previous_active_slot,
+			previous_bank_active_slot=previous_bank_active_slot
+		)
 	
 	def activate_slot(self, slot_idx: int) -> bool:
 		"""Activate an existing slot. Returns True if successful."""
@@ -364,7 +140,7 @@ class SlotManager:
 			self.parent.slotPars[currBank][self.parent.activeSlot] is not None):
 			
 			old_slot_par = self.parent.slotPars[currBank][self.parent.activeSlot]
-			self.parent.undo_manager.clear_unused_captured_values(old_slot_par)
+			self.parent.undo_manager.on_slot_deactivated(old_slot_par)
 		
 		old_active_slot = self.parent.activeSlot
 		self.parent.activeSlot = slot_idx
@@ -376,12 +152,7 @@ class SlotManager:
 		# Update display with slot parameter
 		if (slot_par := self.parent.slotPars[currBank][slot_idx]) is not None:
 			# Capture initial values for undo when slot is activated
-			if ParameterValidator.is_pargroup(slot_par):
-				for par in slot_par:
-					if par is not None and ParameterValidator.is_valid_parameter(par):
-						self.parent.undo_manager.capture_initial_parameter_value(par)
-			else:
-				self.parent.undo_manager.capture_initial_parameter_value(slot_par)
+			self.parent.undo_manager.on_slot_activated(slot_par)
 			
 			self.parent.display_manager.update_parameter_display(slot_par)
 		
@@ -405,7 +176,7 @@ class SlotManager:
 			self.parent.activeSlot < len(self.parent.slotPars[old_bank]) and
 			self.parent.slotPars[old_bank][self.parent.activeSlot] is not None):
 			old_slot_par = self.parent.slotPars[old_bank][self.parent.activeSlot]
-			self.parent.undo_manager.clear_unused_captured_values(old_slot_par)
+			self.parent.undo_manager.on_slot_deactivated(old_slot_par)
 		
 		# Save current active slot for current bank
 		if self.parent.currBank < len(self.parent.bankActiveSlots):
@@ -432,12 +203,7 @@ class SlotManager:
 				
 				# Capture initial values for undo when recalling slot
 				slot_par = self.parent.slotPars[bank_idx][previous_slot]
-				if ParameterValidator.is_pargroup(slot_par):
-					for par in slot_par:
-						if par is not None and ParameterValidator.is_valid_parameter(par):
-							self.parent.undo_manager.capture_initial_parameter_value(par)
-				else:
-					self.parent.undo_manager.capture_initial_parameter_value(slot_par)
+				self.parent.undo_manager.on_slot_activated(slot_par)
 			else:
 				self.parent.activeSlot = None
 				self.parent.bankActiveSlots[bank_idx] = None
@@ -513,7 +279,6 @@ class SlotManager:
 		# Get label for hovered parameter (or ParGroup)
 		if self.parent.hoveredPar is not None:
 			# Use formatter to get proper label (handles both Par and ParGroup)
-			from formatters import LabelFormatter
 			label = LabelFormatter.get_label_for_parameter(self.parent.hoveredPar, self.parent.labelDisplayMode)
 		else:
 			label = ScreenMessages.HOVER

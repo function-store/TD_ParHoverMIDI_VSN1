@@ -3,9 +3,13 @@
 Name : undo_manager
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.187.toe
-Saveversion : 2025.31310
+Saveversion : 2023.12120
 Info Header End'''
+
 from typing import Union, Optional
+from validators import ParameterValidator
+from formatters import LabelFormatter
+from constants import ScreenMessages, VSN1ColorIndex
 
 class UndoManager:
 	"""Manages undo/redo functionality for parameter changes and resets"""
@@ -20,7 +24,6 @@ class UndoManager:
 	
 	def clear_unused_captured_values(self, par_or_group: Union['Par', 'ParGroup']):
 		"""Clear captured initial values that never resulted in undo actions."""
-		from validators import ParameterValidator
 		if ParameterValidator.is_pargroup(par_or_group):
 			for par in par_or_group:
 				if par is not None:
@@ -123,8 +126,6 @@ class UndoManager:
 		if not self.parent.evalEnableundo:
 			return
 		
-		from validators import ParameterValidator
-		
 		# Collect all valid parameters that need undo
 		pars_to_undo = []
 		for par in par_group:
@@ -195,6 +196,54 @@ class UndoManager:
 		"""Clear all captured initial values (called after timeout)."""
 		self.parameterInitialValues.clear()
 		self.parameterUndoCreated.clear()
+	
+	def on_slot_activated(self, slot_par: Union['Par', 'ParGroup']):
+		"""Handle undo operations when a slot is activated.
+		
+		Args:
+			slot_par: The parameter or ParGroup assigned to the activated slot
+		"""
+		
+		# Capture initial values for undo when slot is activated
+		if ParameterValidator.is_pargroup(slot_par):
+			for par in slot_par:
+				if par is not None and ParameterValidator.is_valid_parameter(par):
+					self.capture_initial_parameter_value(par)
+		else:
+			self.capture_initial_parameter_value(slot_par)
+	
+	def on_slot_deactivated(self, slot_par: Union['Par', 'ParGroup']):
+		"""Handle undo operations when a slot is deactivated.
+		
+		Args:
+			slot_par: The parameter or ParGroup assigned to the deactivated slot
+		"""
+		# Clear any unused captured values from the deactivated slot
+		self.clear_unused_captured_values(slot_par)
+	
+	def on_parameter_hovered(self, par_or_group: Union['Par', 'ParGroup']):
+		"""Handle undo operations when a parameter is hovered.
+		
+		Args:
+			par_or_group: The parameter or ParGroup that was hovered
+		"""
+		
+		# Capture initial values for undo when hovering
+		if ParameterValidator.is_pargroup(par_or_group):
+			for par in par_or_group:
+				if par is not None and ParameterValidator.is_valid_parameter(par):
+					self.capture_initial_parameter_value(par)
+		else:
+			self.capture_initial_parameter_value(par_or_group)
+	
+	def on_parameter_unhovered(self, par_or_group: Union['Par', 'ParGroup']):
+		"""Handle undo operations when a parameter is no longer hovered.
+		
+		Args:
+			par_or_group: The parameter or ParGroup that was unhovered
+		"""
+		# Clear any unused captured values if user didn't actually adjust the parameter
+		self.clear_unused_captured_values(par_or_group)
 	
 	def _undo_parameter_change_callback(self, isUndo, info):
 		"""Callback for undoing parameter value changes.
@@ -298,13 +347,10 @@ class UndoManager:
 		"""
 		if not self.parent.evalEnableundo:
 			# Reset without undo
-			from validators import ParameterValidator
 			for par in par_group:
 				if par is not None and ParameterValidator.is_valid_parameter(par):
 					par.reset()
 			return
-		
-		from validators import ParameterValidator
 		
 		# Capture current values for all valid parameters
 		reset_info_list = []
@@ -392,5 +438,244 @@ class UndoManager:
 			
 		except Exception as e:
 			pass
+	
+	def create_assign_slot_undo(self, slot_idx: int, bank_idx: int, new_parameter: Union['Par', 'ParGroup'],
+	                             previous_parameter: Union['Par', 'ParGroup', None],
+	                             previous_active_slot: Optional[int], previous_bank_active_slot: Optional[int]):
+		"""Create undo action for slot assignment.
+		
+		Args:
+			slot_idx: Index of the slot being assigned
+			bank_idx: Index of the bank containing the slot
+			new_parameter: The parameter (or ParGroup) being assigned to the slot
+			previous_parameter: The parameter that was previously in the slot (or None)
+			previous_active_slot: The active slot index before assignment
+			previous_bank_active_slot: The bank's active slot before assignment
+		"""
+		if not self.parent.evalEnableundo:
+			return
+		
+		ui.undo.startBlock(f'Assign Slot {slot_idx} in Bank {bank_idx}')
+		try:
+			undo_info = {
+				'slot_idx': slot_idx,
+				'bank_idx': bank_idx,
+				'new_parameter': new_parameter,
+				'previous_parameter': previous_parameter,
+				'previous_active_slot': previous_active_slot,
+				'previous_bank_active_slot': previous_bank_active_slot
+			}
+			ui.undo.addCallback(self._undo_assign_slot_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def _undo_assign_slot_callback(self, isUndo, info):
+		"""Undo callback to restore previous state or redo assignment"""		
+		slot_idx = info['slot_idx']
+		bank_idx = info['bank_idx']
+		is_current_bank = self.parent.currBank == bank_idx
+		
+		if isUndo:
+			# Restore the previous state (before assignment)
+			previous_parameter = info['previous_parameter']
+			previous_active_slot = info['previous_active_slot']
+			previous_bank_active_slot = info['previous_bank_active_slot']
+			
+			# Restore the slot to its previous state
+			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
+			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
+			
+			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
+			if is_current_bank:
+				self.parent.activeSlot = previous_active_slot
+				
+				# Update hovered UI color based on restored active slot
+				if previous_active_slot is None:
+					# Restoring to hover mode
+					if self.parent.evalColorhoveredui:
+						self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+					else:
+						self.parent.ui_manager.set_hovered_ui_color(-1)
+				else:
+					# Restoring to slot mode
+					self.parent.ui_manager.set_hovered_ui_color(-1)
+				
+				# Update UI button label
+				if hasattr(self.parent, 'ui_manager'):
+					if previous_parameter is not None:
+						label = LabelFormatter.get_label_for_parameter(previous_parameter, self.parent.labelDisplayMode)
+					else:
+						label = ScreenMessages.HOVER
+					self.parent.ui_manager._set_button_label(slot_idx, label)
+				
+				# Update display
+				if previous_active_slot == slot_idx and previous_parameter is not None:
+					self.parent.display_manager.update_parameter_display(previous_parameter)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+				elif previous_active_slot is None:
+					# Return to hover mode
+					self.parent.display_manager.update_all_display(
+						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+				
+				# Update LEDs
+				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot)
+		else:
+			# Redo: apply the assignment again
+			new_parameter = info['new_parameter']
+			
+			self.parent.slotPars[bank_idx][slot_idx] = new_parameter
+			self.parent.activeSlot = slot_idx
+			self.parent.bankActiveSlots[bank_idx] = slot_idx
+			
+			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
+			# Turn off hovered UI color when assigning a slot
+			if is_current_bank:
+				self.parent.ui_manager.set_hovered_ui_color(-1)
+			
+			if is_current_bank:
+				# Update UI button label
+				if hasattr(self.parent, 'ui_manager'):
+					label = LabelFormatter.get_label_for_parameter(new_parameter, self.parent.labelDisplayMode)
+					self.parent.ui_manager._set_button_label(slot_idx, label)
+				
+				# Update display
+				self.parent.display_manager.update_parameter_display(new_parameter, bottom_text=ScreenMessages.LEARNED)
+				
+				# Update LEDs
+				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+		
+		# Always refresh UI buttons for current bank
+		if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
+			run("args[0].refresh_all_button_states()", self.parent.ui_manager, delayFrames=1)
+	
+	def create_clear_slot_undo(self, slot_idx: int, bank_idx: int, previous_parameter: Union['Par', 'ParGroup'],
+	                            previous_active_slot: Optional[int], previous_bank_active_slot: Optional[int]):
+		"""Create undo action for slot clearing.
+		
+		Args:
+			slot_idx: Index of the slot being cleared
+			bank_idx: Index of the bank containing the slot
+			previous_parameter: The parameter that was in the slot before clearing
+			previous_active_slot: The active slot index before clearing
+			previous_bank_active_slot: The bank's active slot before clearing
+		"""
+		if not self.parent.evalEnableundo:
+			return
+		
+		ui.undo.startBlock(f'Clear Slot {slot_idx} in Bank {bank_idx}')
+		try:
+			undo_info = {
+				'slot_idx': slot_idx,
+				'bank_idx': bank_idx,
+				'previous_parameter': previous_parameter,
+				'previous_active_slot': previous_active_slot,
+				'previous_bank_active_slot': previous_bank_active_slot
+			}
+			ui.undo.addCallback(self._undo_clear_slot_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def _undo_clear_slot_callback(self, isUndo, info):
+		"""Undo callback to restore or re-clear a slot"""		
+		slot_idx = info['slot_idx']
+		bank_idx = info['bank_idx']
+		is_current_bank = self.parent.currBank == bank_idx
+		
+		if isUndo:
+			# Restore the slot
+			previous_parameter = info['previous_parameter']
+			previous_active_slot = info['previous_active_slot']
+			previous_bank_active_slot = info['previous_bank_active_slot']
+			
+			# Validate parameter (or ParGroup) still exists and is of supported type
+			# (We allow parameters with expressions/exports, so don't check validity - just existence and type)
+			try:
+				# Handle ParGroup
+				if ParameterValidator.is_pargroup(previous_parameter):
+					# Check if any parameters in the group still exist
+					has_existing = any(p.valid for p in previous_parameter if p is not None)
+					if not has_existing:
+						# ParGroup no longer exists, cannot restore
+						return
+					# Check if it's still a supported type
+					if not ParameterValidator.is_supported_parameter_type(previous_parameter):
+						return
+				# Handle single Par
+				elif previous_parameter is None or not previous_parameter.valid:
+					# Parameter no longer exists, cannot restore
+					return
+				# Check if single Par is still a supported type
+				elif not ParameterValidator.is_supported_parameter_type(previous_parameter):
+					return
+			except:
+				# Parameter reference is completely invalid
+				return
+			
+			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
+			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
+			
+			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
+			if is_current_bank:
+				self.parent.activeSlot = previous_active_slot
+				
+				# Update hovered UI color based on restored active slot
+				if previous_active_slot is None:
+					# Restoring to hover mode
+					if self.parent.evalColorhoveredui:
+						self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+					else:
+						self.parent.ui_manager.set_hovered_ui_color(-1)
+				else:
+					# Restoring to slot mode
+					self.parent.ui_manager.set_hovered_ui_color(-1)
+				
+				# Restore UI button label
+				if hasattr(self.parent, 'ui_manager'):
+					label = LabelFormatter.get_label_for_parameter(previous_parameter, self.parent.labelDisplayMode)
+					self.parent.ui_manager._set_button_label(slot_idx, label)
+				
+				# Restore display
+				if previous_active_slot == slot_idx:
+					self.parent.display_manager.update_parameter_display(previous_parameter)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+				else:
+					# Return to hover mode if slot wasn't active
+					self.parent.display_manager.update_all_display(
+						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+				
+				# Restore LEDs
+				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot)
+		else:
+			# Redo: clear the slot again
+			self.parent.slotPars[bank_idx][slot_idx] = None
+			self.parent.bankActiveSlots[bank_idx] = None
+			
+			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
+			if is_current_bank:
+				self.parent.activeSlot = None
+				
+				# Restore hovered UI color if enabled (redoing clear)
+				if self.parent.evalColorhoveredui:
+					self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+				else:
+					self.parent.ui_manager.set_hovered_ui_color(-1)
+				
+				if hasattr(self.parent, 'ui_manager'):
+					self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
+				
+				self.parent.display_manager.update_all_display(
+					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+				
+				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+		
+		# Always refresh UI buttons for current bank to ensure correct state
+		# (TouchDesigner's undo system may revert some UI states)
+		if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
+			#self.parent.ui_manager.refresh_all_button_states()
+			run("args[0].refresh_all_button_states()", self.parent.ui_manager, delayFrames=1)
 
 
