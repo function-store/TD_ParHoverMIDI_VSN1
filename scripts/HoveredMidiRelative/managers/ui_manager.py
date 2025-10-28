@@ -1,7 +1,7 @@
 
 '''Info Header Start
 Name : ui_manager
-Author : Dan@DAN-4090
+Author : team@DEREAL-PC
 Saveorigin : HoveredMidiRelative.193.toe
 Saveversion : 2023.12120
 Info Header End'''
@@ -218,8 +218,11 @@ class UIManager:
 					# Calculate base color (darkest variant)
 					base_color = [_col * multiplier for _col in page_col]
 					
+					if 'parms.dialog.fg' in _element:
+						# brighten base color close to white; take the distance to white and set color to half that
+						ui.colors[_element] = [_col + (1 - _col) * 0.5 for _col in base_color]
 					# Apply brightness adjustments based on element type
-					if '.selected.loc' in _element:
+					elif '.selected.loc' in _element:
 						# Darkest variant (base)
 						ui.colors[_element] = base_color
 					elif '.selected' in _element:

@@ -1,7 +1,7 @@
 
 '''Info Header Start
 Name : constants
-Author : Dan@DAN-4090
+Author : team@DEREAL-PC
 Saveorigin : HoveredMidiRelative.188.toe
 Saveversion : 2023.12120
 Info Header End'''
@@ -93,5 +93,6 @@ class OverrideUIElements:
 			'parms.menubar.bg.sel',
 			'parms.toggle.thumb.off.loc',
 			'parms.toggle.thumb.on.loc',
-			'parms.label.fg.loc'
+			'parms.label.fg.loc',
+			'parms.dialog.fg'
 		]
