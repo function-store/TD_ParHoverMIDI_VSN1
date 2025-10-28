@@ -1,6 +1,6 @@
 '''Info Header Start
 Name : HoveredMidiRelativeExt
-Author : Dan@DAN-4090
+Author : team@DEREAL-PC
 Saveversion : 2023.12120
 Info Header End'''
 import json
@@ -639,17 +639,22 @@ class HoveredMidiRelativeExt:
 			
 		self.onReceiveModeSel() # we "undo" since this action is a long press of that
 		# check if par group
-		if (activePar := self.activePar) is None or not activePar.isCustom:
+		if (activePar := self.activePar) is None:
+			# get selected OP
+			_pane = ui.panes.current
+			if _pane.type == PaneType.NETWORKEDITOR:
+				_parent = _pane.owner
+				_currentChild = _parent.currentChild
+				if _currentChild and _currentChild.isCOMP:
+					ui.openCOMPEditor(_currentChild)
+					self.display_manager.update_all_display(0, 0, 1, _currentChild.name, display_text='_CUSTOM_')
 			return
-			
+		if not activePar.isCustom:
+			return
 		if ParameterValidator.is_pargroup(activePar):
 			activePar = activePar[0]
-			if activePar is None:
-				return
 		self.ui_manager.open_comp_editor(activePar)
 		run("args[0].display_manager.update_parameter_display(args[1], bottom_text='_CUSTOM_')", self, activePar, delayFrames=1)
-
-				
 
 # endregion midi callbacks
 
@@ -839,7 +844,11 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback when relative step mode parameter changes"""
 		self.display_manager.set_stepmode_indicator(StepMode(_val))
 
-
+	def onValueChange(self, _par, _val):
+		"""Generic TouchDesigner callback when parameter value changes"""
+		if 'holdlength' in _par.name and 'Slot' not in _par.name:
+			self.ownerComp.par.Bankswitchholdlength.val = max(self.ownerComp.par.Customizeholdlength.eval(), self.ownerComp.par.Resetholdlength.eval(), self.ownerComp.par.Minmaxclampholdlength.eval()) + 0.01
+			
 # endregion parameter callbacks
 	def onProjectPreSave(self):
 		"""TouchDesigner callback when project is pre-saved"""

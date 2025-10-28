@@ -235,6 +235,7 @@ Convenient button combinations for quick parameter operations:
 - **Second + Fourth step/bank buttons**: Set current value as normMax and max (slider and parameter maximum)
 - **Third + Fourth step/bank buttons**: Clamp current value to min/max range (brings value within bounds)
 - **First + Fourth step/bank buttons (long press)**: Open the active parameter's component editor
+  - If no parameter is hovered or slot is active, selecting a COMP opens that COMP's Component Editor
 
 **Usage**:
 - Press and hold the button combinations while hovering over or controlling any parameter
@@ -271,6 +272,13 @@ Full undo/redo support for both parameter value adjustments and slot management,
 ### UI Parameter Highlighting
 Visual feedback in the TouchDesigner UI helps identify which parameters can be controlled:
 
+**Global UI Color System**:
+The component modifies TouchDesigner's global interface colors to provide visual feedback about the current mode:
+- **Hover Mode**: All parameter UI elements (buttons, sliders, numeric fields, toggles, menus) are color-shifted in the UI to indicate hover mode is active
+- **Slot Mode**: The UI colors reset to normal, showing that a slot is currently controlling a parameter rather than hovering
+- **Mode Transitions**: The color shift happens instantly when switching between hover and slot modes
+> **NOTE**: Changing UI colors can cause some performance impact when switching between hover mode and slot mode. This feature therefore can be toggled off via custom parameter, or quick access via the **Component UI Button** (see below)
+
 **Parameter Color Coding**:
 - **Hovered Parameters**: When you hover over a parameter, it's highlighted in a distinct color in the UI
 - **UI Mirroring**: The component mirrors the hardware states and makes it immediately clear which parameter is currently targeted and which parameters are controllable, etc.
@@ -279,9 +287,9 @@ Visual feedback in the TouchDesigner UI helps identify which parameters can be c
 The component includes a convenient button in the top-right corner of TD's UI for quick access:
 - **Left Click**: Opens the component's parameters dialog
 - **Right Click**: Opens the component's UI (user interface view)
-- **Middle Click**: Toggles UI coloring on/off - enables or disables the parameter highlighting feature
+- **Middle Click**: Toggles UI coloring on/off - enables or disables the global UI color modification feature
 
-This visual system provides clear feedback about parameter states directly in the TouchDesigner interface, complementing the VSN1's screen and LED feedback.
+This comprehensive visual system provides clear feedback about parameter states directly in the TouchDesigner interface, complementing the VSN1's screen and LED feedback.
 
 ## Customization Parameters
 
@@ -296,6 +304,7 @@ The following parameters are available to further customize the functionality of
 - **`Undo Timeout (ValueChange)`**: Defines how long (in seconds) after a parameter value change the system waits before pushing it to the undo stack. This allows for continuous adjustments to be grouped into a single undo action, preventing excessive undo history entries during rapid knob movements. Default: 1 seconds.
 - **`VSN1 Support`**: Enables VSN1 screen updates and LED feedback, displaying adjusted parameter and value (circle size between param normMin/Max values), using websocket communication --- requires Grid Editor to be open!
 - **`Label Display Mode`**: Choose between "Compressed" (removes vowels/spaces) or "Truncated" (simple cut-off) for parameter label formatting on limited displays
+- **`Enable UI Color`**: When enabled, applies visual color highlighting to parameters in the TouchDesigner interface to indicate hovered/active states. **NOTE**: Changing UI colors can cause some performance impact when switching between hover mode and slot mode.
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
 - **`Knob LED Update`**: Choose between "Off", "Value" and "Step" to determine what is indicated on the knob LEDs of VSN1. **NOTE**: Currently when set to "Value", laggy updates can be observed on the hardware unit.
 
