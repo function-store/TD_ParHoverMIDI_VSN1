@@ -533,11 +533,27 @@ class HoveredMidiRelativeExt:
 		if self.activePar is None or not self.activePar.isCustom:
 			return
 		if min_max == 'min':
-			self.activePar.normMin = self.activePar.eval()
+			_val = self.activePar.eval()
+			if _val != self.activePar.normMax:
+				self.activePar.normMin = _val
+				self.activePar.min = _val
 		else:
-			self.activePar.normMax = self.activePar.eval()
+			_val = self.activePar.eval()
+			if _val != self.activePar.normMin:
+				self.activePar.normMax = _val
+				self.activePar.max = _val
 		# update display
 		self.display_manager.update_parameter_display(self.activePar)
+
+	def onSetClamp(self, min_max: str):
+		"""TouchDesigner callback to set clamp min or max value"""
+		if self.activePar is None or not self.activePar.isCustom:
+			return
+		if min_max == 'min' or min_max == 'both':
+			self.activePar.clampMin = not self.activePar.clampMin
+		if min_max == 'max' or min_max == 'both':
+			self.activePar.clampMax = not self.activePar.clampMax
+
 
 	def onReceiveMidiBankSel(self, index: int) -> None:
 		"""TouchDesigner callback for bank selection MIDI input"""

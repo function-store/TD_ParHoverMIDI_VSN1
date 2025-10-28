@@ -16,12 +16,20 @@ class MidiMessageHandler:
 		self.parent = parent_ext
 
 	@property
-	def isFromBankOff(self) -> bool:
-		"""Used for checking if a bank off message coincides with a step message
-		since by default these two messages are assigned to the same MIDI button
+	def shortcutPressed(self) -> bool:
+		"""Used for checking if a bank off message coincides with a shortcuts
+		since by default these share the same MIDI button
 		"""
-		# HACKY
-		return self.parent.ownerComp.op('null_setdefault')[0].eval() or self.parent.ownerComp.op('null_midibank')[0].eval() or self.parent.ownerComp.op('null_modesel')[0].eval() or self.parent.ownerComp.op('null_resetpar')[0].eval() or self.parent.ownerComp.op('null_setnormmin')[0].eval() or self.parent.ownerComp.op('null_setnormmax')[0].eval()
+		mode_buttons = [
+			'null_setdefault',
+			'null_midibank', 
+			'null_modesel',
+			'null_resetpar',
+			'null_setnormmin',
+			'null_setnormmax',
+			'null_setclamp'
+		]
+		return any(self.parent.ownerComp.op(button)[0].eval() for button in mode_buttons)
 	
 	def _clear_invalid_parameter_from_slots(self, active_par: Union['Par', 'ParGroup']) -> None:
 		"""Clear invalid parameter from all slots across all banks and show error message"""
@@ -58,7 +66,7 @@ class MidiMessageHandler:
 			return False
 			
 		block = blocks[0]
-		if not self.isFromBankOff:
+		if not self.shortcutPressed:
 			if value == 0:
 				self.parent._currStep = block.par.Step.eval()
 		return True

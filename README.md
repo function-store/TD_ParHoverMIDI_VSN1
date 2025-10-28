@@ -27,7 +27,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
 - **Step Mode**: Choose between Fixed (fixed step size) or Adaptive (step scales with parameter range)
 - **Secondary Mode**: Knob push functionality with two modes - Reset (hold to reset parameter) or Step (hold and rotate for alternate step size)
-- **Parameter Value Shortcuts**: Multiple button combinations for quick operations (reset, set default, set normMin/Max)
+- **Parameter Value Shortcuts**: Multiple button combinations for quick operations (reset, set default, set min/max, clamp values)
 - **Value Undo/Redo**: Full undo/redo support for parameter value adjustments using standard keyboard shortcuts (Ctrl+Z/Ctrl+Y on Windows, Cmd+Z/Cmd+Shift+Z on Mac)
 - **Real-time VSN1 Feedback**: Full integration with VSN1's built-in screen and LED system
   - **LED Feedback**: Color-coded LEDs showing slot states (dark/dim/bright)
@@ -230,12 +230,15 @@ Convenient button combinations for quick parameter operations:
 **Button Combinations**:
 - **First + Second step/bank buttons**: Reset parameter to its default value
 - **First + Third step/bank buttons**: Set current value as default (parameter will reset to this value)
-- **Second + Third step/bank buttons**: Set current value as normMin (slider minimum)
-- **Second + Fourth step/bank buttons**: Set current value as normMax (slider maximum)
+- **Second + Third step/bank buttons**: Set current value as normMin and min (slider and parameter minimum)
+- **Second + Fourth step/bank buttons**: Set current value as normMax and max (slider and parameter maximum)
+- **Third + Fourth step/bank buttons**: Clamp current value to min/max range (brings value within bounds)
 
 **Usage**:
 - Press and hold the button combinations while hovering over or controlling any parameter
 - These shortcuts provide quick access to common parameter operations without opening dialogs
+- Setting min/max affects both the visual slider range (normMin/normMax) and the actual parameter bounds (min/max)
+- Clamping ensures the value stays within the defined min/max range
 - Faster than using Secondary Mode's reset hold functionality
 - **Compatibility**: Works with all numeric parameter types
 
