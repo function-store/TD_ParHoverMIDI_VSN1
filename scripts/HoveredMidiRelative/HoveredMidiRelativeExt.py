@@ -94,6 +94,13 @@ class HoveredMidiRelativeExt:
 				'readOnly': False,
 				'property': True,
 				'dependable': False
+			},
+			{
+				'name': 'currentHoveredUIColor',
+				'default': -1,
+				'readOnly': False,
+				'property': True,
+				'dependable': False
 			}
 		]
 
@@ -109,9 +116,9 @@ class HoveredMidiRelativeExt:
 		self._initialize_VSN1()
 
 		if self.activeSlot is None and self.evalColorhoveredui:
-			self.ui_manager.set_hovered_ui_color(self.evalColorindex-1)
+			self.ui_manager.set_hovered_ui_color(self.evalColorindex-1, force=True)
 		else:
-			self.ui_manager.set_hovered_ui_color(-1)
+			self.ui_manager.set_hovered_ui_color(-1, force=True)
 
 		# set UI stuff based on current evalStepmode
 		self.ui_manager.set_stepmode_indicator(self.stepMode)

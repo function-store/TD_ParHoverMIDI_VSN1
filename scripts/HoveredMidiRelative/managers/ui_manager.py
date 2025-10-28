@@ -184,7 +184,7 @@ class UIManager:
 		self.ui.par.Modecolorindex = 1 if step_mode == StepMode.FIXED else 2
 		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', 0.5)
 
-	def set_hovered_ui_color(self, color_index: int):
+	def set_hovered_ui_color(self, color_index: int, force = False):
 		"""Set hovered UI color with proper brightness adjustments per element type.
 		
 		Color relationships from OverrideUIElements:
@@ -194,6 +194,13 @@ class UIManager:
 		- For menubar/button it's opposite (.sel is darker)
 		- Toggle thumb on is 0.65 lighter than off
 		"""
+		# Check cache to avoid expensive UI operations if color hasn't changed
+		if self.parent.currentHoveredUIColor == color_index and not force:
+			return
+		
+		# Update cache
+		self.parent.currentHoveredUIColor = color_index
+		
 		page_col = self.page_cols[color_index % 4]
 		multiplier = 1 if color_index != 2 else 0.5
 		for _element in OverrideUIElements.PARMS:
