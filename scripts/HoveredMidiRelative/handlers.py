@@ -31,6 +31,7 @@ class MidiMessageHandler:
 		]
 		return any(self.parent.ownerComp.op(button)[0].eval() for button in mode_buttons)
 	
+
 	def _clear_invalid_parameter_from_slots(self, active_par: Union['Par', 'ParGroup']) -> None:
 		"""Clear invalid parameter from all slots across all banks and show error message"""
 		if active_par is None or active_par.valid:
@@ -66,6 +67,9 @@ class MidiMessageHandler:
 			return False
 			
 		block = blocks[0]
+		if self.parent.secondaryMode == SecondaryMode.STEP and self.parent.secondaryPushState:
+			self.parent.ownerComp.par.Secondarystep.val = block.par.Step.eval()
+			return True
 		if not self.shortcutPressed:
 			if value == 0:
 				self.parent._currStep = block.par.Step.eval()

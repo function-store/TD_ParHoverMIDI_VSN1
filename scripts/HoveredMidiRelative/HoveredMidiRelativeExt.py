@@ -1,6 +1,6 @@
 '''Info Header Start
 Name : HoveredMidiRelativeExt
-Author : team@DEREAL-PC
+Author : Dan@DAN-4090
 Saveversion : 2023.12120
 Info Header End'''
 import json
@@ -816,8 +816,9 @@ class HoveredMidiRelativeExt:
 		modeselMidi = self.ownerComp.op('midiin_modesel')
 		resetparMidi = self.ownerComp.op('midiin_resetpar')
 		defaultMidi = self.ownerComp.op('midiin_default')
-		setnormMinMidi = self.ownerComp.op('midiin_setnormmin')
-		setnormMaxMidi = self.ownerComp.op('midiin_setnormmax')
+		setnormMinMidi = self.ownerComp.op('midiin_normmin')
+		setnormMaxMidi = self.ownerComp.op('midiin_normmax')
+		setclampMidi = self.ownerComp.op('midiin_setclamp')
 		activeMidi.cook(force=True)
 		pushMidi.cook(force=True)
 		slotsLearnMidi.cook(force=True)
@@ -827,6 +828,7 @@ class HoveredMidiRelativeExt:
 		defaultMidi.cook(force=True)
 		setnormMinMidi.cook(force=True)
 		setnormMaxMidi.cook(force=True)
+		setclampMidi.cook(force=True)
 
 	def onSeqBanksNumBlocks(self, _par, _val):
 		"""TouchDesigner callback when number of banks changes"""

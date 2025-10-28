@@ -216,6 +216,7 @@ The knob push button functionality can be configured for two different modes:
 - **Hold the knob push button and rotate**: While hovering over or controlling any parameter
 - **Result**: Uses an alternate step size for finer or coarser control
 - **Step Size**: Configurable via the `Secondary Step` parameter
+- **Quick Step Assignment**: While holding the knob push button, press any step button to set that step size as the secondary step
 - **Use Case**: Quickly switch between two different precision levels without cycling through step buttons
 
 ### Parameter Pulse (`Pulse Index`)

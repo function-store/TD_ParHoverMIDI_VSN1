@@ -1,6 +1,6 @@
 {
   "name": "package-touchdesigner-parhover",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "TouchDesigner Par Hover (VSN1)",
   "main": "index.js",
   "scripts": {
