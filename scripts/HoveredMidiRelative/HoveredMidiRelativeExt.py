@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : HoveredMidiRelativeExt
 Author : Dan@DAN-4090
-Saveversion : 2025.31310
+Saveversion : 2023.12120
 Info Header End'''
 import json
 import math
@@ -542,8 +542,6 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to set norm min or max value"""
 		if self.activePar is None or not self.activePar.isCustom:
 			return
-		if not ParameterValidator.is_supported_parameter_type(self.activePar):
-			return
 		
 		_val = self.activePar.eval()
 		
@@ -588,10 +586,6 @@ class HoveredMidiRelativeExt:
 	def onSetClamp(self, min_max: str):
 		"""TouchDesigner callback to set clamp min or max value"""
 		if self.activePar is None or not self.activePar.isCustom:
-			return
-
-		# check if parameter is supported
-		if not ParameterValidator.is_supported_parameter_type(self.activePar):
 			return
 		
 		# Capture old values for undo

@@ -265,6 +265,23 @@ class UIManager:
 	def open_comp_editor(self, _par: Par):
 		if not _par.isCustom:
 			return
+			
+		if _par.sequence and _par.sequenceBlock.index > 0:
+			import re
+			# fro {sequencename}{blockidx_number}{parname} get parname using regex (these are only placeholders, we need to actually parse
+			# example: Sequence1somethingx ; or Renders2top
+			_groups = re.search(r'([A-Za-z]+)(\d+)(.+)', _par.name).groups()
+			if _groups is None or len(_groups) != 3:
+				return
+			_sequence_name = _groups[0]
+			_block_idx = _groups[1]
+			_par_name = _groups[2]
+			if _par_name is None:
+				return
+			_par = _par.sequence[0].par[_par_name.capitalize()]
+			if _par is None:
+				return
+
 		comp = _par.owner
 		par_name = _par.name
 		if not self.compEditor.op('window').isOpen:
