@@ -34,13 +34,9 @@ class HoveredMidiRelativeExt:
 		self.ownerComp = ownerComp
 		
 		# Initialize TD operators
-		self.activeMidi = self.ownerComp.op('midiin_active')
-		self.pushMidi = self.ownerComp.op('midiin_push')
-		self.slotsLearnMidi = self.ownerComp.op('midiin_slots')
-		self.bankMidi = self.ownerComp.op('midiin_bank')
-		self.modeselMidi = self.ownerComp.op('midiin_modesel')
+		self.midiOut = self.ownerComp.op('midiout1')
+
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
-		self.midiOut = self.ownerComp.op('midiout1')#
 
 		# UI Mod init
 		if _uimod := self.ownerComp.op('td_ui_mod'):
@@ -632,22 +628,19 @@ class HoveredMidiRelativeExt:
 	# TODO: These can be optimized using Dependency objects
 	def onSeqStepsNIndex(self, _par, idx):
 		"""TouchDesigner callback when sequence steps index changes"""
-		self.activeMidi.cook(force=True)
-		self.modeselMidi.cook(force=True)
+		self._force_cook_midi_operators()
 
 	def onSeqSlotsNIndex(self, _par, idx):
 		"""TouchDesigner callback when sequence slots index changes"""
-		self.activeMidi.cook(force=True)
-		self.slotsLearnMidi.cook(force=True)
+		self._force_cook_midi_operators()
 
 	def onSeqBanksNIndex(self, _par, idx):
 		"""TouchDesigner callback when sequence banks index changes"""
-		self.bankMidi.cook(force=True)
-		self.modeselMidi.cook(force=True)
+		self._force_cook_midi_operators()
 
 	def onParKnobindex(self, _par, _val):
 		"""TouchDesigner callback when knob index parameter changes"""
-		self.activeMidi.cook(force=True)
+		self._force_cook_midi_operators()
 
 	def onParKnobledupdate(self, _val):
 		"""TouchDesigner callback when knob LED update mode parameter changes"""
@@ -707,11 +700,25 @@ class HoveredMidiRelativeExt:
 			self.ui_manager.set_hovered_ui_color(-1)
 
 	def _force_cook_midi_operators(self):
-		"""Force cook all MIDI-related operators"""
-		self.activeMidi.cook(force=True)
-		self.pushMidi.cook(force=True)
-		self.slotsLearnMidi.cook(force=True)
-		self.bankMidi.cook(force=True)
+		"""Force cook all MIDI-related operators"""		
+		activeMidi = self.ownerComp.op('midiin_active')
+		pushMidi = self.ownerComp.op('midiin_push')
+		slotsLearnMidi = self.ownerComp.op('midiin_slots')
+		bankMidi = self.ownerComp.op('midiin_bank')
+		modeselMidi = self.ownerComp.op('midiin_modesel')
+		resetparMidi = self.ownerComp.op('midiin_resetpar')
+		defaultMidi = self.ownerComp.op('midiin_default')
+		setnormMinMidi = self.ownerComp.op('midiin_setnormmin')
+		setnormMaxMidi = self.ownerComp.op('midiin_setnormmax')
+		activeMidi.cook(force=True)
+		pushMidi.cook(force=True)
+		slotsLearnMidi.cook(force=True)
+		bankMidi.cook(force=True)
+		modeselMidi.cook(force=True)
+		resetparMidi.cook(force=True)
+		defaultMidi.cook(force=True)
+		setnormMinMidi.cook(force=True)
+		setnormMaxMidi.cook(force=True)
 
 	def onSeqBanksNumBlocks(self, _par, _val):
 		"""TouchDesigner callback when number of banks changes"""
@@ -743,8 +750,3 @@ class HoveredMidiRelativeExt:
 					# Clear invalid parameters silently during save
 					self.slot_manager.clear_slot_in_bank(slot_idx, bank_idx)
 # endregion
-
-
-
-
-
