@@ -3,7 +3,7 @@
 Name : display_manager
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.201.toe
-Saveversion : 2023.12120
+Saveversion : 2025.31310
 Info Header End'''
 import re
 from typing import Optional, Union
@@ -171,12 +171,17 @@ class DisplayManager:
 			display_text = "_PULSE_"
 			norm_default = -1
 			
-		else:  # Numeric parameter
+		elif par.isNumber:  # Numeric parameter
 			val = par.eval()
 			min_val, max_val = par.normMin, par.normMax
 			display_text = None
 			norm_default = tdu.remap(par.default, min_val, max_val, 0, 1)
 			norm_default = tdu.clamp(norm_default, 0, 1)
+		else:
+			val = 0
+			min_val, max_val = 0, 0
+			display_text = None
+			norm_default = -1
 
 		clamps = (par.clampMin, par.clampMax)
 		return val, min_val, max_val, display_text, norm_default, clamps

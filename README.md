@@ -28,6 +28,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **Step Mode**: Choose between Fixed (fixed step size) or Adaptive (step scales with parameter range)
 - **Secondary Mode**: Knob push functionality with two modes - Reset (hold to reset parameter) or Step (hold and rotate for alternate step size)
 - **Parameter Value Shortcuts**: Multiple button combinations for quick operations (reset, set default, set min/max, clamp values)
+- **Quick Parameter Customization**: Long-press first and last step/bank buttons to instantly open the component editor for any active custom parameter
 - **Value Undo/Redo**: Full undo/redo support for parameter value adjustments using standard keyboard shortcuts (Ctrl+Z/Ctrl+Y on Windows, Cmd+Z/Cmd+Shift+Z on Mac)
 - **Real-time VSN1 Feedback**: Full integration with VSN1's built-in screen and LED system
   - **LED Feedback**: Color-coded LEDs showing slot states (dark/dim/bright)
@@ -233,14 +234,16 @@ Convenient button combinations for quick parameter operations:
 - **Second + Third step/bank buttons**: Set current value as normMin and min (slider and parameter minimum)
 - **Second + Fourth step/bank buttons**: Set current value as normMax and max (slider and parameter maximum)
 - **Third + Fourth step/bank buttons**: Clamp current value to min/max range (brings value within bounds)
+- **First + Fourth step/bank buttons (long press)**: Open the active parameter's component editor
 
 **Usage**:
 - Press and hold the button combinations while hovering over or controlling any parameter
 - These shortcuts provide quick access to common parameter operations without opening dialogs
 - Setting min/max affects both the visual slider range (normMin/normMax) and the actual parameter bounds (min/max)
 - Clamping ensures the value stays within the defined min/max range
+- Long press first and last buttons to quickly open the component editor for deeper parameter editing
 - Faster than using Secondary Mode's reset hold functionality
-- **Compatibility**: Works with all numeric parameter types
+- **Compatibility**: Works with all numeric parameter types (component editor shortcut works with all parameter types)
 
 ### Undo/Redo Operations
 Full undo/redo support for both parameter value adjustments and slot management, allowing you to experiment freely and revert changes if needed:

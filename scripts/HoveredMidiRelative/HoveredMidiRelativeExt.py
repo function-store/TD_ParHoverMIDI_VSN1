@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : HoveredMidiRelativeExt
 Author : Dan@DAN-4090
-Saveversion : 2023.12120
+Saveversion : 2025.31310
 Info Header End'''
 import json
 import math
@@ -542,6 +542,8 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to set norm min or max value"""
 		if self.activePar is None or not self.activePar.isCustom:
 			return
+		if not ParameterValidator.is_supported_parameter_type(self.activePar):
+			return
 		
 		_val = self.activePar.eval()
 		
@@ -587,6 +589,10 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to set clamp min or max value"""
 		if self.activePar is None or not self.activePar.isCustom:
 			return
+
+		# check if parameter is supported
+		if not ParameterValidator.is_supported_parameter_type(self.activePar):
+			return
 		
 		# Capture old values for undo
 		old_clamp_min = self.activePar.clampMin
@@ -631,6 +637,24 @@ class HoveredMidiRelativeExt:
 			return
 		# set step mode to the opposite of the current step mode
 		self.stepMode = StepMode.FIXED if self.stepMode == StepMode.ADAPTIVE else StepMode.ADAPTIVE
+
+	def onCustomOpen(self):
+		"""TouchDesigner callback when custom parameter is opened"""
+		if not self.evalActive:
+			return
+			
+		self.onReceiveModeSel() # we "undo" since this action is a long press of that
+		# check if par group
+		if (activePar := self.activePar) is None or not activePar.isCustom:
+			return
+			
+		if ParameterValidator.is_pargroup(activePar):
+			activePar = activePar[0]
+			if activePar is None:
+				return
+		self.ui_manager.open_comp_editor(activePar)
+		run("args[0].display_manager.update_parameter_display(args[1], bottom_text='_CUSTOM_')", self, activePar, delayFrames=1)
+
 				
 
 # endregion midi callbacks
@@ -821,8 +845,6 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback when relative step mode parameter changes"""
 		self.display_manager.set_stepmode_indicator(StepMode(_val))
 
-	def onParShowbuiltin(self, _val):
-		self.ownerComp.showCustomOnly  = not _val
 
 # endregion parameter callbacks
 	def onProjectPreSave(self):

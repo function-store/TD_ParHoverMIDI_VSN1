@@ -13,7 +13,8 @@ class UIManager:
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
 		self.ui = self.parent.ownerComp.op('_UI/UI')
-
+		self.compEditor = op('/sys/TDDialogs/CompEditor')
+		
 		self.default_ui_colors = {}
 		for _row in self.parent.ownerComp.op('table_default_ui_cols').rows():
 			_element = _row[0].val
@@ -260,3 +261,36 @@ class UIManager:
 					ui.colors[_element] = _default_color
 			except:
 				pass
+
+	def open_comp_editor(self, _par: Par):
+		if not _par.isCustom:
+			return
+		comp = _par.owner
+		par_name = _par.name
+		if not self.compEditor.op('window').isOpen:
+			self.compEditor.Open(comp)
+		else:
+			self.compEditor.Connect(comp)
+		self.compEditor.CurrentPage = _par.page.name
+		self.compEditor.CurrentPar = _par
+		self.compEditor.RefreshListers()
+		_comp_editor_pages = self.compEditor.op('pagesAndParameters/listerPages')
+		_comp_editor_pars = self.compEditor.op('pagesAndParameters/listerPars')
+		_page = _par.page.name
+		
+		# get page index from comp editor pages
+		_page_list = list(filter(lambda x: x['pageName'] == _page, _comp_editor_pages.Data))
+		_page_idx = _page_list[0]['sourceIndex']
+		if _page_idx != 'Auto-Header':
+			_comp_editor_pages.SelectRow(_page_idx+1)
+			_comp_editor_pages.scroll(_page_idx, 0)
+
+		if not isinstance(_par, Par):
+			return
+		if len(_par.parGroup) > 1:
+			par_name = _par.parGroup.name
+		_par_list = list(filter(lambda x: x['ParName'] == par_name, _comp_editor_pars.Data))
+		_par_idx = _par_list[0]['sourceIndex']
+		if _par_idx != 'Auto-Header':
+			_comp_editor_pars.SelectRow(_par_idx+1)
+			_comp_editor_pars.scroll(_par_idx, 0)
