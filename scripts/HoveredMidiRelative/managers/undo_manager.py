@@ -439,6 +439,200 @@ class UndoManager:
 		except Exception as e:
 			pass
 	
+	def create_set_default_undo(self, par: 'Par', old_default: float, new_default: float):
+		"""Create undo action for setting parameter default value.
+		
+		Args:
+			par: The parameter whose default was set
+			old_default: The previous default value
+			new_default: The new default value
+		"""
+		if not self.parent.evalEnableundo:
+			return
+		
+		par_path = f"{par.owner.path}:{par.name}"
+		
+		ui.undo.startBlock(f'Set Default {par.name}')
+		try:
+			undo_info = {
+				'par_path': par_path,
+				'old_default': old_default,
+				'new_default': new_default,
+				'par_name': par.name
+			}
+			ui.undo.addCallback(self._undo_set_default_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def _undo_set_default_callback(self, isUndo, info):
+		"""Callback for undoing parameter default change."""
+		par_path = info['par_path']
+		
+		try:
+			owner_path, par_name = par_path.rsplit(':', 1)
+			owner_op = op(owner_path)
+			
+			if owner_op is None:
+				return
+			
+			par = owner_op.par[par_name]
+			if par is None or not par.isCustom:
+				return
+			
+			# Set value based on undo/redo
+			if isUndo:
+				par.default = info['old_default']
+			else:
+				par.default = info['new_default']
+			
+			# Update display if this is the active parameter
+			if self.parent.activePar == par:
+				self.parent.display_manager.update_parameter_display(par)
+			
+		except Exception as e:
+			pass
+	
+	def create_set_norm_undo(self, par: 'Par', is_min: bool, 
+	                          old_norm: float, new_norm: float, 
+	                          old_minmax: float, new_minmax: float):
+		"""Create undo action for setting parameter norm and min/max values.
+		
+		Args:
+			par: The parameter whose norm was set
+			is_min: True if setting min, False if setting max
+			old_norm: The previous normMin or normMax value
+			new_norm: The new normMin or normMax value
+			old_minmax: The previous min or max value
+			new_minmax: The new min or max value
+		"""
+		if not self.parent.evalEnableundo:
+			return
+		
+		par_path = f"{par.owner.path}:{par.name}"
+		
+		ui.undo.startBlock(f'Set {"Min" if is_min else "Max"} {par.name}')
+		try:
+			undo_info = {
+				'par_path': par_path,
+				'is_min': is_min,
+				'old_norm': old_norm,
+				'new_norm': new_norm,
+				'old_minmax': old_minmax,
+				'new_minmax': new_minmax,
+				'par_name': par.name
+			}
+			ui.undo.addCallback(self._undo_set_norm_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def _undo_set_norm_callback(self, isUndo, info):
+		"""Callback for undoing parameter norm/min/max change."""
+		par_path = info['par_path']
+		is_min = info['is_min']
+		
+		try:
+			owner_path, par_name = par_path.rsplit(':', 1)
+			owner_op = op(owner_path)
+			
+			if owner_op is None:
+				return
+			
+			par = owner_op.par[par_name]
+			if par is None or not par.isCustom:
+				return
+			
+			# Set values based on undo/redo
+			if isUndo:
+				if is_min:
+					par.normMin = info['old_norm']
+					par.min = info['old_minmax']
+				else:
+					par.normMax = info['old_norm']
+					par.max = info['old_minmax']
+			else:
+				if is_min:
+					par.normMin = info['new_norm']
+					par.min = info['new_minmax']
+				else:
+					par.normMax = info['new_norm']
+					par.max = info['new_minmax']
+			
+			# Update display if this is the active parameter
+			if self.parent.activePar == par:
+				self.parent.display_manager.update_parameter_display(par)
+			
+		except Exception as e:
+			pass
+	
+	def create_set_clamp_undo(self, par: 'Par', changed_min: bool, changed_max: bool,
+	                           old_clamp_min: bool, new_clamp_min: bool,
+	                           old_clamp_max: bool, new_clamp_max: bool):
+		"""Create undo action for toggling parameter clamp values.
+		
+		Args:
+			par: The parameter whose clamp was toggled
+			changed_min: True if clampMin was changed
+			changed_max: True if clampMax was changed
+			old_clamp_min: The previous clampMin value
+			new_clamp_min: The new clampMin value
+			old_clamp_max: The previous clampMax value
+			new_clamp_max: The new clampMax value
+		"""
+		if not self.parent.evalEnableundo:
+			return
+		
+		par_path = f"{par.owner.path}:{par.name}"
+		
+		ui.undo.startBlock(f'Toggle Clamp {par.name}')
+		try:
+			undo_info = {
+				'par_path': par_path,
+				'changed_min': changed_min,
+				'changed_max': changed_max,
+				'old_clamp_min': old_clamp_min,
+				'new_clamp_min': new_clamp_min,
+				'old_clamp_max': old_clamp_max,
+				'new_clamp_max': new_clamp_max,
+				'par_name': par.name
+			}
+			ui.undo.addCallback(self._undo_set_clamp_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def _undo_set_clamp_callback(self, isUndo, info):
+		"""Callback for undoing parameter clamp change."""
+		par_path = info['par_path']
+		
+		try:
+			owner_path, par_name = par_path.rsplit(':', 1)
+			owner_op = op(owner_path)
+			
+			if owner_op is None:
+				return
+			
+			par = owner_op.par[par_name]
+			if par is None or not par.isCustom:
+				return
+			
+			# Set values based on undo/redo
+			if isUndo:
+				if info['changed_min']:
+					par.clampMin = info['old_clamp_min']
+				if info['changed_max']:
+					par.clampMax = info['old_clamp_max']
+			else:
+				if info['changed_min']:
+					par.clampMin = info['new_clamp_min']
+				if info['changed_max']:
+					par.clampMax = info['new_clamp_max']
+			
+			# Update display if this is the active parameter
+			if self.parent.activePar == par:
+				self.parent.display_manager.update_parameter_display(par)
+			
+		except Exception as e:
+			pass
+	
 	def create_assign_slot_undo(self, slot_idx: int, bank_idx: int, new_parameter: Union['Par', 'ParGroup'],
 	                             previous_parameter: Union['Par', 'ParGroup', None],
 	                             previous_active_slot: Optional[int], previous_bank_active_slot: Optional[int]):

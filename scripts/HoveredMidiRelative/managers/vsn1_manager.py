@@ -20,7 +20,7 @@ class VSN1Manager:
 	def is_vsn1_enabled(self) -> bool:
 		return self.parent.evalVsn1support
 	
-	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, step_indicator = None, norm_default = None, info = None):
+	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, step_indicator = None, norm_default = None, info = None, clamps = None):
 		"""Render display data to VSN1 screen - ONLY the Lua output, no logic"""
 		if not self.is_vsn1_enabled():
 			return
@@ -41,9 +41,13 @@ class VSN1Manager:
 			info = _labels
 		if norm_default is None:
 			norm_default = -1
+		if clamps is None:
+			clamps = (0, 0)
 			
 		info_lua = '{' + ','.join(f"'{s}'" for s in info) + '}' if info else '{}'
-		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator}, {norm_default}, {info_lua})"
+		clamps_lua = '{'+f'{1 if clamps[0] else 0}, {1 if clamps[1] else 0}'+ '}'
+		
+		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator}, {norm_default}, {info_lua}, {clamps_lua})"
 
 		self.grid_comm.SendLua(lua_code, queue=True)
 	

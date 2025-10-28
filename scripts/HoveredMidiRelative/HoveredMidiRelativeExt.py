@@ -524,35 +524,97 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to set default parameter value"""
 		if self.activePar is None or not self.activePar.isCustom:
 			return
-		self.activePar.default = self.activePar.eval()
+		
+		# Capture old value for undo
+		old_default = self.activePar.default
+		new_default = self.activePar.eval()
+		
+		# Apply the change
+		self.activePar.default = new_default
+		
+		# Create undo action
+		self.undo_manager.create_set_default_undo(self.activePar, old_default, new_default)
+		
 		# update display
-		self.display_manager.update_parameter_display(self.activePar)
+		self.display_manager.update_parameter_display(self.activePar, bottom_text = '_DEF_')
 
 	def onSetNorm(self, min_max: str):
 		"""TouchDesigner callback to set norm min or max value"""
 		if self.activePar is None or not self.activePar.isCustom:
 			return
+		
+		_val = self.activePar.eval()
+		
 		if min_max == 'min':
-			_val = self.activePar.eval()
+			# Check if valid (not equal to max)
 			if _val != self.activePar.normMax:
+				# Capture old values for undo
+				old_norm = self.activePar.normMin
+				old_minmax = self.activePar.min
+				
+				# Apply changes
 				self.activePar.normMin = _val
 				self.activePar.min = _val
+				
+				# Create undo action
+				self.undo_manager.create_set_norm_undo(
+					self.activePar, is_min=True,
+					old_norm=old_norm, new_norm=_val,
+					old_minmax=old_minmax, new_minmax=_val
+				)
 		else:
-			_val = self.activePar.eval()
+			# Check if valid (not equal to min)
 			if _val != self.activePar.normMin:
+				# Capture old values for undo
+				old_norm = self.activePar.normMax
+				old_minmax = self.activePar.max
+				
+				# Apply changes
 				self.activePar.normMax = _val
 				self.activePar.max = _val
+				
+				# Create undo action
+				self.undo_manager.create_set_norm_undo(
+					self.activePar, is_min=False,
+					old_norm=old_norm, new_norm=_val,
+					old_minmax=old_minmax, new_minmax=_val
+				)
+		
 		# update display
-		self.display_manager.update_parameter_display(self.activePar)
+		self.display_manager.update_parameter_display(self.activePar, bottom_text=f'_{min_max.upper()}_')
 
 	def onSetClamp(self, min_max: str):
 		"""TouchDesigner callback to set clamp min or max value"""
 		if self.activePar is None or not self.activePar.isCustom:
 			return
-		if min_max == 'min' or min_max == 'both':
+		
+		# Capture old values for undo
+		old_clamp_min = self.activePar.clampMin
+		old_clamp_max = self.activePar.clampMax
+		
+		# Determine what's changing
+		changed_min = (min_max == 'min' or min_max == 'both')
+		changed_max = (min_max == 'max' or min_max == 'both')
+		
+		# Apply changes
+		if changed_min:
 			self.activePar.clampMin = not self.activePar.clampMin
-		if min_max == 'max' or min_max == 'both':
+		if changed_max:
 			self.activePar.clampMax = not self.activePar.clampMax
+		
+		# Create undo action
+		self.undo_manager.create_set_clamp_undo(
+			self.activePar,
+			changed_min=changed_min,
+			changed_max=changed_max,
+			old_clamp_min=old_clamp_min,
+			new_clamp_min=self.activePar.clampMin,
+			old_clamp_max=old_clamp_max,
+			new_clamp_max=self.activePar.clampMax
+		)
+		
+		# update display
+		self.display_manager.update_parameter_display(self.activePar, bottom_text='_CLAMP_')
 
 
 	def onReceiveMidiBankSel(self, index: int) -> None:

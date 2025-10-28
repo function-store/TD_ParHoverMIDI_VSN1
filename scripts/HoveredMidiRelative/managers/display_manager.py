@@ -48,7 +48,7 @@ class DisplayManager:
 		self.ui_renderer.clear_screen()
 	
 	def update_all_display(self, val, norm_min, norm_max, 
-						  label: str, display_text: Optional[str] = None, step_indicator = None, compress: bool = True, norm_default = None):
+						  label: str, display_text: Optional[str] = None, step_indicator = None, compress: bool = True, norm_default = None, clamps = None):
 		"""Update all displays with parameter info - handles ALL logic here"""
 		if compress:
 		# Process label based on display mode and compression setting
@@ -76,7 +76,7 @@ class DisplayManager:
 			bottom_text = LabelFormatter.format_value(val)
 
 		# Delegate to renderers with processed data
-		self.vsn1_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, step_indicator=step_indicator, norm_default=norm_default)
+		self.vsn1_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, step_indicator=step_indicator, norm_default=norm_default, clamps=clamps)
 		
 		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED] and self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
 			self.vsn1_renderer.update_knob_leds_gradual(0)
@@ -85,7 +85,7 @@ class DisplayManager:
 			self.vsn1_renderer.update_knob_leds_gradual(percentage)
 
 		
-		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator=step_indicator, norm_default=norm_default)
+		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator=step_indicator, norm_default=norm_default, clamps=clamps)
     
 	def update_parameter_display(self, par_or_group: Union[Par, ParGroup], bottom_text: str = None, force_knob_leds: bool = False):
 		"""Update displays for a specific parameter (or ParGroup) - handles ALL logic here
@@ -105,7 +105,7 @@ class DisplayManager:
 			return
 		
 		# Get display values based on parameter type
-		val, min_val, max_val, display_text, norm_default = self._get_parameter_display_values(display_par)
+		val, min_val, max_val, display_text, norm_default, clamps = self._get_parameter_display_values(display_par)
 		
 		# Override display text if provided
 		if bottom_text is not None:
@@ -115,7 +115,7 @@ class DisplayManager:
 		label = self._get_parameter_label(par_or_group, display_par)
 		
 		# Update all displays
-		self.update_all_display(val, min_val, max_val, label, display_text, compress=True, norm_default=norm_default)
+		self.update_all_display(val, min_val, max_val, label, display_text, compress=True, norm_default=norm_default, clamps=clamps)
 		
 		# Handle knob LED updates if forced
 		if force_knob_leds:
@@ -177,7 +177,9 @@ class DisplayManager:
 			display_text = None
 			norm_default = tdu.remap(par.default, min_val, max_val, 0, 1)
 			norm_default = tdu.clamp(norm_default, 0, 1)
-		return val, min_val, max_val, display_text, norm_default
+
+		clamps = (par.clampMin, par.clampMax)
+		return val, min_val, max_val, display_text, norm_default, clamps
 	
 	def _get_parameter_label(self, original: Union[Par, ParGroup], display_par: Par) -> str:
 		"""Get formatted label for display

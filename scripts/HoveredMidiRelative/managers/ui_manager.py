@@ -51,8 +51,12 @@ class UIManager:
 	def _set_defaultnotch(self, norm_default: float):
 		self.ui.par.Normdefault = norm_default
 
+	def _set_clamps(self, clamps):
+		self.ui.par.Clamps1 = 1 if clamps[0] else 0
+		self.ui.par.Clamps2 = 1 if clamps[1] else 0
+
 	
-	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, percentage: float, step_indicator = None, norm_default = None):
+	def render_display(self, val, norm_min, norm_max, processed_label: str, bottom_text: str, percentage: float, step_indicator = None, norm_default = None, clamps = None):
 		"""Render display data to UI - ONLY the UI parameter updates, no logic"""
 		if not self.ui_enabled:
 			return
@@ -63,6 +67,9 @@ class UIManager:
 		if norm_default is None:
 			norm_default = -1
 		self._set_defaultnotch(norm_default)
+		if clamps is None:
+			clamps = (0, 0)
+		self._set_clamps(clamps)
 		
 		# Set step indicator if provided
 		if step_indicator is not None:
@@ -76,6 +83,7 @@ class UIManager:
 		self._set_top_text("")
 		self._set_bottom_text("")
 		self._set_defaultnotch(-1)
+		self._set_clamps((0, 0))
 
 	def set_step_indicator(self, index: int):
 		if not self.ui_enabled:
