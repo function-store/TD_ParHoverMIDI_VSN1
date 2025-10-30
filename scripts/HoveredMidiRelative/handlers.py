@@ -280,6 +280,7 @@ class MidiMessageHandler:
 				
 			# Apply the step to current value
 			active_par.val = active_par.eval() + step_amount
+			self.parent.lastCachedChange = (f'{active_par.owner.path}:{active_par.name}', active_par.eval())
 			
 		elif active_par.isMenu and not active_par.isString:
 			# NOTE: we don't act on string menus, if we need to, remove the not active_par.isString check

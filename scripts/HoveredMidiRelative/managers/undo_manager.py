@@ -677,6 +677,7 @@ class UndoManager:
 			
 			# Restore the slot to its previous state
 			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
+			self.parent._set_parexec_pars(previous_parameter)
 			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
@@ -725,6 +726,9 @@ class UndoManager:
 			new_parameter = info['new_parameter']
 			
 			self.parent.slotPars[bank_idx][slot_idx] = new_parameter
+			self.parent._set_parexec_pars(new_parameter)
+			self.parent.activeSlot = slot_idx
+			self.parent.bankActiveSlots[bank_idx] = slot_idx
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
@@ -819,6 +823,7 @@ class UndoManager:
 				return
 			
 			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
+			self.parent._set_parexec_pars(previous_parameter)
 			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
@@ -862,6 +867,8 @@ class UndoManager:
 		else:
 			# Redo: clear the slot again
 			self.parent.slotPars[bank_idx][slot_idx] = None
+			self.parent._set_parexec_pars(None)
+			self.parent.bankActiveSlots[bank_idx] = None
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:

@@ -37,6 +37,7 @@ class HoveredMidiRelativeExt:
 		self.midiOut = self.ownerComp.op('midiout1')
 		self.jumpToOp : JumpToOpExt = self.ownerComp.op('JumpToOp')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
+		self.Test = 'test'
 
 		# UI Mod init
 		if _uimod := self.ownerComp.op('td_ui_mod'):
@@ -58,6 +59,7 @@ class HoveredMidiRelativeExt:
 		self.undo_manager = UndoManager(self)
 
 		self.display_run_obj = None
+		self.lastCachedChange = None
 
 		# Initialize storage
 		storedItems = [
@@ -103,6 +105,7 @@ class HoveredMidiRelativeExt:
 				'dependable': False
 			}
 		]
+
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
 
@@ -346,6 +349,8 @@ class HoveredMidiRelativeExt:
 			# Only show empty operator message if we don't have an active valid parameter
 			# (activePar already checks for active slot with valid parameter)
 			has_active_param = self.activePar is not None and self.activePar.valid
+			if not has_active_param:
+				self._set_parexec_pars(None)
 			self._manage_empty_operator_display(should_show=not has_active_param)
 			return
 		else:
@@ -395,12 +400,15 @@ class HoveredMidiRelativeExt:
 			if self.activeSlot is None:
 				if error_msg := ParameterValidator.get_validation_error(single_par):
 					self.display_manager.show_parameter_error(single_par, error_msg)
+					if error_msg == ScreenMessages.EXPR:
+						self._set_parexec_pars(single_par)
 					return  # Parameter is invalid, error message shown
 			
 
 		# Update screen if no active slot (only for valid parameters)
 		if self.activeSlot is None:
 			# Capture initial value for undo when hovering
+			self._set_parexec_pars(single_par)
 			self.undo_manager.on_parameter_hovered(single_par)
 			self.display_manager.update_parameter_display(single_par)
 
@@ -649,6 +657,28 @@ class HoveredMidiRelativeExt:
 			activePar = activePar[0]
 		self.ui_manager.open_comp_editor(activePar)
 		run("args[0].display_manager.update_parameter_display(args[1], bottom_text='_CUSTOM_')", self, activePar, delayFrames=1)
+
+	def onActiveValueChange(self, _par):
+		# check if _par is a cached parameter and if the value matches the cached value do nothing
+		if isinstance(_par, ParGroup):
+			return
+			
+		if self.lastCachedChange:#
+			if f'{_par.owner.path}:{_par.name}' == self.lastCachedChange[0] and _par.eval() == self.lastCachedChange[1]:
+				return
+		
+		# update display with the new value
+		self.display_manager.update_parameter_display(_par)
+
+	def _set_parexec_pars(self, _par: Par):
+		"""For god knows what reason Dependency objects would not update!!!"""
+		parExec = self.ownerComp.op('parexec2')
+		parExec.par.op = _par.owner if _par is not None else None
+		try:
+			parExec.par.pars = _par.name if _par is not None else ''
+		except Exception as e:
+			parExec.par.pars = None
+		parExec.cook(force=True)
 
 # endregion midi callbacks
 
