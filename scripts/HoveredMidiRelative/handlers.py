@@ -63,6 +63,8 @@ class MidiMessageHandler:
 	def handle_step_message(self, index: int, value: int) -> bool:
 		"""Handle step change messages"""
 		blocks = self.parent._index_to_blocks(index, self.parent.seqSteps)
+		if self.shortcutPressed:
+			return True
 		if not blocks:
 			return False
 			
@@ -70,7 +72,7 @@ class MidiMessageHandler:
 		if self.parent.evalPushstepmode == PushStepMode.FIXED.value and self.parent.knobPushState:
 			self.parent.ownerComp.par.Pushstep.val = block.par.Step.eval()
 			return True
-		if not self.shortcutPressed and not (self.parent.knobPushState or self.parent.evalPushstepmode == PushStepMode.FIXED.value):
+		if not (self.parent.knobPushState):
 			if value == 0:
 				self.parent._currStep = block.par.Step.eval()
 		return True
