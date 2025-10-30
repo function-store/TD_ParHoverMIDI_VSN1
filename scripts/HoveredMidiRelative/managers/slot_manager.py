@@ -117,7 +117,8 @@ class SlotManager:
 			0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 		
 		# Update LEDs and outline color
-		self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+		# Pass previous_slot to update the cleared slot's LED to show it's now free
+		self.parent.display_manager.update_slot_leds(current_slot=None, previous_slot=slot_idx)
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 		
 		# Add undo support if enabled

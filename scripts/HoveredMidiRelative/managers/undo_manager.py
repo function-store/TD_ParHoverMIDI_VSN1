@@ -682,6 +682,8 @@ class UndoManager:
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
+				# Capture the current active slot before changing it
+				old_active_slot = self.parent.activeSlot
 				self.parent.activeSlot = previous_active_slot
 				
 				# Update hovered UI color based on restored active slot
@@ -713,8 +715,12 @@ class UndoManager:
 						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 				
-				# Update LEDs
-				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot)
+				# Update LEDs - update both the old active slot and the restored active slot
+				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot, previous_slot=old_active_slot)
+				
+				# Also update the restored slot if it's different from the active slots
+				if slot_idx != previous_active_slot and slot_idx != old_active_slot:
+					self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
 		else:
 			# Redo: apply the assignment again
 			new_parameter = info['new_parameter']
@@ -725,11 +731,15 @@ class UndoManager:
 			self.parent.bankActiveSlots[bank_idx] = slot_idx
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
-			# Turn off hovered UI color when assigning a slot
 			if is_current_bank:
+				# Capture the current active slot before changing it
+				old_active_slot = self.parent.activeSlot
+				self.parent.activeSlot = slot_idx
+				self.parent.bankActiveSlots[bank_idx] = slot_idx
+				
+				# Turn off hovered UI color when assigning a slot
 				self.parent.ui_manager.set_hovered_ui_color(-1)
-			
-			if is_current_bank:
+				
 				# Update UI button label
 				if hasattr(self.parent, 'ui_manager'):
 					label = LabelFormatter.get_label_for_parameter(new_parameter, self.parent.labelDisplayMode)
@@ -738,9 +748,12 @@ class UndoManager:
 				# Update display
 				self.parent.display_manager.update_parameter_display(new_parameter, bottom_text=ScreenMessages.LEARNED)
 				
-				# Update LEDs
-				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+				# Update LEDs - update both the new active slot and the previously active slot
+				self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
 				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+			else:
+				# Still need to update bank active slot even if not current bank
+				self.parent.bankActiveSlots[bank_idx] = slot_idx
 		
 		# Always refresh UI buttons for current bank
 		if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
@@ -815,6 +828,8 @@ class UndoManager:
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
+				# Capture the current active slot before changing it
+				old_active_slot = self.parent.activeSlot
 				self.parent.activeSlot = previous_active_slot
 				
 				# Update hovered UI color based on restored active slot
@@ -843,8 +858,12 @@ class UndoManager:
 						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 				
-				# Restore LEDs
-				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot)
+				# Restore LEDs - update both the old active slot and the new/restored active slot
+				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot, previous_slot=old_active_slot)
+				
+				# Also update the restored slot if it's different from the active slots
+				if slot_idx != previous_active_slot and slot_idx != old_active_slot:
+					self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
 		else:
 			# Redo: clear the slot again
 			self.parent.slotPars[bank_idx][slot_idx] = None
@@ -853,22 +872,75 @@ class UndoManager:
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
-				self.parent.activeSlot = None
+				# Capture the current active slot before changing it (for LED updates)
+				old_active_slot = self.parent.activeSlot
 				
-				# Restore hovered UI color if enabled (redoing clear)
-				if self.parent.evalColorhoveredui:
-					self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
-				else:
-					self.parent.ui_manager.set_hovered_ui_color(-1)
-				
+				# Clear button label
 				if hasattr(self.parent, 'ui_manager'):
 					self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
 				
-				self.parent.display_manager.update_all_display(
-					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
-				
-				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
-				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+				# If we're clearing the currently active slot, go to hover mode
+				# Otherwise, keep the current active slot
+				if slot_idx == old_active_slot:
+					# Clearing the currently active slot -> go to hover mode
+					self.parent.activeSlot = None
+					self.parent.bankActiveSlots[bank_idx] = None
+					
+					# Restore hovered UI color if enabled (going to hover mode)
+					if self.parent.evalColorhoveredui:
+						self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+					else:
+						self.parent.ui_manager.set_hovered_ui_color(-1)
+					
+					self.parent.display_manager.update_all_display(
+						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+					
+					# Update slot LED
+					self.parent.display_manager.update_slot_leds(current_slot=None, previous_slot=slot_idx)
+					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+				else:
+					# Clearing a non-active slot -> keep current active slot
+					# Update bankActiveSlots to match current activeSlot
+					self.parent.bankActiveSlots[bank_idx] = old_active_slot
+					
+					# Update display based on current active slot
+					if old_active_slot is not None and old_active_slot < len(self.parent.slotPars[bank_idx]):
+						active_par = self.parent.slotPars[bank_idx][old_active_slot]
+						if active_par is not None:
+							# Keep displaying active parameter
+							self.parent.display_manager.update_parameter_display(active_par)
+							self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+						else:
+							# Active slot is empty, go to hover
+							self.parent.activeSlot = None
+							self.parent.bankActiveSlots[bank_idx] = None
+							if self.parent.evalColorhoveredui:
+								self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+							else:
+								self.parent.ui_manager.set_hovered_ui_color(-1)
+							self.parent.display_manager.update_all_display(
+								0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+							self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+					else:
+						# No active slot, go to hover
+						self.parent.activeSlot = None
+						self.parent.bankActiveSlots[bank_idx] = None
+						if self.parent.evalColorhoveredui:
+							self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
+						else:
+							self.parent.ui_manager.set_hovered_ui_color(-1)
+						self.parent.display_manager.update_all_display(
+							0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+						self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+					
+					# Update slot LEDs - cleared slot (always) and old active slot if different
+					self.parent.display_manager.update_slot_leds(current_slot=self.parent.activeSlot, previous_slot=old_active_slot)
+					if slot_idx != self.parent.activeSlot and slot_idx != old_active_slot:
+						self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+			else:
+				# Not current bank - sync bank active slots
+				if slot_idx == self.parent.bankActiveSlots[bank_idx]:
+					self.parent.bankActiveSlots[bank_idx] = None
 		
 		# Always refresh UI buttons for current bank to ensure correct state
 		# (TouchDesigner's undo system may revert some UI states)
