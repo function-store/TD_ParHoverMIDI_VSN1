@@ -46,6 +46,8 @@ class SlotManager:
 		
 		# Assign parameter (or ParGroup) and activate slot
 		self.parent.slotPars[currBank][slot_idx] = parameter
+		self.parent._set_parexec_pars(parameter)
+		
 		self.parent.activeSlot = slot_idx
 		self.parent.bankActiveSlots[currBank] = slot_idx
 		
@@ -65,6 +67,7 @@ class SlotManager:
 		self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		
+
 		# Add undo support if enabled
 		self.parent.undo_manager.create_assign_slot_undo(
 			slot_idx=slot_idx,
@@ -95,6 +98,7 @@ class SlotManager:
 		
 		# Clear the slot
 		self.parent.slotPars[currBank][slot_idx] = None
+		self.parent._set_parexec_pars(None)
 		self.parent.activeSlot = None
 		self.parent.bankActiveSlots[currBank] = None
 		
@@ -153,6 +157,7 @@ class SlotManager:
 		if (slot_par := self.parent.slotPars[currBank][slot_idx]) is not None:
 			# Capture initial values for undo when slot is activated#
 			self.parent.undo_manager.on_slot_activated(slot_par)
+			self.parent._set_parexec_pars(slot_par)
 			
 			bottom_text = None
 			if error_msg := ParameterValidator.get_validation_error(slot_par):
@@ -264,12 +269,14 @@ class SlotManager:
 		"""Deactivate current slot and return to hover mode"""
 		if self.parent.activeSlot is None:
 			return
+		self.parent._set_parexec_pars(self.parent.hoveredPar)
 		
 		old_active_slot = self.parent.activeSlot
 		currBank = self.parent.currBank
 		
 		# Clear active slot
 		self.parent.activeSlot = None
+		self.parent._set_parexec_pars(None)
 		if currBank < len(self.parent.bankActiveSlots):
 			self.parent.bankActiveSlots[currBank] = None
 		
@@ -285,10 +292,13 @@ class SlotManager:
 			label = LabelFormatter.get_label_for_parameter(self.parent.hoveredPar, self.parent.labelDisplayMode)
 		else:
 			label = ScreenMessages.HOVER
-		
-		compress = False if label == ScreenMessages.HOVER else True
-		self.parent.display_manager.update_all_display(0, 0, 1, label, ScreenMessages.HOVER, compress=compress)
-		
+
+		if self.parent.hoveredPar is not None:
+			self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
+
+		else:
+			self.parent.display_manager.update_all_display(0, 0, 1, label, ScreenMessages.HOVER, compress=False)
+
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
@@ -340,6 +350,7 @@ class SlotManager:
 		
 		# Clear the slot
 		self.parent.slotPars[bank_idx][slot_idx] = None
+		self.parent._set_parexec_pars(None)
 		
 		# If this was the active slot in this bank, deactivate it
 		if (bank_idx < len(self.parent.bankActiveSlots) and 

@@ -7,7 +7,7 @@ Saveversion : 2023.12120
 Info Header End'''
 import re
 from typing import Optional, Union
-from constants import ScreenMessages, VSN1ColorIndex, KnobLedUpdateMode, StepMode
+from constants import ScreenMessages, VSN1ColorIndex, VSN1Constants, KnobLedUpdateMode, StepMode
 from formatters import LabelFormatter
 from validators import ParameterValidator
 import math
@@ -20,11 +20,36 @@ class DisplayManager:
 		self.ui_renderer = parent_ext.ui_manager
 	
 	def show_parameter_error(self, par_or_group: Union[Par, ParGroup], error_msg: str):
-		"""Show error message for invalid parameter (or ParGroup)."""
+		"""Show error message for invalid parameter (or ParGroup) while still displaying parameter values."""
 		if par_or_group.valid:
 			param_label = LabelFormatter.get_label_for_parameter(par_or_group, self.parent.labelDisplayMode)
 		else:
 			param_label = ScreenMessages.INVALID	
+		
+		# For UNSUPPORTED parameters, don't show actual values (parameter type isn't supported)
+		# For EXPR errors, show actual values (parameter is valid type but has expression)
+		if error_msg != ScreenMessages.UNSUPPORTED:
+			# Try to get actual parameter values for non-unsupported errors
+			display_par = self._get_display_parameter(par_or_group)
+			if display_par is not None:
+				# Get real parameter values
+				val, min_val, max_val, display_text, norm_default, clamps = self._get_parameter_display_values(display_par)
+				
+				# For EXPR errors, prepend E: to the displayed value
+				if error_msg == ScreenMessages.EXPR:
+					if display_text is None:
+						# Format value with reduced max length to account for "E:" prefix
+						formatted_val = LabelFormatter.format_value(val, max_length=VSN1Constants.MAX_VALUE_LENGTH - 2)
+						display_text = f"E:{formatted_val}"
+					else:
+						# Truncate display_text to account for "E:" prefix
+						display_text = f"E:{display_text}"[:VSN1Constants.MAX_VALUE_LENGTH]
+				
+				# Show error with actual parameter values
+				self.update_all_display(val, min_val, max_val, param_label, display_text if error_msg == ScreenMessages.EXPR else error_msg, compress=True, norm_default=norm_default, clamps=clamps)
+				return
+		
+		# Default: use hardcoded values for unsupported or when we can't extract parameter info
 		self.update_all_display(0, 0, 1, param_label, error_msg, compress=True)
 	
 	def get_slot_state_value(self, slot_idx: int) -> int:
@@ -107,9 +132,18 @@ class DisplayManager:
 		# Get display values based on parameter type
 		val, min_val, max_val, display_text, norm_default, clamps = self._get_parameter_display_values(display_par)
 		
-		# Override display text if provided
+		# Override display text if provided, or check if parameter has expression
 		if bottom_text is not None:
 			display_text = bottom_text
+		elif not ParameterValidator.is_valid_parameter(display_par):
+			# Parameter has expression - prepend E: to value
+			if display_text is None:
+				# Format value with reduced max length to account for "E:" prefix
+				formatted_val = LabelFormatter.format_value(val, max_length=VSN1Constants.MAX_VALUE_LENGTH - 2)
+				display_text = f"E:{formatted_val}"
+			else:
+				# Truncate display_text to account for "E:" prefix
+				display_text = f"E:{display_text}"[:VSN1Constants.MAX_VALUE_LENGTH]
 		
 		# Get label (handles both Par and ParGroup)
 		label = self._get_parameter_label(par_or_group, display_par)
