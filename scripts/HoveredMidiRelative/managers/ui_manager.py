@@ -1,7 +1,7 @@
 
 '''Info Header Start
 Name : ui_manager
-Author : team@DEREAL-PC
+Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.193.toe
 Saveversion : 2023.12120
 Info Header End'''

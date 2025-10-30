@@ -3,7 +3,7 @@
 Name : slot_manager
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.189.toe
-Saveversion : 2025.31310
+Saveversion : 2023.12120
 Info Header End'''
 
 from typing import Optional, Union
@@ -151,10 +151,13 @@ class SlotManager:
 		
 		# Update display with slot parameter
 		if (slot_par := self.parent.slotPars[currBank][slot_idx]) is not None:
-			# Capture initial values for undo when slot is activated
+			# Capture initial values for undo when slot is activated#
 			self.parent.undo_manager.on_slot_activated(slot_par)
 			
-			self.parent.display_manager.update_parameter_display(slot_par)
+			bottom_text = None
+			if error_msg := ParameterValidator.get_validation_error(slot_par):
+				bottom_text = error_msg
+			self.parent.display_manager.update_parameter_display(slot_par, bottom_text=bottom_text)
 		
 			# Update LEDs and outline color
 			self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)

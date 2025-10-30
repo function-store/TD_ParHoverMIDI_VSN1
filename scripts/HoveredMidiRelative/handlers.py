@@ -5,7 +5,7 @@ Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.187.toe
 Saveversion : 2023.12120
 Info Header End'''
-from constants import MidiConstants, VSN1ColorIndex, ScreenMessages, SecondaryMode, StepMode
+from constants import MidiConstants, VSN1ColorIndex, ScreenMessages, StepMode, PushStepMode
 from validators import ParameterValidator
 from typing import Union
 
@@ -67,10 +67,10 @@ class MidiMessageHandler:
 			return False
 			
 		block = blocks[0]
-		if self.parent.secondaryMode == SecondaryMode.STEP and self.parent.secondaryPushState:
-			self.parent.ownerComp.par.Secondarystep.val = block.par.Step.eval()
+		if self.parent.evalPushstepmode == PushStepMode.FIXED.value and self.parent.knobPushState:
+			self.parent.ownerComp.par.Pushstep.val = block.par.Step.eval()
 			return True
-		if not self.shortcutPressed:
+		if not self.shortcutPressed and not (self.parent.knobPushState or self.parent.evalPushstepmode == PushStepMode.FIXED.value):
 			if value == 0:
 				self.parent._currStep = block.par.Step.eval()
 		return True
@@ -199,12 +199,15 @@ class MidiMessageHandler:
 				# Clear invalid parameter from all slots
 				self._clear_invalid_parameter_from_slots(active_par)
 				return False
+
+			# check if user is holding down the push button
+			if self.parent.knobPushState:
+				self.parent.jumpToOp.Jump(active_par.owner)
 			
 			# Check for validation errors
 			error_msg = ParameterValidator.get_validation_error(active_par)
 			if error_msg:
 				self.parent.display_manager.show_parameter_error(active_par, error_msg)
-				return True
 			
 			# Activate the slot using slot_manager
 			return self.parent.slot_manager.activate_slot(block_idx)
@@ -257,8 +260,8 @@ class MidiMessageHandler:
 		
 		if active_par.isNumber:
 			# Apply secondary step if active
-			if self.parent.secondaryPushState and self.parent.secondaryMode == SecondaryMode.STEP:
-				step = self.parent.evalSecondarystep or step
+			if self.parent.knobPushState:
+				step = self._get_push_step(step)
 			
 			# Calculate step amount based on mode
 			if self.parent.stepMode == StepMode.FIXED:
@@ -310,3 +313,15 @@ class MidiMessageHandler:
 		if update_display:
 			self.parent.display_manager.update_parameter_display(active_par)
 
+	def _get_push_step(self, step: float) -> float:
+		if self.parent.evalPushstepmode == PushStepMode.FIXED.value:
+			return self.parent.evalPushstep
+		elif self.parent.evalPushstepmode == PushStepMode.FINER.value:
+			# gonna be lazy and just divide by 10
+			# we could get the step from the sequence blocks, but this is simpler and faster
+			return step / 10
+		elif self.parent.evalPushstepmode == PushStepMode.COARSER.value:
+			# gonna be lazy and just multiply by 10
+			# we could get the step from the sequence blocks, but this is simpler and faster
+			return step * 10
+		return step

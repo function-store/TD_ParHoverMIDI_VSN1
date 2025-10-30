@@ -35,7 +35,7 @@ class HoveredMidiRelativeExt:
 		
 		# Initialize TD operators
 		self.midiOut = self.ownerComp.op('midiout1')
-
+		self.jumpToOp : JumpToOpExt = self.ownerComp.op('JumpToOp')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
 
 		# UI Mod init
@@ -284,12 +284,7 @@ class HoveredMidiRelativeExt:
 		return KnobLedUpdateMode(self.evalKnobledupdate)
 
 	@property
-	def secondaryMode(self) -> SecondaryMode:
-		"""Get the current secondary mode from component parameter"""
-		return SecondaryMode(self.evalSecondarymode)
-
-	@property
-	def secondaryPushState(self) -> bool:
+	def knobPushState(self) -> bool:
 		"""Get the current push state from component parameter"""
 		return self.ownerComp.op('null_push')[0].eval()
 
@@ -509,16 +504,15 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to reset active parameter (or ParGroup)"""
 		if self.activePar is None:
 			return
+
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(self.activePar):
+			self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
+		else:
+			# Handle single Par
+			self.undo_manager.create_reset_undo_for_parameter(self.activePar)
 		
-		if force or self.secondaryMode == SecondaryMode.RESET:
-			# Handle ParGroup
-			if ParameterValidator.is_pargroup(self.activePar):
-				self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
-			else:
-				# Handle single Par
-				self.undo_manager.create_reset_undo_for_parameter(self.activePar)
-			
-			self.display_manager.update_parameter_display(self.activePar)
+		self.display_manager.update_parameter_display(self.activePar)
 
 	def onSetDefault(self):
 		"""TouchDesigner callback to set default parameter value"""

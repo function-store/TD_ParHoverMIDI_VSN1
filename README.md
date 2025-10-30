@@ -26,7 +26,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
 - **Step Mode**: Choose between Fixed (fixed step size) or Adaptive (step scales with parameter range)
-- **Secondary Mode**: Knob push functionality with two modes - Reset (hold to reset parameter) or Step (hold and rotate for alternate step size)
+- **Push Step Mode**: Knob push button with three modes - Fixed (hold and rotate for alternate step), Finer (hold for next smaller step), or Coarser (hold for next larger step)
 - **Parameter Value Shortcuts**: Multiple button combinations for quick operations (reset, set default, set min/max, clamp values)
 - **Quick Parameter Customization**: Long-press first and last step/bank buttons to instantly open the component editor for any active custom parameter
 - **Value Undo/Redo**: Full undo/redo support for parameter value adjustments using standard keyboard shortcuts (Ctrl+Z/Ctrl+Y on Windows, Cmd+Z/Cmd+Shift+Z on Mac)
@@ -136,6 +136,11 @@ The component supports multiple parameter slots that can be assigned to differen
 - **VSN1 screen updates** to show the active slot parameter (for groups, displays first parameter's value)
 - **VSN1 LED feedback**: The active slot button lights up, previous slot LED turns off automatically
 
+**Jump to Operator**:
+- **Hold the knob push button and press any active slot button** to jump to the parameter's owner operator in the network
+- **Network navigation**: The network view centers on and selects the operator containing the slot's parameter
+- **Use Case**: Quickly locate and inspect operators without manually searching through your network
+
 **Return to Hover Mode**:
 - **Press an empty slot button** (one without an assigned parameter) to return to normal hover mode
 - **All VSN1 slot LEDs turn off** when returning to hover mode
@@ -204,20 +209,24 @@ The component supports two different step calculation modes that determine how p
 - **Via VSN1 Shortcut**: Press the leftmost and the rightmost step buttons simultaneously to toggle between modes
 - **Visual Feedback**: VSN1 screen briefly displays "_FIXED_" or "_ADAPT_" when mode changes, and the circle's outline color switches between white (Fixed) and colored (Adaptive)
 
-### Secondary Mode (`Secondary Mode`)
-The knob push button functionality can be configured for two different modes:
+### Push Step Mode (`Push Step Mode`)
+The knob push button functionality can be configured for different step size behaviors when rotating while pushed:
 
-**Reset Mode**:
-- **Hold the knob push button**: While hovering over or controlling any parameter
-- **Result**: After holding for the configured duration, the parameter resets to its default value
-- **Duration**: Configurable via the `Reset Par Hold Length` parameter
-
-**Step Mode**:
+**Fixed Mode**:
 - **Hold the knob push button and rotate**: While hovering over or controlling any parameter
-- **Result**: Uses an alternate step size for finer or coarser control
-- **Step Size**: Configurable via the `Secondary Step` parameter
-- **Quick Step Assignment**: While holding the knob push button, press any step button to set that step size as the secondary step
-- **Use Case**: Quickly switch between two different precision levels without cycling through step buttons
+- **Result**: Uses a fixed alternate step size for finer or coarser control settable by the `Push Step` custom parameter
+- **Quick Step Assignment**: While holding the knob push button, press any step button to set that step size as the alternate step
+- **Use Case**: Quickly switch between two specific precision levels without cycling through step buttons
+
+**Finer Mode**:
+- **Hold the knob push button and rotate**: While hovering over or controlling any parameter
+- **Result**: Uses the current primary step size divided by 10.
+- **Use Case**: Gradually increase precision as needed without manual step selection
+
+**Larger Mode**:
+- **Hold the knob push button and rotate**: While hovering over or controlling any parameter
+- **Result**: Uses the current primary step size multiplied by 10.
+- **Use Case**: Gradually decrease precision as needed without manual step selection
 
 ### Parameter Pulse (`Pulse Index`)
 - **Press this MIDI button**: While hovering over a parameter
@@ -296,10 +305,8 @@ This comprehensive visual system provides clear feedback about parameter states 
 
 The following parameters are available to further customize the functionality of the component:
 - **`Step Size`**: Adjustable in each `Step` block.
-- **`Step Mode`**: Choose between "Fixed" (fixed step size) or "Adaptive" (step scales with parameter range). Can also be toggled by holding all 4 step buttons simultaneously.
-- **`Secondary Mode`**: Choose between "Reset" or "Step" to determine knob push button behavior.
-- **`Reset Hold Length`**: (Reset mode) Duration the knob push button must be held to reset the active parameter to **its** default value.
-- **`Secondary Step`**: (Step mode) Alternate step size used when holding the knob push button and rotating the knob.
+- **`Step Mode`**: Choose between "Fixed" (fixed step size) or "Adaptive" (step scales with parameter range). Can also be toggled by pressing the leftmost and rightmost step buttons simultaneously.
+- **`Push Step Mode`**: Choose between "Fixed" (uses alternate step when knob pushed), "Finer" (uses current primary step size divided by 10), or "Larger" (uses current primary step size multiplied by 10).
 - **`Loop Menus`**: When enabled, menu parameters loop around (last item → first item). When disabled, menu navigation stops at the edges.
 - **`Enable Undo`**: When enabled, all operations (parameter value changes, parameter resets, slot assignments, and slot clearing) can be undone/redone. Undo/redo works across banks and validates parameter existence before restoring.
 - **`Undo Timeout (ValueChange)`**: Defines how long (in seconds) after a parameter value change the system waits before pushing it to the undo stack. This allows for continuous adjustments to be grouped into a single undo action, preventing excessive undo history entries during rapid knob movements. Default: 1 seconds.

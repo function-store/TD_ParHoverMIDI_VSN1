@@ -1,7 +1,7 @@
 
 '''Info Header Start
 Name : constants
-Author : team@DEREAL-PC
+Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.188.toe
 Saveversion : 2023.12120
 Info Header End'''
@@ -63,13 +63,14 @@ class KnobLedUpdateMode(Enum):
 	VALUE = 'Value'
 	STEPS = 'Step'
 
-class SecondaryMode(Enum):
-	RESET = 'Reset'
-	STEP = 'Step'
-
 class StepMode(Enum):
 	FIXED = 'Fixed'
 	ADAPTIVE = 'Adaptive'
+
+class PushStepMode(Enum):
+	FIXED = 'Fixed'
+	FINER = 'Finer'
+	COARSER = 'Coarser'
 
 class OverrideUIElements:
 	"""
