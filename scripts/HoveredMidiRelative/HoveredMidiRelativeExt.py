@@ -1,7 +1,7 @@
 '''Info Header Start
 Name : HoveredMidiRelativeExt
 Author : Dan@DAN-4090
-Saveversion : 2023.12120
+Saveversion : 2025.31310
 Info Header End'''
 import json
 import math
@@ -379,14 +379,19 @@ class HoveredMidiRelativeExt:
 			if par_group_obj is not None:
 				self.hoveredPar = par_group_obj
 				
+				
 				# Handle invalid/unsupported parameters when no active slot
 				if self.activeSlot is None:
 					if error_msg := ParameterValidator.get_validation_error(par_group_obj):
+						self._set_parexec_pars(None)
 						self.display_manager.show_parameter_error(par_group_obj, error_msg)
 						return  # Parameter group is invalid, error message shown
 					
+				self._set_parexec_pars(None)
+				# set first valid 
 				# Capture initial values for undo when hovering
 				self.undo_manager.on_parameter_hovered(par_group_obj)
+				
 				
 				# Update screen if no active slot (only for valid parameter groups)
 				self.display_manager.update_parameter_display(par_group_obj)
