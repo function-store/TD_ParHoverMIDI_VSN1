@@ -3,7 +3,7 @@
 Name : slot_manager
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.189.toe
-Saveversion : 2023.12120
+Saveversion : 2025.31310
 Info Header End'''
 
 from typing import Optional, Union
@@ -46,7 +46,19 @@ class SlotManager:
 		
 		# Assign parameter (or ParGroup) and activate slot
 		self.parent.slotPars[currBank][slot_idx] = parameter
-		self.parent._set_parexec_pars(parameter)
+
+		# Set parexec to the first valid parameter for ParGroups, or the parameter itself for single pars
+		if ParameterValidator.is_pargroup(parameter):
+			# Find first valid parameter in the group
+			for p in parameter:
+				if p is not None and ParameterValidator.is_valid_parameter(p):
+					self.parent._set_parexec_pars(p)
+					break
+			else:
+				# No valid parameters found, set to None
+				self.parent._set_parexec_pars(None)
+		else:
+			self.parent._set_parexec_pars(parameter)
 		
 		self.parent.activeSlot = slot_idx
 		self.parent.bankActiveSlots[currBank] = slot_idx
@@ -158,7 +170,19 @@ class SlotManager:
 		if (slot_par := self.parent.slotPars[currBank][slot_idx]) is not None:
 			# Capture initial values for undo when slot is activated#
 			self.parent.undo_manager.on_slot_activated(slot_par)
-			self.parent._set_parexec_pars(slot_par)
+
+			# Set parexec to the first valid parameter for ParGroups, or the parameter itself for single pars
+			if ParameterValidator.is_pargroup(slot_par):
+				# Find first valid parameter in the group
+				for p in slot_par:
+					if p is not None and ParameterValidator.is_valid_parameter(p):
+						self.parent._set_parexec_pars(p)
+						break
+				else:
+					# No valid parameters found, set to None
+					self.parent._set_parexec_pars(None)
+			else:
+				self.parent._set_parexec_pars(slot_par)
 			
 			bottom_text = None
 			if error_msg := ParameterValidator.get_validation_error(slot_par):
@@ -254,6 +278,20 @@ class SlotManager:
 		# Update display based on active slot or hover mode
 		if self.parent.activeSlot is not None:
 			active_par = self.parent.slotPars[currBank][self.parent.activeSlot]
+
+			# Set parexec to the first valid parameter for ParGroups, or the parameter itself for single pars
+			if ParameterValidator.is_pargroup(active_par):
+				# Find first valid parameter in the group
+				for p in active_par:
+					if p is not None and ParameterValidator.is_valid_parameter(p):
+						self.parent._set_parexec_pars(p)
+						break
+				else:
+					# No valid parameters found, set to None
+					self.parent._set_parexec_pars(None)
+			else:
+				self.parent._set_parexec_pars(active_par)
+
 			self.parent.display_manager.update_parameter_display(active_par)
 			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		else:
