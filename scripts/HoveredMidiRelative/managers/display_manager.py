@@ -7,7 +7,7 @@ Saveversion : 2023.12120
 Info Header End'''
 import re
 from typing import Optional, Union
-from constants import ScreenMessages, VSN1ColorIndex, VSN1Constants, KnobLedUpdateMode, StepMode
+from constants import ScreenMessages, VSN1Constants, KnobLedUpdateMode, StepMode
 from formatters import LabelFormatter
 from validators import ParameterValidator
 import math
@@ -35,15 +35,17 @@ class DisplayManager:
 				# Get real parameter values
 				val, min_val, max_val, display_text, norm_default, clamps = self._get_parameter_display_values(display_par)
 				
-				# For EXPR errors, prepend E: to the displayed value
+				# For EXPR errors, enclose value in parentheses
 				if error_msg == ScreenMessages.EXPR:
 					if display_text is None:
-						# Format value with reduced max length to account for "E:" prefix
-						formatted_val = LabelFormatter.format_value(val, max_length=VSN1Constants.MAX_VALUE_LENGTH - 2)
-						display_text = f"E:{formatted_val}"
+						# Format value with reduced max length to account for "E(" and ")" wrapper
+						formatted_val = LabelFormatter.format_value(val, max_length=VSN1Constants.MAX_VALUE_LENGTH - len(ScreenMessages.EXPR_PREFIX) - 1)
+						display_text = f"{ScreenMessages.EXPR_PREFIX}{formatted_val})"
 					else:
-						# Truncate display_text to account for "E:" prefix
-						display_text = f"E:{display_text}"[:VSN1Constants.MAX_VALUE_LENGTH]
+						# Ensure display_text fits within available space before adding wrapper
+						max_content_length = VSN1Constants.MAX_VALUE_LENGTH - len(ScreenMessages.EXPR_PREFIX) - 1
+						truncated_text = display_text[:max_content_length]
+						display_text = f"{ScreenMessages.EXPR_PREFIX}{truncated_text})"
 				
 				# Show error with actual parameter values
 				self.update_all_display(val, min_val, max_val, param_label, display_text if error_msg == ScreenMessages.EXPR else error_msg, compress=True, norm_default=norm_default, clamps=clamps)
@@ -136,14 +138,16 @@ class DisplayManager:
 		if bottom_text is not None:
 			display_text = bottom_text
 		elif not ParameterValidator.is_valid_parameter(display_par):
-			# Parameter has expression - prepend E: to value
+			# Parameter has expression - enclose value in parentheses
 			if display_text is None:
-				# Format value with reduced max length to account for "E:" prefix
-				formatted_val = LabelFormatter.format_value(val, max_length=VSN1Constants.MAX_VALUE_LENGTH - 2)
-				display_text = f"E:{formatted_val}"
+				# Format value with reduced max length to account for "E(" and ")" wrapper
+				formatted_val = LabelFormatter.format_value(val, max_length=VSN1Constants.MAX_VALUE_LENGTH - len(ScreenMessages.EXPR_PREFIX) - 1)
+				display_text = f"{ScreenMessages.EXPR_PREFIX}{formatted_val})"
 			else:
-				# Truncate display_text to account for "E:" prefix
-				display_text = f"E:{display_text}"[:VSN1Constants.MAX_VALUE_LENGTH]
+				# Ensure display_text fits within available space before adding wrapper
+				max_content_length = VSN1Constants.MAX_VALUE_LENGTH - len(ScreenMessages.EXPR_PREFIX) - 1
+				truncated_text = display_text[:max_content_length]
+				display_text = f"{ScreenMessages.EXPR_PREFIX}{truncated_text})"
 		
 		# Get label (handles both Par and ParGroup)
 		label = self._get_parameter_label(par_or_group, display_par)

@@ -297,7 +297,14 @@ class SlotManager:
 		else:
 			# Return to hover mode
 			if self.parent.hoveredPar is not None:
-				self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
+				# Check if hovered parameter is an expression and handle accordingly
+				if error_msg := ParameterValidator.get_validation_error(self.parent.hoveredPar):
+					self.parent.display_manager.show_parameter_error(self.parent.hoveredPar, error_msg)
+					if error_msg == ScreenMessages.EXPR:
+						self.parent._set_parexec_pars(self.parent.hoveredPar)
+				else:
+					# Valid parameter - update display normally
+					self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
 			else:
 				self.parent.display_manager.update_all_display(
 					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
@@ -333,7 +340,14 @@ class SlotManager:
 			label = ScreenMessages.HOVER
 
 		if self.parent.hoveredPar is not None:
-			self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
+			# Check if hovered parameter is an expression and handle accordingly
+			if error_msg := ParameterValidator.get_validation_error(self.parent.hoveredPar):
+				self.parent.display_manager.show_parameter_error(self.parent.hoveredPar, error_msg)
+				if error_msg == ScreenMessages.EXPR:
+					self.parent._set_parexec_pars(self.parent.hoveredPar)
+			else:
+				# Valid parameter - update display normally
+				self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
 
 		else:
 			self.parent.display_manager.update_all_display(0, 0, 1, label, ScreenMessages.HOVER, compress=False)

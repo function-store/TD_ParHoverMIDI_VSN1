@@ -320,7 +320,7 @@ class HoveredMidiRelativeExt:
 			
 			if should_run:
 				self.display_run_obj = run(
-					"args[0].display_manager.update_all_display(0, 0, 1, 'TD Hover', args[1], compress=False)", 
+					"args[0].display_manager.update_all_display(0, 0, 1, 'TD Hover', '...', compress=False)", 
 					self, ScreenMessages.UNSUPPORTED, delayMilliSeconds=1000, delayRef=op.TDResources
 				)
 		else:
@@ -677,7 +677,6 @@ class HoveredMidiRelativeExt:
 			for par_in_group in self.activePar:
 				if par_in_group.owner == _par.owner and par_in_group.name == _par.name:
 					return
-					break
 
 		if self.lastCachedChange:#
 			if f'{_par.owner.path}:{_par.name}' == self.lastCachedChange[0] and _par.eval() == self.lastCachedChange[1]:
