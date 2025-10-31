@@ -1,8 +1,8 @@
 '''Info Header Start
 Name : HoveredMidiRelativeExt
 Author : Dan@DAN-4090
-Saveversion : 2025.31310
-Info Header End'''
+SavSaveversion : 2023.12120
+ Header End'''
 import json
 import math
 import re
@@ -394,7 +394,8 @@ class HoveredMidiRelativeExt:
 				
 				
 				# Update screen if no active slot (only for valid parameter groups)
-				self.display_manager.update_parameter_display(par_group_obj)
+				if self.activeSlot is None:
+					self.display_manager.update_parameter_display(par_group_obj)
 				return  # Early return to avoid processing as single par
 		
 		# Single Par detected (or extracted from single-item ParGroup)
@@ -667,11 +668,21 @@ class HoveredMidiRelativeExt:
 		# check if _par is a cached parameter and if the value matches the cached value do nothing
 		if isinstance(_par, ParGroup):
 			return
-			
+
+		# Check if parameter is part of an active slot ParGroup
+		if (self.activeSlot is not None and
+			self.activePar is not None and
+			ParameterValidator.is_pargroup(self.activePar)):
+			# Check if _par is in the active ParGroup
+			for par_in_group in self.activePar:
+				if par_in_group.owner == _par.owner and par_in_group.name == _par.name:
+					return
+					break
+
 		if self.lastCachedChange:#
 			if f'{_par.owner.path}:{_par.name}' == self.lastCachedChange[0] and _par.eval() == self.lastCachedChange[1]:
 				return
-		
+
 		# update display with the new value
 		self.display_manager.update_parameter_display(_par)
 
