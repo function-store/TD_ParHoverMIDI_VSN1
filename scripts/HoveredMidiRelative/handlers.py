@@ -114,6 +114,10 @@ class MidiMessageHandler:
 		if index != push_index:
 			return False
 			
+		if hasattr(self, 'pushed_for_jump') and value == 0 and self.pushed_for_jump:
+			self.pushed_for_jump = False
+			return True
+
 		if active_par is None or not active_par.valid or (active_par.owner == self.parent.ownerComp):
 			# Clear invalid parameter from all slots
 			self._clear_invalid_parameter_from_slots(active_par)
@@ -139,19 +143,19 @@ class MidiMessageHandler:
 					# Skip invalid parameters within the group
 					if par is None or not ParameterValidator.is_valid_parameter(par):
 						continue
-					if par.isPulse:
-						par.pulse()
 					elif par.isMomentary:
 						par.val = True
-					elif par.isToggle:
-						par.val = not par.eval()
 			if value == 0:
 				for par in active_par:
 					# Skip invalid parameters within the group
 					if par is None or not ParameterValidator.is_valid_parameter(par):
 						continue
-					if par.isMomentary:
+					elif par.isMomentary:
 						par.val = False
+					elif par.isToggle:
+						par.val = not par.eval()
+					elif par.isPulse:
+						par.pulse()
 			self.parent.display_manager.update_parameter_display(active_par)
 			return True
 		
@@ -163,15 +167,20 @@ class MidiMessageHandler:
 			return True  # Parameter is invalid, error message shown
 			
 		if value == MidiConstants.MAX_VELOCITY:
+			if active_par.isMomentary:
+				active_par.val = not active_par.default
+			if active_par.isPulse:
+				# HACK: sorry
+				self.is_from_pulsepush = 1
+		elif value == 0:
 			if active_par.isPulse:
 				active_par.pulse()
+				# HACK: sorry
+				self.is_from_pulsepush = 2
 			elif active_par.isMomentary:
-				active_par.val = not active_par.default
-			elif active_par.isToggle:
-				active_par.val = not active_par.eval()
-		if value == 0:
-			if active_par.isMomentary:
 				active_par.val = active_par.default
+			elif active_par.isToggle:
+				active_par.val = not active_par.eval()		
 		self.parent.display_manager.update_parameter_display(active_par)
 		
 		return True
@@ -205,6 +214,7 @@ class MidiMessageHandler:
 			# check if user is holding down the push button
 			if self.parent.knobPushState:
 				self.parent.jumpToOp.Jump(active_par.owner)
+				self.pushed_for_jump = True
 			
 			# Check for validation errors
 

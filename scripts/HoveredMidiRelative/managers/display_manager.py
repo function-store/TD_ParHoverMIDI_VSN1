@@ -117,7 +117,6 @@ class DisplayManager:
 	def update_parameter_display(self, par_or_group: Union[Par, ParGroup], bottom_text: str = None, force_knob_leds: bool = False):
 		"""Update displays for a specific parameter (or ParGroup) - handles ALL logic here
 		For ParGroups, displays the first valid parameter's value"""
-		
 		if getattr(self, 'step_updated', False) and self.parent.knobLedUpdateMode not in [KnobLedUpdateMode.STEPS]:
 			self.vsn1_renderer.update_knob_leds_steps(-1)
 			self.step_updated = False
@@ -204,11 +203,21 @@ class DisplayManager:
 			norm_default = 1 if par.default else 0
 			
 		elif par.isPulse:
-			val = 1 if par.eval() else 0
+			# HACK: sorry
+			if (state :=getattr(self.parent.midi_handler, 'is_from_pulsepush', 0)) > 0:
+				val = 0 if par.eval() else 1
+				# HACK: sorry
+				
+				if state == 2:
+					self.parent.midi_handler.is_from_pulsepush = 3
+				elif state == 3:
+					self.parent.midi_handler.is_from_pulsepush = 0
+			else:
+				val = 1 if par.eval() else 0
 			min_val, max_val = 0, 1
 			display_text = "_PULSE_"
-			norm_default = -1
-			
+			norm_default = 1 if par.eval() else 0
+
 		elif par.isNumber:  # Numeric parameter
 			val = par.eval()
 			min_val, max_val = par.normMin, par.normMax
