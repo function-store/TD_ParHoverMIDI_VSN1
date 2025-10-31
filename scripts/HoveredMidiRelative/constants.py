@@ -53,6 +53,7 @@ class ScreenMessages:
 	EXPR = '_EXPR_'
 	UNSUPPORTED = '___'
 	INVALID = '_INVALID_'
+	EXPR_PREFIX = 'E('
 
 class LabelDisplayMode(Enum):
 	TRUNCATED = 'Truncated'
