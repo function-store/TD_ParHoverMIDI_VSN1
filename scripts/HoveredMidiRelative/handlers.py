@@ -207,12 +207,13 @@ class MidiMessageHandler:
 				self.parent.jumpToOp.Jump(active_par.owner)
 			
 			# Check for validation errors
+
+			ret = self.parent.slot_manager.activate_slot(block_idx)			
 			error_msg = ParameterValidator.get_validation_error(active_par)
 			if error_msg:
 				self.parent.display_manager.show_parameter_error(active_par, error_msg)
-			
 			# Activate the slot using slot_manager
-			return self.parent.slot_manager.activate_slot(block_idx)
+			return ret
 		else:
 			# Deactivate slot (return to hover mode) using slot_manager
 			self.parent.slot_manager.deactivate_current_slot()
