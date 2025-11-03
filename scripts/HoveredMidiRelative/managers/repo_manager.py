@@ -114,8 +114,53 @@ class RepoManager:
 					except:
 						pass
 	
+	def save_bank_to_table(self, bank_idx: int):
+		"""Save a single bank FROM slotPars TO table (optimized for frequent updates)"""
+		self._ensure_bank_tables()
+		
+		bank_table = self.Repo.op(f'bank{bank_idx}')
+		if bank_table is None:
+			return
+		
+		# Save each slot in this bank
+		for slot_idx, par in enumerate(self.parent.slotPars[bank_idx]):
+			row_idx = slot_idx + 1  # +1 to skip header
+			
+			if par is None:
+				# Clear slot in table
+				bank_table[row_idx, 0] = ''
+				bank_table[row_idx, 1] = ''
+				bank_table[row_idx, 2] = ''
+				bank_table[row_idx, 3] = '0'
+			else:
+				# Save parameter to table
+				try:
+					if hasattr(par, 'owner'):
+						# Single Par
+						op_path = par.owner.path
+						par_name = par.name
+						par_type = 'par'
+					else:
+						# ParGroup
+						op_path = par[0].owner.path
+						par_name = par.name
+						par_type = 'pargroup'
+					
+					bank_table[row_idx, 0] = op_path
+					bank_table[row_idx, 1] = par_name
+					bank_table[row_idx, 2] = par_type
+					# Set active state
+					is_active = (self.parent.bankActiveSlots[bank_idx] == slot_idx)
+					bank_table[row_idx, 3] = '1' if is_active else '0'
+				except:
+					# If we can't access the parameter, clear the slot
+					bank_table[row_idx, 0] = ''
+					bank_table[row_idx, 1] = ''
+					bank_table[row_idx, 2] = ''
+					bank_table[row_idx, 3] = '0'
+	
 	def save_to_tables(self):
-		"""Save FROM slotPars TO tables (export)"""
+		"""Save FROM slotPars TO tables (export all banks)"""
 		self._ensure_bank_tables()
 		
 		num_banks = self.parent.numBanks

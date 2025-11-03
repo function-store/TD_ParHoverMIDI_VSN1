@@ -35,8 +35,11 @@ class SlotManager:
 		# Store previous active slot for LED updates
 		old_active_slot = self.parent.activeSlot
 		
-		# Assign parameter (or ParGroup) to table
+		# Assign parameter (or ParGroup) to runtime storage
 		self.parent.slotPars[currBank][slot_idx] = parameter
+		
+		# Update table for persistence (only current bank for performance)
+		self.parent.repo_manager.save_bank_to_table(currBank)
 
 		# Set parexec to the first valid parameter for ParGroups, or the parameter itself for single pars
 		if ParameterValidator.is_pargroup(parameter):
@@ -103,6 +106,9 @@ class SlotManager:
 		self.parent._activeSlotPar = None  # Clear cached active slot parameter
 		self.parent.bankActiveSlots[currBank] = None
 		
+		# Update table for persistence (only current bank for performance)
+		self.parent.repo_manager.save_bank_to_table(currBank)
+		
 		# Restore hovered UI color if enabled (now in hover mode)
 		if self.parent.evalColorhoveredui:
 			self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
@@ -150,6 +156,9 @@ class SlotManager:
 		self.parent.activeSlot = slot_idx
 		self.parent._activeSlotPar = slot_par  # Store directly for ultra-fast access
 		self.parent.bankActiveSlots[currBank] = slot_idx
+		
+		# Update table for persistence (only current bank for performance)
+		self.parent.repo_manager.save_bank_to_table(currBank)
 		
 		# Turn off hovered UI color when activating a slot
 		self.parent.ui_manager.set_hovered_ui_color(-1)
@@ -199,6 +208,9 @@ class SlotManager:
 		
 		# Save current active slot for current bank
 		self.parent.bankActiveSlots[old_bank] = self.parent.activeSlot
+		
+		# Update table for old bank persistence before switching
+		self.parent.repo_manager.save_bank_to_table(old_bank)
 		
 		# Switch to new bank
 		self.parent.currBank = bank_idx
@@ -313,6 +325,9 @@ class SlotManager:
 		self.parent._set_parexec_pars(None)
 		self.parent.bankActiveSlots[currBank] = None
 		
+		# Update table for persistence (only current bank for performance)
+		self.parent.repo_manager.save_bank_to_table(currBank)
+		
 		# Restore hovered UI color if enabled (now in hover mode)
 		if self.parent.evalColorhoveredui:
 			self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
@@ -386,6 +401,9 @@ class SlotManager:
 		if self.parent.bankActiveSlots[bank_idx] == slot_idx:
 			self.parent.activeSlot = None
 			self.parent.bankActiveSlots[bank_idx] = None
+		
+		# Update table for persistence (only this bank for performance)
+		self.parent.repo_manager.save_bank_to_table(bank_idx)
 			
 		# If we're currently in this bank, update UI
 		if bank_idx == self.parent.currBank:

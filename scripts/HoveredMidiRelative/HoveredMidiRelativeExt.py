@@ -112,8 +112,8 @@ class HoveredMidiRelativeExt:
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
 		
-		# Load from tables on first run (optional - for importing saved configs)
-		self.repo_manager.load_from_tables_if_needed()
+		# Load from tables on first run 
+		self.repo_manager.load_from_tables()
 
 		self.postInit()
 
