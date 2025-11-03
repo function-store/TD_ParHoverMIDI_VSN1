@@ -26,14 +26,15 @@ class VSN1Manager:
 			return
 		if info is None:
 			# list current active parameters
-			_slot_pars = self.parent.slotPars[self.parent.currBank]
+			_slot_pars = self.parent.repo_manager.get_all_slots_for_bank(self.parent.currBank)
 			_slot_pars = _slot_pars + [None] * (len(VSN1Constants.SLOT_INDICES) - len(_slot_pars))
 			_labels = []
 			for i, par in enumerate(_slot_pars):
 				if par is not None:
 					label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode, max_length=6)
-					if self.parent.activeSlot is not None and ((_activePar := self.parent.slotPars[self.parent.currBank][self.parent.activeSlot]) is not None):
-						if _activePar.owner == par.owner and _activePar.name == par.name:
+					if self.parent.activeSlot is not None:
+						_activePar = self.parent.repo_manager.get_slot_parameter(self.parent.activeSlot, self.parent.currBank)
+						if _activePar is not None and _activePar.owner == par.owner and _activePar.name == par.name:
 							label = '`'+label
 				else:
 					label = "---"

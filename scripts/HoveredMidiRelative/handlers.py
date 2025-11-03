@@ -41,7 +41,7 @@ class MidiMessageHandler:
 		self.parent.display_manager.show_parameter_error(active_par, ScreenMessages.INVALID)
 		
 		# Check all banks for this parameter and clear any slots containing it
-		for bank_idx in range(len(self.parent.slotPars)):
+		for bank_idx in range(self.parent.numBanks):
 			slot_idx = self.parent.slot_manager.find_slot_for_parameter(active_par, bank_idx)
 			if slot_idx is not None:
 				# Clear the slot containing this invalid parameter
@@ -78,19 +78,18 @@ class MidiMessageHandler:
 		return True
 	
 	def handle_knob_message(self, index: int, value: int, active_par) -> bool:
-		"""Handle knob control messages"""
+		"""Handle knob control messages
+		
+		Note: Validation happens when parameter becomes active (hover/slot activation).
+		For maximum performance, we skip validation during knob turns.
+		"""
 		knob_index = self.parent._safe_get_midi_index(self.parent.evalKnobindex, default=-1)
 		if index != knob_index:
 			return False
 
-		if active_par is None or not active_par.valid or (active_par.owner == self.parent.ownerComp):
-			# Clear invalid parameter from all slots
-			self._clear_invalid_parameter_from_slots(active_par)
+		# Only check if parameter exists - it was validated on activation
+		if active_par is None:
 			return False
-		
-		if error_msg := ParameterValidator.get_validation_error(active_par):
-			self.parent.display_manager.show_parameter_error(active_par, error_msg)
-			return True  # Parameter is invalid, error message shown
 		
 		# Only process actual knob movement (not center/idle position)
 		if value == MidiConstants.MIDI_CENTER_VALUE:
@@ -200,12 +199,9 @@ class MidiMessageHandler:
 		currBank = self.parent.currBank
 		
 		# Check if slot exists and has a parameter in current bank
-		if (currBank < len(self.parent.slotPars) and 
-			block_idx < len(self.parent.slotPars[currBank]) and 
-			self.parent.slotPars[currBank][block_idx] is not None):
-			
+		active_par = self.parent.repo_manager.get_slot_parameter(block_idx, currBank)
+		if active_par is not None:
 			# Validate parameter before activating
-			active_par = self.parent.slotPars[currBank][block_idx]
 			if not active_par.valid:
 				# Clear invalid parameter from all slots
 				self._clear_invalid_parameter_from_slots(active_par)

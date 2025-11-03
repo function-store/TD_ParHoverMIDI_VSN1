@@ -59,12 +59,10 @@ class DisplayManager:
 		# Check if slot is active
 		if self.parent.activeSlot == slot_idx:
 			return 255  # Active slot
-			
+		
 		# Check if slot is occupied
 		currBank = self.parent.currBank
-		if (currBank < len(self.parent.slotPars) and 
-			slot_idx < len(self.parent.slotPars[currBank]) and 
-			self.parent.slotPars[currBank][slot_idx] is not None):
+		if self.parent.repo_manager.is_slot_occupied(slot_idx, currBank):
 			return 127   # Occupied slot
 			
 		return 0  # Free slot (hover mode)

@@ -3,7 +3,7 @@
 Name : slot_manager
 Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.189.toe
-Saveversion : 2025.31310
+Saveversion : 2023.12120
 Info Header End'''
 
 from typing import Optional, Union
@@ -25,16 +25,7 @@ class SlotManager:
 		if not ParameterValidator.is_supported_parameter_type(parameter):
 			return False
 
-		# Extend number of banks if necessary
-		
-		# Extend slot list if necessary
 		currBank = self.parent.currBank
-		while len(self.parent.slotPars) <= currBank:
-			self.parent.slotPars.append([])
-
-		while len(self.parent.slotPars[currBank]) <= slot_idx:
-			# Extend current bank with empty slots as needed
-			self.parent.slotPars[currBank].append(None)
 		
 		# Capture state before assignment (for undo)
 		previous_parameter = self.parent.slotPars[currBank][slot_idx]
@@ -44,7 +35,7 @@ class SlotManager:
 		# Store previous active slot for LED updates
 		old_active_slot = self.parent.activeSlot
 		
-		# Assign parameter (or ParGroup) and activate slot
+		# Assign parameter (or ParGroup) to table
 		self.parent.slotPars[currBank][slot_idx] = parameter
 
 		# Set parexec to the first valid parameter for ParGroups, or the parameter itself for single pars
@@ -95,9 +86,6 @@ class SlotManager:
 	def clear_slot(self, slot_idx: int):
 		"""Clear a slot and return to hover mode"""
 		currBank = self.parent.currBank
-		if (currBank >= len(self.parent.slotPars) or 
-			slot_idx >= len(self.parent.slotPars[currBank])):
-			return
 		
 		# Check if slot has a parameter to clear
 		previous_parameter = self.parent.slotPars[currBank][slot_idx]
@@ -112,6 +100,7 @@ class SlotManager:
 		self.parent.slotPars[currBank][slot_idx] = None
 		self.parent._set_parexec_pars(None)
 		self.parent.activeSlot = None
+		self.parent._activeSlotPar = None  # Clear cached active slot parameter
 		self.parent.bankActiveSlots[currBank] = None
 		
 		# Restore hovered UI color if enabled (now in hover mode)
@@ -146,29 +135,28 @@ class SlotManager:
 		"""Activate an existing slot. Returns True if successful."""
 
 		currBank = self.parent.currBank
-		if (currBank >= len(self.parent.slotPars) or 
-			slot_idx >= len(self.parent.slotPars[currBank]) or 
-			self.parent.slotPars[currBank][slot_idx] is None):
+		slot_par = self.parent.slotPars[currBank][slot_idx]
+		
+		if slot_par is None:
 			return False
 
 		# Clear any unused captured values from previous slot
-		if (self.parent.activeSlot is not None and 
-			self.parent.activeSlot < len(self.parent.slotPars[currBank]) and
-			self.parent.slotPars[currBank][self.parent.activeSlot] is not None):
-			
+		if self.parent.activeSlot is not None:
 			old_slot_par = self.parent.slotPars[currBank][self.parent.activeSlot]
-			self.parent.undo_manager.on_slot_deactivated(old_slot_par)
+			if old_slot_par is not None:
+				self.parent.undo_manager.on_slot_deactivated(old_slot_par)
 		
 		old_active_slot = self.parent.activeSlot
 		self.parent.activeSlot = slot_idx
+		self.parent._activeSlotPar = slot_par  # Store directly for ultra-fast access
 		self.parent.bankActiveSlots[currBank] = slot_idx
 		
 		# Turn off hovered UI color when activating a slot
 		self.parent.ui_manager.set_hovered_ui_color(-1)
 		
 		# Update display with slot parameter
-		if (slot_par := self.parent.slotPars[currBank][slot_idx]) is not None:
-			# Capture initial values for undo when slot is activated#
+		if slot_par is not None:
+			# Capture initial values for undo when slot is activated
 			self.parent.undo_manager.on_slot_activated(slot_par)
 
 			# Set parexec to the first valid parameter for ParGroups, or the parameter itself for single pars
@@ -204,38 +192,35 @@ class SlotManager:
 		
 		# Clear any unused captured values from current bank's active slot
 		old_bank = self.parent.currBank
-		if (self.parent.activeSlot is not None and 
-			old_bank < len(self.parent.slotPars) and
-			self.parent.activeSlot < len(self.parent.slotPars[old_bank]) and
-			self.parent.slotPars[old_bank][self.parent.activeSlot] is not None):
+		if self.parent.activeSlot is not None:
 			old_slot_par = self.parent.slotPars[old_bank][self.parent.activeSlot]
-			self.parent.undo_manager.on_slot_deactivated(old_slot_par)
+			if old_slot_par is not None:
+				self.parent.undo_manager.on_slot_deactivated(old_slot_par)
 		
 		# Save current active slot for current bank
-		if self.parent.currBank < len(self.parent.bankActiveSlots):
-			self.parent.bankActiveSlots[self.parent.currBank] = self.parent.activeSlot
+		self.parent.bankActiveSlots[old_bank] = self.parent.activeSlot
 		
 		# Switch to new bank
 		self.parent.currBank = bank_idx
+		self.parent._activeSlotPar = None  # Clear cached active slot parameter
 		
 		# Ensure bank structure exists
 		self.parent._validate_storage()
 		
 		# Recall previous active slot for this bank
-		if (bank_idx < len(self.parent.bankActiveSlots) and 
-			self.parent.bankActiveSlots[bank_idx] is not None):
-			previous_slot = self.parent.bankActiveSlots[bank_idx]
-			
+		previous_slot = self.parent.bankActiveSlots[bank_idx]
+		
+		if previous_slot is not None:
 			# Check if the slot still has a valid parameter
-			if (previous_slot < len(self.parent.slotPars[bank_idx]) and 
-				self.parent.slotPars[bank_idx][previous_slot] is not None):
+			slot_par = self.parent.slotPars[bank_idx][previous_slot]
+			if slot_par is not None:
 				self.parent.activeSlot = previous_slot
+				self.parent._activeSlotPar = slot_par  # Store directly for ultra-fast access
 				
 				# Turn off hovered UI color when recalling a slot
 				self.parent.ui_manager.set_hovered_ui_color(-1)
 				
 				# Capture initial values for undo when recalling slot
-				slot_par = self.parent.slotPars[bank_idx][previous_slot]
 				self.parent.undo_manager.on_slot_activated(slot_par)
 			else:
 				self.parent.activeSlot = None
@@ -248,6 +233,7 @@ class SlotManager:
 					self.parent.ui_manager.set_hovered_ui_color(-1)
 		else:
 			self.parent.activeSlot = None
+			self.parent._activeSlotPar = None  # Clear cached active slot parameter
 			
 			# Restore hovered UI color if enabled (no active slot)
 			if self.parent.evalColorhoveredui:
@@ -279,21 +265,22 @@ class SlotManager:
 		if self.parent.activeSlot is not None:
 			active_par = self.parent.slotPars[currBank][self.parent.activeSlot]
 
-			# Set parexec to the first valid parameter for ParGroups, or the parameter itself for single pars
-			if ParameterValidator.is_pargroup(active_par):
-				# Find first valid parameter in the group
-				for p in active_par:
-					if p is not None and ParameterValidator.is_valid_parameter(p):
-						self.parent._set_parexec_pars(p)
-						break
+			if active_par is not None:
+				# Set parexec to the first valid parameter for ParGroups, or the parameter itself for single pars
+				if ParameterValidator.is_pargroup(active_par):
+					# Find first valid parameter in the group
+					for p in active_par:
+						if p is not None and ParameterValidator.is_valid_parameter(p):
+							self.parent._set_parexec_pars(p)
+							break
+					else:
+						# No valid parameters found, set to None
+						self.parent._set_parexec_pars(None)
 				else:
-					# No valid parameters found, set to None
-					self.parent._set_parexec_pars(None)
-			else:
-				self.parent._set_parexec_pars(active_par)
+					self.parent._set_parexec_pars(active_par)
 
-			self.parent.display_manager.update_parameter_display(active_par)
-			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+				self.parent.display_manager.update_parameter_display(active_par)
+				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 		else:
 			# Return to hover mode
 			if self.parent.hoveredPar is not None:
@@ -322,9 +309,9 @@ class SlotManager:
 		
 		# Clear active slot
 		self.parent.activeSlot = None
+		self.parent._activeSlotPar = None  # Clear cached active slot parameter
 		self.parent._set_parexec_pars(None)
-		if currBank < len(self.parent.bankActiveSlots):
-			self.parent.bankActiveSlots[currBank] = None
+		self.parent.bankActiveSlots[currBank] = None
 		
 		# Restore hovered UI color if enabled (now in hover mode)
 		if self.parent.evalColorhoveredui:
@@ -358,17 +345,11 @@ class SlotManager:
 	
 	def get_slot_parameter(self, slot_idx: int, bank_idx: Optional[int] = None) -> Optional[Union[Par, ParGroup]]:
 		"""Get the parameter (or ParGroup) assigned to a slot in the specified bank (defaults to current bank)"""
-		if bank_idx is None:
-			bank_idx = self.parent.currBank
-			
-		if (bank_idx >= len(self.parent.slotPars) or 
-			slot_idx >= len(self.parent.slotPars[bank_idx])):
-			return None
 		return self.parent.slotPars[bank_idx][slot_idx]
 	
 	def is_slot_occupied(self, slot_idx: int, bank_idx: Optional[int] = None) -> bool:
 		"""Check if a slot has a parameter (or ParGroup) assigned in the specified bank (defaults to current bank)"""
-		return self.get_slot_parameter(slot_idx, bank_idx) is not None
+		return self.parent.slotPars[bank_idx][slot_idx] is not None
 	
 	def is_slot_active(self, slot_idx: int) -> bool:
 		"""Check if a slot is currently active in the current bank"""
@@ -386,10 +367,10 @@ class SlotManager:
 		if bank_idx is None:
 			bank_idx = self.parent.currBank
 		
-		if bank_idx >= len(self.parent.slotPars):
-			return None
+		# Get all slots for the bank and search
+		all_slots = self.parent.slotPars[bank_idx]
 		
-		for slot_idx, slot_par in enumerate(self.parent.slotPars[bank_idx]):
+		for slot_idx, slot_par in enumerate(all_slots):
 			if slot_par is parameter:
 				return slot_idx
 		
@@ -397,17 +378,13 @@ class SlotManager:
 	
 	def clear_slot_in_bank(self, slot_idx: int, bank_idx: int):
 		"""Clear a slot in a specific bank (internal method for invalidation, no undo support)"""
-		if (bank_idx >= len(self.parent.slotPars) or 
-			slot_idx >= len(self.parent.slotPars[bank_idx])):
-			return
-		
 		# Clear the slot
 		self.parent.slotPars[bank_idx][slot_idx] = None
 		self.parent._set_parexec_pars(None)
 		
 		# If this was the active slot in this bank, deactivate it
-		if (bank_idx < len(self.parent.bankActiveSlots) and 
-			self.parent.bankActiveSlots[bank_idx] == slot_idx):
+		if self.parent.bankActiveSlots[bank_idx] == slot_idx:
+			self.parent.activeSlot = None
 			self.parent.bankActiveSlots[bank_idx] = None
 			
 		# If we're currently in this bank, update UI

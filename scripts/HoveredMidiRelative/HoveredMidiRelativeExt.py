@@ -21,6 +21,7 @@ from slot_manager import SlotManager
 from vsn1_manager import VSN1Manager
 from ui_manager import UIManager
 from undo_manager import UndoManager
+from repo_manager import RepoManager
 
 
 
@@ -49,8 +50,10 @@ class HoveredMidiRelativeExt:
 		
 		# Initialize state - can be either a single Par or a ParGroup
 		self.hoveredPar: Optional[Union[Par, ParGroup]] = None
+		self._activeSlotPar: Optional[Union[Par, ParGroup]] = None  # Direct storage of active slot parameter
 		
 		# Initialize helper classes
+		self.repo_manager = RepoManager(self)  # Initialize first as others may depend on it
 		self.midi_handler = MidiMessageHandler(self)
 		self.vsn1_manager = VSN1Manager(self)
 		self.ui_manager = UIManager(self)
@@ -61,11 +64,18 @@ class HoveredMidiRelativeExt:
 		self.display_run_obj = None
 		self.lastCachedChange = None
 
-		# Initialize storage
+		# Initialize storage (back to using slotPars and bankActiveSlots for performance)
 		storedItems = [
 			{
 				'name': 'slotPars',
 				'default': [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)],
+				'readOnly': False,
+				'property': True,
+				'dependable': False
+			},
+			{
+				'name': 'bankActiveSlots',
+				'default': [None for _ in range(self.numBanks)],
 				'readOnly': False,
 				'property': True,
 				'dependable': False
@@ -91,13 +101,6 @@ class HoveredMidiRelativeExt:
 				'dependable': False
 			},
 			{
-				'name': 'bankActiveSlots',
-				'default': [None for _ in range(self.numBanks)],
-				'readOnly': False,
-				'property': True,
-				'dependable': False
-			},
-			{
 				'name': 'currentHoveredUIColor',
 				'default': -1,
 				'readOnly': False,
@@ -108,6 +111,9 @@ class HoveredMidiRelativeExt:
 
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
+		
+		# Load from tables on first run (optional - for importing saved configs)
+		self.repo_manager.load_from_tables_if_needed()
 
 		self.postInit()
 
@@ -187,63 +193,23 @@ class HoveredMidiRelativeExt:
 
 	def _validate_storage(self):
 		"""Validate storage and ensure proper structure for dynamic bank changes"""
-		# Ensure slotPars is properly structured as 2D array
-		if not isinstance(self.slotPars, list):
-			self.slotPars = []
-		
-		# Ensure bankActiveSlots is properly structured
-		if not isinstance(self.bankActiveSlots, list):
-			self.bankActiveSlots = []
-		
-		# Ensure we have at least as many banks as configured
-		current_num_banks = self.numBanks
-		
-		# Extend slotPars if we have more banks than before
-		while len(self.slotPars) < current_num_banks:
-			self.slotPars.append([])
-		
-		# Extend bankActiveSlots if we have more banks than before
-		while len(self.bankActiveSlots) < current_num_banks:
-			self.bankActiveSlots.append(None)
-		
-		# Truncate if we have fewer banks than before (but preserve data)
-		if len(self.slotPars) > current_num_banks:
-			self.slotPars = self.slotPars[:current_num_banks]
-		
-		if len(self.bankActiveSlots) > current_num_banks:
-			self.bankActiveSlots = self.bankActiveSlots[:current_num_banks]
-		
 		# Validate current bank index
-		if self.currBank >= current_num_banks:
+		if self.currBank >= self.numBanks:
 			self.currBank = 0
 			self.activeSlot = None
+			self._activeSlotPar = None
 		
-		# Validate each bank's slots
-		for _bank_idx in range(len(self.slotPars)):
-			bank_slots = self.slotPars[_bank_idx]
-			if not isinstance(bank_slots, list):
-				self.slotPars[_bank_idx] = []
-				continue
-				
-			for idx, _par_or_group in enumerate(bank_slots):
-				if _par_or_group is not None:
-					# Handle ParGroup
-					if ParameterValidator.is_pargroup(_par_or_group):
-						# Check if any parameters in the group are still valid
-						has_valid = any(p.valid for p in _par_or_group if p is not None)
-						if not has_valid:
-							self.slotPars[_bank_idx][idx] = None
-							if self.currBank == _bank_idx and self.activeSlot == idx:
-								# Invalidate active slot
-								self.activeSlot = None
-								self.bankActiveSlots[_bank_idx] = None
-					# Handle single Par
-					elif not _par_or_group.valid:
-						self.slotPars[_bank_idx][idx] = None
-						if self.currBank == _bank_idx and self.activeSlot == idx:
-							# Invalidate active slot
-							self.activeSlot = None
-							self.bankActiveSlots[_bank_idx] = None
+		# Validate all parameters in all banks and clear invalid ones
+		self.repo_manager.validate_and_clean_all_banks()
+		
+		# Sync activeSlot with bankActiveSlots
+		active_slot_idx = self.bankActiveSlots[self.currBank]
+		if active_slot_idx is not None:
+			self.activeSlot = active_slot_idx
+			self._activeSlotPar = self.slotPars[self.currBank][active_slot_idx]
+		else:
+			self.activeSlot = None
+			self._activeSlotPar = None
 	
 	def _initialize_VSN1(self):
 		"""Initialize VSN1 screen if enabled"""
@@ -308,15 +274,14 @@ class HoveredMidiRelativeExt:
 	@property
 	def activePar(self) -> Optional[Union[Par, ParGroup]]:
 		"""Get currently active parameter (slot takes priority over hovered)
-		Can return a single Par or a ParGroup"""
-		# Prioritize active slot parameters over hovered parameter
-		if (self.activeSlot is not None and 
-			self.activeSlot < self.numSlots and 
-			self.currBank < self.numBanks and
-			self.currBank < len(self.slotPars) and
-			self.activeSlot < len(self.slotPars[self.currBank]) and
-			self.slotPars[self.currBank][self.activeSlot] is not None):
-				return self.slotPars[self.currBank][self.activeSlot]
+		Can return a single Par or a ParGroup
+		
+		For performance, active slot parameter is stored directly in _activeSlotPar
+		when a slot is activated, avoiding list lookups during MIDI handling.
+		"""
+		# Prioritize active slot parameter (stored directly for fast access)
+		if self._activeSlotPar is not None:
+			return self._activeSlotPar
 			
 		if self.hoveredPar is not None:
 			return self.hoveredPar
@@ -420,7 +385,7 @@ class HoveredMidiRelativeExt:
 		
 		if not (_op := op(_op)):
 			return
-		
+			
 		# Detect if we're hovering over a ParGroup or a single Par
 		par_group_obj = getattr(_op.parGroup, _parGroup, None) if _parGroup else None
 		single_par = getattr(_op.par, _par, None) if _par else None
@@ -975,11 +940,6 @@ class HoveredMidiRelativeExt:
 # endregion parameter callbacks
 	def onProjectPreSave(self):
 		"""TouchDesigner callback when project is pre-saved"""
-		# Validate all banks and all slot parameters
-		for bank_idx in range(len(self.slotPars)):
-			for slot_idx in range(len(self.slotPars[bank_idx])):
-				par = self.slotPars[bank_idx][slot_idx]
-				if par is not None and not par.valid:
-					# Clear invalid parameters silently during save
-					self.slot_manager.clear_slot_in_bank(slot_idx, bank_idx)
+		# Save runtime storage to tables for persistence
+		self.repo_manager.save_to_tables()
 # endregion

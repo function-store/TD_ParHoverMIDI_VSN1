@@ -151,10 +151,10 @@ class UIManager:
 		currBank = self.parent.currBank
 		for i in range(self.parent.numSlots):
 			# Update label
-			if (i < len(self.parent.slotPars[currBank]) and 
-				self.parent.slotPars[currBank][i] is not None):
+			slot_par = self.parent.repo_manager.get_slot_parameter(i, currBank)
+			if slot_par is not None:
 				label = LabelFormatter.get_label_for_parameter(
-					self.parent.slotPars[currBank][i], 
+					slot_par, 
 					self.parent.labelDisplayMode
 				)
 				self._set_button_label(i, label)
