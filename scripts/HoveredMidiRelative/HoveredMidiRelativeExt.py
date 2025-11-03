@@ -125,7 +125,65 @@ class HoveredMidiRelativeExt:
 
 		# set UI stuff based on current evalStepmode
 		self.ui_manager.set_stepmode_indicator(self.stepMode)
+		self.onMidiError(self.midiError)
 
+	def onStart(self):
+		if self.evalAutostartgrideditor:
+			self._start_grid_editor()
+
+	def _start_grid_editor(self):
+		import subprocess
+		import os
+		import sys
+
+		try:
+			if sys.platform == "win32":
+				# Windows implementation
+				result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq Grid Editor.exe'],
+										capture_output=True, text=True, shell=True)
+				if 'Grid Editor.exe' not in result.stdout:
+					grid_editor_path = r"C:\Users\Dan\AppData\Local\Programs\grid-editor\Grid Editor.exe"
+					if os.path.exists(grid_editor_path):
+						subprocess.Popen([grid_editor_path])
+						print("Grid Editor started")
+					else:
+						print("Grid Editor executable not found at:", grid_editor_path)
+				else:
+					print("Grid Editor is already running")
+
+			elif sys.platform == "darwin":
+				# macOS implementation
+				result = subprocess.run(['pgrep', '-f', 'Grid Editor'],
+										capture_output=True, text=True)
+				if result.returncode != 0:  # Process not found
+					# Try common macOS application paths
+					possible_paths = [
+						"/Applications/Grid Editor.app",
+						os.path.expanduser("~/Applications/Grid Editor.app"),
+						"/Applications/grid-editor/Grid Editor.app",
+						os.path.expanduser("~/Applications/grid-editor/Grid Editor.app")
+					]
+
+					app_path = None
+					for path in possible_paths:
+						if os.path.exists(path):
+							app_path = path
+							break
+
+					if app_path:
+						subprocess.Popen(["open", app_path])
+						debug("Grid Editor started")
+					else:
+						debug("Grid Editor application not found in common locations:", possible_paths)
+				else:
+					debug("Grid Editor is already running")
+
+			else:
+				debug("Grid Editor launch not supported on this platform:", sys.platform)
+
+		except Exception as e:
+			debug("Error checking/starting Grid Editor:", str(e))
+		return
 
 	def _validate_storage(self):
 		"""Validate storage and ensure proper structure for dynamic bank changes"""
@@ -300,6 +358,10 @@ class HoveredMidiRelativeExt:
 	def stepMode(self, value: StepMode):
 		self.evalStepmode = value.value
 
+	@property
+	def midiError(self) -> bool:
+		return self.ownerComp.op('info_midi1')['warnings'].eval() or self.ownerComp.op('info_midi1')['errors'].eval()
+
 # endregion properties
 
 # region helper methods
@@ -342,7 +404,7 @@ class HoveredMidiRelativeExt:
 		
 		self.hoveredPar = None
 
-		if not self.evalActive:
+		if not self.evalActive or self.midiError:
 			return
 
 		if _op is None:
@@ -695,6 +757,19 @@ class HoveredMidiRelativeExt:
 			parExec.par.pars = None
 		parExec.cook(force=True)
 
+	def onMidiError(self, isError: bool):
+		if not self.evalActive:
+			return
+		if isError:
+			# display midi error message
+			self.display_manager.update_all_display(0, 0, 1, ScreenMessages.MIDI_ERROR, ScreenMessages.MIDI_ERROR)
+		else:
+			if self.activePar is not None:
+				# update display with current parameter
+				self.display_manager.update_parameter_display(self.activePar)
+			else:
+				# display default hover message
+				self.display_manager.update_all_display(1, 0, 1, 'TD Hover', ScreenMessages.HOVER)
 # endregion midi callbacks
 
 # region helper functions
@@ -747,6 +822,13 @@ class HoveredMidiRelativeExt:
 			self.ui_manager.set_hovered_ui_color(-1)
 			self.vsn1_manager.clear_all_slot_leds()
 			self.display_manager.clear_screen()
+
+	def onParStartgrideditor(self):
+		self._start_grid_editor()
+
+	def onParAutostartgrideditor(self, val):
+		if val:
+			self._start_grid_editor()
 
 
 	def onParClear(self):

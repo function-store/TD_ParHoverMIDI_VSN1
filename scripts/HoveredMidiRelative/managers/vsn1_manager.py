@@ -136,7 +136,17 @@ class VSN1Manager:
 		if not self.is_vsn1_enabled():
 			return
 		fill = tdu.clamp(fill, 0, 1)
-		self.parent.midiOut.sendControl(self.parent.evalChannel, VSN1Constants.ROTARY_LED_FEEDBACK_INDEX, fill)
+		try:
+			self.parent.midiOut.sendControl(self.parent.evalChannel, VSN1Constants.ROTARY_LED_FEEDBACK_INDEX, fill)
+			if f"Cannot communicate with the MIDI device" in self.parent.ownerComp.scriptErrors():
+				self.parent.ownerComp.clearScriptErrors(error="*Cannot communicate with the MIDI device*")
+			if f"Could not open the MIDI interface" in self.parent.ownerComp.scriptErrors():
+				self.parent.ownerComp.clearScriptErrors()
+				return
+		except tdError as e:
+			if "Cannot communicate with the MIDI device" in str(e):
+				self.parent.ownerComp.addScriptError(f"Cannot communicate with the MIDI device")
+				return
 
 	def update_knob_leds_steps(self, step_indicator_idx: int):
 		"""Update knob LEDs with steps"""

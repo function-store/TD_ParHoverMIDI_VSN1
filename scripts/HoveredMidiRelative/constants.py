@@ -54,6 +54,7 @@ class ScreenMessages:
 	UNSUPPORTED = '___'
 	INVALID = '_INVALID_'
 	EXPR_PREFIX = 'E('
+	MIDI_ERROR = '_MIDIERR_'
 
 class LabelDisplayMode(Enum):
 	TRUNCATED = 'Truncated'
