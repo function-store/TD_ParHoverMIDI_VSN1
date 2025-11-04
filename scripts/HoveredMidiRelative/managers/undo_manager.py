@@ -686,6 +686,12 @@ class UndoManager:
 				old_active_slot = self.parent.activeSlot
 				self.parent.activeSlot = previous_active_slot
 				
+				# Update cached active parameter
+				if previous_active_slot is not None and previous_active_slot < len(self.parent.slotPars[bank_idx]):
+					self.parent._activeSlotPar = self.parent.slotPars[bank_idx][previous_active_slot]
+				else:
+					self.parent._activeSlotPar = None
+				
 				# Update hovered UI color based on restored active slot
 				if previous_active_slot is None:
 					# Restoring to hover mode
@@ -728,6 +734,7 @@ class UndoManager:
 			self.parent.repo_manager.set_slot_parameter(slot_idx, new_parameter, bank_idx)
 			self.parent._set_parexec_pars(new_parameter)
 			self.parent.activeSlot = slot_idx
+			self.parent._activeSlotPar = new_parameter  # Cache the active parameter
 			self.parent.repo_manager.set_active_slot(slot_idx, bank_idx)
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
@@ -828,6 +835,12 @@ class UndoManager:
 				old_active_slot = self.parent.activeSlot
 				self.parent.activeSlot = previous_active_slot
 				
+				# Update cached active parameter
+				if previous_active_slot is not None and previous_active_slot < len(self.parent.slotPars[bank_idx]):
+					self.parent._activeSlotPar = self.parent.slotPars[bank_idx][previous_active_slot]
+				else:
+					self.parent._activeSlotPar = None
+				
 				# Update hovered UI color based on restored active slot
 				if previous_active_slot is None:
 					# Restoring to hover mode
@@ -880,6 +893,7 @@ class UndoManager:
 				if slot_idx == old_active_slot:
 					# Clearing the currently active slot -> go to hover mode
 					self.parent.activeSlot = None
+					self.parent._activeSlotPar = None
 					
 					# Restore hovered UI color if enabled (going to hover mode)
 					if self.parent.evalColorhoveredui:
@@ -906,6 +920,7 @@ class UndoManager:
 						else:
 							# Active slot is empty, go to hover
 							self.parent.activeSlot = None
+							self.parent._activeSlotPar = None
 							self.parent.repo_manager.set_active_slot(None, bank_idx)
 							if self.parent.evalColorhoveredui:
 								self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
@@ -917,6 +932,7 @@ class UndoManager:
 					else:
 						# No active slot, go to hover
 						self.parent.activeSlot = None
+						self.parent._activeSlotPar = None  # Clear cached active slot parameter
 						self.parent.repo_manager.set_active_slot(None, bank_idx)
 						if self.parent.evalColorhoveredui:
 							self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)

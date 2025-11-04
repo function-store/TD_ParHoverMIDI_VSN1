@@ -478,32 +478,87 @@ class HoveredMidiRelativeExt:
 		if channel != self.evalChannel or not self.evalActive:
 			return
 		
-		active_par = self.activePar
-		hovered_par = self.hoveredPar
-		index = int(index)
+		try:
+			active_par = self.activePar
+			hovered_par = self.hoveredPar
+			index = int(index)
 
-		# Process different message types using helper class
-		if message == MidiConstants.NOTE_ON:
-			# Handle step change messages
-			if self.midi_handler.handle_step_message(index, value):
-				self._manage_empty_operator_display(should_show=False)
-				return
-				
-			# Handle pulse messages
-			if self.midi_handler.handle_push_message(index, value, active_par):
-				self._manage_empty_operator_display(should_show=False)
-				return
-		
-			# Handle slot selection messages
-			if self.midi_handler.handle_slot_message(index, value):
-				self._manage_empty_operator_display(should_show=False)
-				return
+			# Process different message types using helper class
+			if message == MidiConstants.NOTE_ON:
+				# Handle step change messages
+				if self.midi_handler.handle_step_message(index, value):
+					self._manage_empty_operator_display(should_show=False)
+					return
+					
+				# Handle pulse messages
+				if self.midi_handler.handle_push_message(index, value, active_par):
+					self._manage_empty_operator_display(should_show=False)
+					return
 			
-		elif message == MidiConstants.CONTROL_CHANGE:
-			# Handle knob control messages
-			if self.midi_handler.handle_knob_message(index, value, active_par):
-				self._manage_empty_operator_display(should_show=False)
-				return
+				# Handle slot selection messages
+				if self.midi_handler.handle_slot_message(index, value):
+					self._manage_empty_operator_display(should_show=False)
+					return
+				
+			elif message == MidiConstants.CONTROL_CHANGE:
+				# Handle knob control messages
+				if self.midi_handler.handle_knob_message(index, value, active_par):
+					self._manage_empty_operator_display(should_show=False)
+					return
+		except Exception as e:
+			# Catch invalid parameter errors at top level
+			if 'Invalid Par' not in str(e) and 'tdError' not in str(type(e).__name__):
+				raise  # Re-raise unexpected errors
+			
+			# Find and clear all invalid parameters from all slots (batch operation)
+			cleared_current_bank = False
+			for bank_idx in range(self.numBanks):
+				for slot_idx in range(self.numSlots):
+					try:
+						par = self.slotPars[bank_idx][slot_idx]
+						if par and (not par.valid or not par.name):  # Check validity
+							self.slot_manager.invalidate_slot(slot_idx, bank_idx, update_ui=False)
+							if bank_idx == self.currBank:
+								cleared_current_bank = True
+					except:
+						# Parameter access failed - it's invalid, clear it
+						self.slot_manager.invalidate_slot(slot_idx, bank_idx, update_ui=False)
+						if bank_idx == self.currBank:
+							cleared_current_bank = True
+			
+			# Update UI once after all slots are cleared (only if current bank was affected)
+			if cleared_current_bank:
+				# Refresh all button labels and LEDs
+				if hasattr(self, 'ui_manager'):
+					self.ui_manager.refresh_all_button_states()
+				
+				# Update display based on current state
+				if self.activeSlot is None:
+					# No active slot - return to hover mode
+					if self.evalColorhoveredui:
+						self.ui_manager.set_hovered_ui_color(self.evalColorindex - 1)
+					else:
+						self.ui_manager.set_hovered_ui_color(-1)
+					
+					self.display_manager.update_all_display(
+						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
+					)
+					self.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
+				else:
+					# Still have active slot - refresh its display (this also updates VSN1 slot list)
+					active_par = self.slotPars[self.currBank][self.activeSlot]
+					if active_par is not None:
+						self.display_manager.update_parameter_display(active_par)
+				
+				# Update all slot LEDs
+				self.display_manager.update_all_slot_leds()
+			
+			# Clear invalid hovered parameter
+			try:
+				if self.hoveredPar and not self.hoveredPar.valid:
+					self.hoveredPar = None
+			except:
+				self.hoveredPar = None
 
 
 	def onReceiveMidiLearn(self, dat, rowIndex, message, channel, index, value, input, byteData):
