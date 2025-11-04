@@ -63,23 +63,11 @@ class HoveredMidiRelativeExt:
 
 		self.display_run_obj = None
 		self.lastCachedChange = None
+		self.slotPars = [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)]
+		self.bankActiveSlots = [None for _ in range(self.numBanks)]
 
 		# Initialize storage (back to using slotPars and bankActiveSlots for performance)
 		storedItems = [
-			{
-				'name': 'slotPars',
-				'default': [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)],
-				'readOnly': False,
-				'property': True,
-				'dependable': False
-			},
-			{
-				'name': 'bankActiveSlots',
-				'default': [None for _ in range(self.numBanks)],
-				'readOnly': False,
-				'property': True,
-				'dependable': False
-			},
 			{
 				'name': 'activeSlot',
 				'default': None,
@@ -113,7 +101,7 @@ class HoveredMidiRelativeExt:
 		self.stored = StorageManager(self, ownerComp, storedItems)
 		
 		# Load from tables on first run 
-		self.repo_manager.load_from_tables()
+		self.repo_manager.load_from_tables_if_needed()
 
 		self.postInit()
 
@@ -193,6 +181,34 @@ class HoveredMidiRelativeExt:
 
 	def _validate_storage(self):
 		"""Validate storage and ensure proper structure for dynamic bank changes"""
+		# Ensure storage has correct dimensions for current numBanks/numSlots
+		# Resize slotPars if needed (preserve existing data where possible)
+		if len(self.slotPars) != self.numBanks:
+			old_slotPars = self.slotPars
+			self.slotPars = [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)]
+			
+			# Copy over existing data
+			for bank_idx in range(min(len(old_slotPars), self.numBanks)):
+				for slot_idx in range(min(len(old_slotPars[bank_idx]), self.numSlots)):
+					self.slotPars[bank_idx][slot_idx] = old_slotPars[bank_idx][slot_idx]
+		else:
+			# Check if slot count changed
+			for bank_idx in range(self.numBanks):
+				if len(self.slotPars[bank_idx]) != self.numSlots:
+					old_slots = self.slotPars[bank_idx]
+					self.slotPars[bank_idx] = [None for _ in range(self.numSlots)]
+					# Copy over existing data
+					for slot_idx in range(min(len(old_slots), self.numSlots)):
+						self.slotPars[bank_idx][slot_idx] = old_slots[slot_idx]
+		
+		# Resize bankActiveSlots if needed
+		if len(self.bankActiveSlots) != self.numBanks:
+			old_active = self.bankActiveSlots
+			self.bankActiveSlots = [None for _ in range(self.numBanks)]
+			# Copy over existing active slots
+			for bank_idx in range(min(len(old_active), self.numBanks)):
+				self.bankActiveSlots[bank_idx] = old_active[bank_idx]
+		
 		# Validate current bank index
 		if self.currBank >= self.numBanks:
 			self.currBank = 0

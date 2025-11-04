@@ -65,22 +65,43 @@ class RepoManager:
 	# === Persistence Methods (Tables) ===
 	
 	def load_from_tables_if_needed(self):
-		"""Load FROM tables only if slotPars is empty (optional import)"""
-		# Check if we have any data in slotPars
-		has_data = any(
-			any(slot is not None for slot in bank)
-			for bank in self.parent.slotPars
-		)
+		"""Load FROM tables ALWAYS (tables are source of truth)
 		
-		if not has_data:
-			# No data in storage, try loading from tables
-			self.load_from_tables()
+		Tables are external persistent storage that survives component updates.
+		They should ALWAYS be loaded to respect manual edits (including clearing).
+		If you manually clear tables, that clearing should be respected.
+		"""
+		self.load_from_tables()
 	
 	def load_from_tables(self):
-		"""Load FROM tables into slotPars (import)"""
+		"""Load FROM tables into slotPars (import)
+		
+		Clears internal storage first to ensure empty tables = empty storage.
+		Ensures storage has correct dimensions.
+		"""
 		self._ensure_bank_tables()
 		
+		# Ensure storage exists and has correct dimensions
 		num_banks = self.parent.numBanks
+		num_slots = self.parent.numSlots
+		
+		# Initialize/resize slotPars if needed
+		if not hasattr(self.parent, 'slotPars') or len(self.parent.slotPars) != num_banks:
+			self.parent.slotPars = [[None for _ in range(num_slots)] for _ in range(num_banks)]
+		else:
+			# Clear existing storage (tables are source of truth)
+			for bank_idx in range(num_banks):
+				self.parent.slotPars[bank_idx] = [None for _ in range(num_slots)]
+		
+		# Initialize/resize bankActiveSlots if needed
+		if not hasattr(self.parent, 'bankActiveSlots') or len(self.parent.bankActiveSlots) != num_banks:
+			self.parent.bankActiveSlots = [None for _ in range(num_banks)]
+		else:
+			# Clear existing active slots
+			for bank_idx in range(num_banks):
+				self.parent.bankActiveSlots[bank_idx] = None
+		
+		# Now load from tables
 		for bank_idx in range(num_banks):
 			bank_table = self.Repo.op(f'bank{bank_idx}')
 			if bank_table is None:
@@ -107,11 +128,12 @@ class RepoManager:
 							else:
 								par = getattr(target_op.par, par_name, None)
 							
-							if par:
+							if par is not None:
 								self.parent.slotPars[bank_idx][slot_idx] = par
 								if is_active:
 									self.parent.bankActiveSlots[bank_idx] = slot_idx
-					except:
+					except Exception as e:
+						# Silently skip parameters that can't be reconstructed
 						pass
 	
 	def save_bank_to_table(self, bank_idx: int):
@@ -207,10 +229,16 @@ class RepoManager:
 						bank_table[row_idx, 3] = '0'
 	
 	def validate_and_clean_all_banks(self):
-		"""Validate all parameters in slotPars and clear invalid ones"""
+		"""Validate all parameters in slotPars and clear invalid ones
+		
+		Since tables are source of truth, also persists clearing to tables.
+		"""
 		num_banks = self.parent.numBanks
+		banks_modified = []  # Track which banks need table updates
 		
 		for bank_idx in range(num_banks):
+			bank_modified = False
+			
 			for slot_idx in range(len(self.parent.slotPars[bank_idx])):
 				par = self.parent.slotPars[bank_idx][slot_idx]
 				
@@ -229,15 +257,30 @@ class RepoManager:
 						is_valid = False
 					
 					if not is_valid:
-						# Clear invalid parameter
+						# Clear invalid parameter from memory
 						self.parent.slotPars[bank_idx][slot_idx] = None
+						bank_modified = True
+			
+			if bank_modified:
+				banks_modified.append(bank_idx)
+		
+		# Persist changes to tables (only banks that were modified)
+		for bank_idx in banks_modified:
+			self.save_bank_to_table(bank_idx)
 	
 	def _ensure_bank_tables(self):
-		"""Ensure all bank tables exist with proper structure"""
+		"""Ensure all bank tables exist with proper structure
+		
+		- Creates missing bank tables
+		- Resizes existing tables to match numSlots
+		- Deletes extra bank tables if numBanks decreased
+		- PRESERVES existing data when resizing tables!
+		"""
 		repo = self.Repo
 		num_banks = self.parent.numBanks
 		num_slots = self.parent.numSlots
 		
+		# Create/resize required bank tables
 		for bank_idx in range(num_banks):
 			bank_name = f'bank{bank_idx}'
 			bank_table = repo.op(bank_name)
@@ -247,14 +290,6 @@ class RepoManager:
 			if is_new_table:
 				# Create new table DAT
 				bank_table = repo.create(tableDAT, bank_name)
-			
-			# Check if table has correct structure (num rows/cols)
-			needs_resize = (bank_table.numRows != num_slots + 1 or bank_table.numCols != 4)
-			
-			# Only clear and reinitialize if it's a new table or needs resize
-			if is_new_table or needs_resize:
-				# Set up table structure: header + N slots
-				# Columns: path, name, type, active
 				bank_table.clear()
 				bank_table.setSize(num_slots + 1, 4)  # +1 for header row
 				
@@ -264,10 +299,56 @@ class RepoManager:
 				bank_table[0, 2] = 'type'
 				bank_table[0, 3] = 'active'
 				
-				# Initialize slot rows (row index - 1 = slot index)
+				# Initialize empty slot rows
 				for slot_idx in range(num_slots):
 					row_idx = slot_idx + 1  # +1 to skip header
 					bank_table[row_idx, 0] = ''  # Empty path
 					bank_table[row_idx, 1] = ''  # Empty name
 					bank_table[row_idx, 2] = ''  # Empty type
 					bank_table[row_idx, 3] = '0'  # Not active
+			else:
+				# Table exists - check if it needs structure adjustment
+				needs_col_resize = bank_table.numCols != 4
+				needs_row_resize = bank_table.numRows != num_slots + 1
+				
+				if needs_col_resize or needs_row_resize:
+					# Preserve existing data before resizing
+					existing_data = []
+					for row_idx in range(1, min(bank_table.numRows, num_slots + 1)):
+						row_data = []
+						for col_idx in range(min(bank_table.numCols, 4)):
+							row_data.append(bank_table[row_idx, col_idx].val)
+						existing_data.append(row_data)
+					
+					# Resize table
+					bank_table.setSize(num_slots + 1, 4)
+					
+					# Ensure header row is correct
+					bank_table[0, 0] = 'path'
+					bank_table[0, 1] = 'name'
+					bank_table[0, 2] = 'type'
+					bank_table[0, 3] = 'active'
+					
+					# Restore existing data
+					for slot_idx, row_data in enumerate(existing_data):
+						row_idx = slot_idx + 1
+						for col_idx, value in enumerate(row_data):
+							bank_table[row_idx, col_idx] = value
+					
+					# Fill any new rows with empty values
+					for slot_idx in range(len(existing_data), num_slots):
+						row_idx = slot_idx + 1
+						bank_table[row_idx, 0] = ''
+						bank_table[row_idx, 1] = ''
+						bank_table[row_idx, 2] = ''
+						bank_table[row_idx, 3] = '0'
+		
+		# Delete extra bank tables if numBanks decreased
+		bank_idx = num_banks
+		while True:
+			bank_name = f'bank{bank_idx}'
+			bank_table = repo.op(bank_name)
+			if bank_table is None:
+				break  # No more tables to delete
+			bank_table.destroy()
+			bank_idx += 1
