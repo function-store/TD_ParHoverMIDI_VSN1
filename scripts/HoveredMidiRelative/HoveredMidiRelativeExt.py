@@ -38,7 +38,7 @@ class HoveredMidiRelativeExt:
 		self.midiOut = self.ownerComp.op('midiout1')
 		self.jumpToOp : JumpToOpExt = self.ownerComp.op('JumpToOp')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
-		self.Test = 'test'
+		self.popDialog : PopDialogExt = self.ownerComp.op('popDialog')
 
 		# UI Mod init
 		if _uimod := self.ownerComp.op('td_ui_mod'):
@@ -378,6 +378,10 @@ class HoveredMidiRelativeExt:
 
 	def onHoveredParChange(self, _op, _parGroup, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		# Clear any captured initial values that never resulted in undo actions
 		# (user hovered but didn't adjust)
 		if self.hoveredPar is not None and self.evalEnableundo:
@@ -478,6 +482,10 @@ class HoveredMidiRelativeExt:
 		if channel != self.evalChannel or not self.evalActive:
 			return
 		
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		try:
 			active_par = self.activePar
 			hovered_par = self.hoveredPar
@@ -510,48 +518,9 @@ class HoveredMidiRelativeExt:
 			if 'Invalid Par' not in str(e) and 'tdError' not in str(type(e).__name__):
 				raise  # Re-raise unexpected errors
 			
-			# Find and clear all invalid parameters from all slots (batch operation)
-			cleared_current_bank = False
-			for bank_idx in range(self.numBanks):
-				for slot_idx in range(self.numSlots):
-					try:
-						par = self.slotPars[bank_idx][slot_idx]
-						if par and (not par.valid or not par.name):  # Check validity
-							self.slot_manager.invalidate_slot(slot_idx, bank_idx, update_ui=False)
-							if bank_idx == self.currBank:
-								cleared_current_bank = True
-					except:
-						# Parameter access failed - it's invalid, clear it
-						self.slot_manager.invalidate_slot(slot_idx, bank_idx, update_ui=False)
-						if bank_idx == self.currBank:
-							cleared_current_bank = True
-			
-			# Update UI once after all slots are cleared (only if current bank was affected)
-			if cleared_current_bank:
-				# Refresh all button labels and LEDs
-				if hasattr(self, 'ui_manager'):
-					self.ui_manager.refresh_all_button_states()
-				
-				# Update display based on current state
-				if self.activeSlot is None:
-					# No active slot - return to hover mode
-					if self.evalColorhoveredui:
-						self.ui_manager.set_hovered_ui_color(self.evalColorindex - 1)
-					else:
-						self.ui_manager.set_hovered_ui_color(-1)
-					
-					self.display_manager.update_all_display(
-						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
-					)
-					self.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
-				else:
-					# Still have active slot - refresh its display (this also updates VSN1 slot list)
-					active_par = self.slotPars[self.currBank][self.activeSlot]
-					if active_par is not None:
-						self.display_manager.update_parameter_display(active_par)
-				
-				# Update all slot LEDs
-				self.display_manager.update_all_slot_leds()
+			# Queue up invalid parameters for sequential dialog-based recovery
+			# This will show one dialog at a time, wait for response, then show the next
+			self.slot_manager.queue_invalidation_check()
 			
 			# Clear invalid hovered parameter
 			try:
@@ -564,6 +533,10 @@ class HoveredMidiRelativeExt:
 	def onReceiveMidiLearn(self, dat, rowIndex, message, channel, index, value, input, byteData):
 		"""TouchDesigner callback for MIDI learning mode"""
 		if channel != self.evalChannel or not self.evalActive:
+			return
+		
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
 			return
 		
 		hovered_par = self.hoveredPar
@@ -593,6 +566,10 @@ class HoveredMidiRelativeExt:
 
 	def onReceiveMidiSlotLearn(self, index: int):
 		"""TouchDesigner callback for slot learning"""
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		hovered_par = self.hoveredPar
 
 		blocks = self._index_to_blocks(index, self.seqSlots)
@@ -614,6 +591,10 @@ class HoveredMidiRelativeExt:
 
 	def onResetPar(self, force: bool = False):
 		"""TouchDesigner callback to reset active parameter (or ParGroup)"""
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		if self.activePar is None:
 			return
 
@@ -628,6 +609,10 @@ class HoveredMidiRelativeExt:
 
 	def onSetDefault(self):
 		"""TouchDesigner callback to set default parameter value"""
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		if self.activePar is None or not self.activePar.isCustom:
 			return
 		
@@ -646,6 +631,10 @@ class HoveredMidiRelativeExt:
 
 	def onSetNorm(self, min_max: str):
 		"""TouchDesigner callback to set norm min or max value"""
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		if self.activePar is None or not self.activePar.isCustom:
 			return
 		
@@ -691,6 +680,10 @@ class HoveredMidiRelativeExt:
 
 	def onSetClamp(self, min_max: str):
 		"""TouchDesigner callback to set clamp min or max value"""
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		if self.activePar is None or not self.activePar.isCustom:
 			return
 		
@@ -726,6 +719,10 @@ class HoveredMidiRelativeExt:
 	def onReceiveMidiBankSel(self, index: int) -> None:
 		"""TouchDesigner callback for bank selection MIDI input"""
 		if not self.evalActive:
+			return
+		
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
 			return
 
 		# Handle bank change message

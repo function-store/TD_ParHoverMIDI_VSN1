@@ -31,11 +31,16 @@ class VSN1Manager:
 			_labels = []
 			for i, par in enumerate(_slot_pars):
 				if par is not None:
-					label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode, max_length=6)
-					if self.parent.activeSlot is not None:
-						_activePar = self.parent.repo_manager.get_slot_parameter(self.parent.activeSlot, self.parent.currBank)
-						if _activePar is not None and _activePar.owner == par.owner and _activePar.name == par.name:
-							label = '`'+label
+					try:
+						# Try to get label - this will fail if parameter is invalid
+						label = LabelFormatter.get_label_for_parameter(par, self.parent.labelDisplayMode, max_length=6)
+						if self.parent.activeSlot is not None:
+							_activePar = self.parent.repo_manager.get_slot_parameter(self.parent.activeSlot, self.parent.currBank)
+							if _activePar is not None and _activePar.owner == par.owner and _activePar.name == par.name:
+								label = '`'+label
+					except:
+						# Parameter is invalid - treat as empty slot
+						label = "---"
 				else:
 					label = "---"
 				_labels.append(label)	
