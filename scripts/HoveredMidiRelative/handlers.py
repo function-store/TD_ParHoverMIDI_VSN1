@@ -265,6 +265,13 @@ class MidiMessageHandler:
 	
 	def _do_step_single(self, active_par: Par, step: float, value: int, update_display: bool = True):
 		"""Apply step value to a single parameter based on MIDI input"""
+		# Validate parameter is editable (constant or bind mode, not expression/export)
+		if not ParameterValidator.is_valid_parameter(active_par):
+			# Parameter has expression or is in export mode - show error and skip
+			if update_display:
+				self.parent.display_manager.show_parameter_error(active_par, ScreenMessages.EXPR)
+			return
+		
 		diff = value - MidiConstants.MIDI_CENTER_VALUE
 		
 		if active_par.isNumber:
