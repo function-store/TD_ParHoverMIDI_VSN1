@@ -79,6 +79,8 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 5. **Set your `Device ID`** in the component's **Mapping** tab (find your device ID in TouchDesigner's MIDI Device Mapper)
 6. Have Grid Editor open at all times when using Intech hardware (see next section)
 
+> The component automatically attempts to open **Grid Editor**
+
 ## Quick Start
 0. Download `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest)
 1. **Setup**: Place the `ParHoverMIDI_VSN1.tox` component in your network (suggested at root `/`)
@@ -92,6 +94,41 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
     - Configure step sizes in the **Mapping** tab (default: 0.001, 0.01, 0.1, 1)
 7. **Parameter Slots**: Check [Parameter Slots System](#parameter-slots-system) to save and recall parameters to control!
 8. **Multiple Banks**: Use [Multiple Banks](#multiple-banks) to organize slots into separate banks for expanded control
+
+### Recommended Setup
+
+**External Repo Setup (Highly Recommended):**
+
+The component stores slot and bank data in an internal Repo table called `SlotsRepo`. To prevent updates from clearing your saved slots, it is **strongly recommended** to set up an **external Repo**:
+
+1. Create a new Table DAT outside of the component using the `Create` custom parameter.
+2. This will point the `Slots Repo` parameter to your external table (e.g., `/repo_storage`)
+
+This ensures that component updates will not affect your saved parameter slots and bank configurations.
+
+**External .tox Setup (Recommended for Multi-Project Workflows):**
+
+For projects that share the same setup across multiple files:
+
+1. Save the component as an external `.tox` file in a shared location (e.g., `C:/Documents/Derivative/Palette/FNStools_ext/`)
+2. In each project, this file into your network as an **external component** (it will show a reference icon)
+3. Set up each project to use an external Repo table (see above)
+
+> If using the In-Component Update feature (see below) the component will be set up as above automatically (except you need to enable `External .tox` parameter manually).
+
+**Benefits:**
+- **Updates are automatic**: When you update the component via the **About** page (see below), all projects using the external `.tox` will instantly receive the update
+- **No manual per-project updates**: Update once, applies everywhere
+- **Preserved slot data**: Your saved slots remain untouched across updates
+
+## In-Component Updates
+
+The component includes a built-in updater accessible from the **About** page custom parameters:
+
+1. Open the component's **About** parameter page
+2. Use the update controls to check for and install new versions
+3. The `.tox` file will be downloaded to `Palette/FNStools_ext/`
+4. With an external Repo and external `.tox` setup, updates will not interfere with your saved slots
 
 ## MIDI Mapping Configuration
 
@@ -116,9 +153,7 @@ For custom configurations or non-VSN1 users wanting to adapt to their devices:
 - The **System** element defines the channel as global variable `gch`
 - Each element's MIDI block can be customized if needed
 
-
 ## Functions
-
 
 ### Parameter Slots System
 The component supports multiple parameter slots that can be assigned to different MIDI buttons for quick access:
@@ -323,6 +358,12 @@ When invalid parameters are detected, a recovery dialog appears with:
 - **Dialog prompts**: Clear interface for fixing or clearing invalid parameters with granular control
 - **Seamless recovery**: After fixing, operation continues normally with the corrected parameter
 
+**Manual Editing**:
+- **Direct table access**: The slot storage tables in `SlotsRepo` (or your external Repo referenced by the `Slots Repo` parameter) can be manually edited
+- **Table structure**: Each bank has its own table with columns: `path` (operator path), `name` (parameter name), `type` (`Par` or `ParGroup`), and `active` (active slot indicator)
+- **Advanced workflows**: Useful for bulk editing, scripting, or transferring configurations between projects
+- **Format compatibility**: Ensure proper formatting when manually editing to maintain system compatibility
+
 > The recovery system ensures your slot assignments remain valid even as your TouchDesigner network evolves, with intelligent batch operations and granular control to handle parameters exactly as needed.
 
 ### UI Parameter Highlighting
@@ -361,6 +402,7 @@ The following parameters are available to further customize the functionality of
 - **`Enable UI Color`**: When enabled, applies visual color highlighting to parameters in the TouchDesigner interface to indicate hovered/active states. **NOTE**: Changing UI colors can cause some performance impact when switching between hover mode and slot mode.
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
 - **`Knob LED Update`**: Choose between "Off", "Value" and "Step" to determine what is indicated on the knob LEDs of VSN1. **NOTE**: Currently when set to "Value", laggy updates can be observed on the hardware unit.
+- **Enable UI**: The component has an internal UI that mirrors the VSN1 state. This takes up about half of the performance of the component, so if not used it is recommended to disable.
 
 ## Visual Feedback
 

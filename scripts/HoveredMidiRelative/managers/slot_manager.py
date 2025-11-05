@@ -112,7 +112,7 @@ class SlotManager:
 					continue
 				
 				if (is_exact_match or is_child_match) and par_name:
-					is_pargroup = (par_type == 'pargroup')
+					is_pargroup = (par_type.lower() == 'pargroup')
 					
 					# Calculate the new path
 					if is_exact_match:
@@ -352,8 +352,8 @@ class SlotManager:
 			if not op_path or not par_name:
 				return (None, None, False)
 			
-			# Determine if it's a pargroup
-			is_pargroup = (par_type == 'pargroup')
+			# Determine if it's a pargroup (case-insensitive for backward compatibility)
+			is_pargroup = (par_type.lower() == 'pargroup')
 			
 			return (op_path, par_name, is_pargroup)
 			

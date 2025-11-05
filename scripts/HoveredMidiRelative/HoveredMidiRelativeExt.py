@@ -120,6 +120,31 @@ class HoveredMidiRelativeExt:
 		self.onMidiError(self.midiError)
 
 	def onStart(self):
+		post_update = self.ownerComp.fetch('post_update', False)
+		if post_update:
+			#self.LoadAllFromJSON()
+			self.ownerComp.unstore('post_update')
+			# okay I really fucked this up, so mega-hack below
+			#self.SaveAllToJSON()
+			try:
+				run(
+					"args[0].open_changelog() if args[0] "
+							"and hasattr(args[0], 'open_changelog') else None",
+					self,
+					endFrame=True,
+					delayRef=op.TDResources
+				)
+			except:
+				pass
+
+	def open_changelog(self):
+		try:
+			ret = ui.messageBox(f'{self.ownerComp.name} updated', 'Would you like to see the changelog?', buttons=['No', 'Yes'])
+			if ret == 1:
+				ui.viewFile('https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest')
+		except:
+			pass
+
 		if self.evalAutostartgrideditor:
 			self._start_grid_editor()
 
@@ -134,12 +159,26 @@ class HoveredMidiRelativeExt:
 				result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq Grid Editor.exe'],
 										capture_output=True, text=True, shell=True)
 				if 'Grid Editor.exe' not in result.stdout:
-					grid_editor_path = r"C:\Users\Dan\AppData\Local\Programs\grid-editor\Grid Editor.exe"
-					if os.path.exists(grid_editor_path):
+					# Try common Windows installation paths
+					possible_paths = [
+						os.path.expandvars(r"%LOCALAPPDATA%\Programs\grid-editor\Grid Editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES%\Grid Editor\Grid Editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES(X86)%\Grid Editor\Grid Editor.exe"),
+						r"C:\Program Files\Grid Editor\Grid Editor.exe",
+						r"C:\Program Files (x86)\Grid Editor\Grid Editor.exe"
+					]
+					
+					grid_editor_path = None
+					for path in possible_paths:
+						if os.path.exists(path):
+							grid_editor_path = path
+							break
+					
+					if grid_editor_path:
 						subprocess.Popen([grid_editor_path])
-						debug("Grid Editor started")
+						debug("Grid Editor started from:", grid_editor_path)
 					else:
-						debug("Grid Editor executable not found at:", grid_editor_path)
+						debug("Grid Editor executable not found. Tried paths:", possible_paths)
 				else:
 					debug("Grid Editor is already running")
 

@@ -4,6 +4,7 @@ Author : Dan@DAN-4090
 Saveversion : 2023.12120
 Info Header End'''
 from typing import Optional, Union
+from validators import ParameterValidator
 
 class RepoManager:
 	"""Manages bank/slot storage using StorageManager properties and tables for persistence
@@ -157,16 +158,17 @@ class RepoManager:
 			else:
 				# Save parameter to table
 				try:
-					if hasattr(par, 'owner'):
-						# Single Par
-						op_path = par.owner.path
-						par_name = par.name
-						par_type = 'par'
-					else:
+					# Check if it's a ParGroup or single Par
+					if ParameterValidator.is_pargroup(par):
 						# ParGroup
 						op_path = par[0].owner.path
 						par_name = par.name
-						par_type = 'pargroup'
+						par_type = 'ParGroup'
+					else:
+						# Single Par
+						op_path = par.owner.path
+						par_name = par.name
+						par_type = 'Par'
 					
 					bank_table[row_idx, 0] = op_path
 					bank_table[row_idx, 1] = par_name
@@ -204,16 +206,17 @@ class RepoManager:
 				else:
 					# Save parameter to table
 					try:
-						if hasattr(par, 'owner'):
-							# Single Par
-							op_path = par.owner.path
-							par_name = par.name
-							par_type = 'par'
-						else:
+						# Check if it's a ParGroup or single Par
+						if ParameterValidator.is_pargroup(par):
 							# ParGroup
 							op_path = par[0].owner.path
 							par_name = par.name
-							par_type = 'pargroup'
+							par_type = 'ParGroup'
+						else:
+							# Single Par
+							op_path = par.owner.path
+							par_name = par.name
+							par_type = 'Par'
 						
 						bank_table[row_idx, 0] = op_path
 						bank_table[row_idx, 1] = par_name
