@@ -18,7 +18,6 @@ from formatters import LabelFormatter
 from handlers import MidiMessageHandler
 from display_manager import DisplayManager
 from slot_manager import SlotManager
-from vsn1_manager import VSN1Manager
 from ui_manager import UIManager
 from undo_manager import UndoManager
 from repo_manager import RepoManager
@@ -55,10 +54,9 @@ class HoveredMidiRelativeExt:
 		# Initialize helper classes
 		self.repo_manager = RepoManager(self)  # Initialize first as others may depend on it
 		self.midi_handler = MidiMessageHandler(self)
-		self.vsn1_manager = VSN1Manager(self)
 		self.ui_manager = UIManager(self)
+		self.display_manager = DisplayManager(self)  # Must be after ui_manager
 		self.slot_manager = SlotManager(self)
-		self.display_manager = DisplayManager(self)
 		self.undo_manager = UndoManager(self)
 
 		self.display_run_obj = None
@@ -139,11 +137,11 @@ class HoveredMidiRelativeExt:
 					grid_editor_path = r"C:\Users\Dan\AppData\Local\Programs\grid-editor\Grid Editor.exe"
 					if os.path.exists(grid_editor_path):
 						subprocess.Popen([grid_editor_path])
-						print("Grid Editor started")
+						debug("Grid Editor started")
 					else:
-						print("Grid Editor executable not found at:", grid_editor_path)
+						debug("Grid Editor executable not found at:", grid_editor_path)
 				else:
-					print("Grid Editor is already running")
+					debug("Grid Editor is already running")
 
 			elif sys.platform == "darwin":
 				# macOS implementation
@@ -255,9 +253,7 @@ class HoveredMidiRelativeExt:
 
 		if self.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
 			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), 0)
-			self.vsn1_manager.update_knob_leds_steps(step_idx)
-
-		self.display_manager.update_all_display(1, 0, 1, 'TD Hover', '_INIT_', compress=False)
+			self.display_manager.update_knob_leds_steps(step_idx)
 		
 # region properties
 		
@@ -363,8 +359,8 @@ class HoveredMidiRelativeExt:
 			
 			if should_run:
 				self.display_run_obj = run(
-					"args[0].display_manager.update_all_display(0, 0, 1, 'TD Hover', '...', compress=False)", 
-					self, ScreenMessages.UNSUPPORTED, delayMilliSeconds=1000, delayRef=op.TDResources
+					"args[0].display_manager.update_all_display(0, 0, 1, args[1], args[1], compress=False)", 
+					self, ScreenMessages.HOVER, delayMilliSeconds=1000, delayRef=op.TDResources
 				)
 		else:
 			# Kill any existing display run when we have a valid operator
@@ -831,7 +827,7 @@ class HoveredMidiRelativeExt:
 				self.display_manager.update_parameter_display(self.activePar)
 			else:
 				# display default hover message
-				self.display_manager.update_all_display(1, 0, 1, 'TD Hover', ScreenMessages.HOVER)
+				self.display_manager.update_all_display(1, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER)
 # endregion midi callbacks
 
 # region helper functions
@@ -882,7 +878,7 @@ class HoveredMidiRelativeExt:
 			self.postInit()
 		else:
 			self.ui_manager.set_hovered_ui_color(-1)
-			self.vsn1_manager.clear_all_slot_leds()
+			self.display_manager.clear_all_slot_leds()
 			self.display_manager.clear_screen()
 
 	def onParStartgrideditor(self):
@@ -896,7 +892,7 @@ class HoveredMidiRelativeExt:
 	def onParClear(self):
 		"""TouchDesigner callback to clear all MIDI mappings"""
 		# Clear all slot LEDs before resetting
-		self.vsn1_manager.clear_all_slot_leds()
+		self.display_manager.clear_all_slot_leds()
 		
 		# Reset sequence blocks
 		self.seqSteps.numBlocks = 1
@@ -936,15 +932,15 @@ class HoveredMidiRelativeExt:
 	def onParKnobledupdate(self, _val):
 		"""TouchDesigner callback when knob LED update mode parameter changes"""
 		if KnobLedUpdateMode(_val) in [KnobLedUpdateMode.VALUE]:
-			self.vsn1_manager.update_knob_leds_steps(-1)
+			self.display_manager.update_knob_leds_steps(-1)
 			self.display_manager.update_parameter_display(self.activePar, force_knob_leds=True)
 		elif KnobLedUpdateMode(_val) in [KnobLedUpdateMode.OFF]:
-			self.vsn1_manager.update_knob_leds_gradual(0)
-			self.vsn1_manager.update_knob_leds_steps(-1)
+			self.display_manager.update_knob_leds_gradual(0)
+			self.display_manager.update_knob_leds_steps(-1)
 		else:#
 			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), None)
-			self.vsn1_manager.update_knob_leds_gradual(0)
-			self.vsn1_manager.update_knob_leds_steps(step_idx)
+			self.display_manager.update_knob_leds_gradual(0)
+			self.display_manager.update_knob_leds_steps(step_idx)
 
 	def onParVsn1support(self, _par, _val):
 		"""TouchDesigner callback when VSN1 support parameter changes"""

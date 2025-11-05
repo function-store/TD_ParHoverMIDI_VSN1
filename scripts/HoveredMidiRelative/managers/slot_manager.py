@@ -107,6 +107,10 @@ class SlotManager:
 				is_exact_match = (slot_op_path == old_op_path)
 				is_child_match = slot_op_path.startswith(old_op_path + '/')
 				
+				# Skip slots that have already been cleared in memory (even if still in repo table)
+				if self.parent.slotPars[bank_idx][slot_idx] is None:
+					continue
+				
 				if (is_exact_match or is_child_match) and par_name:
 					is_pargroup = (par_type == 'pargroup')
 					
@@ -179,6 +183,10 @@ class SlotManager:
 				# Check if this slot's path matches or is a child of the old path
 				is_exact_match = (slot_op_path == old_op_path)
 				is_child_match = slot_op_path.startswith(old_op_path + '/')
+				
+				# Skip slots that have already been cleared in memory
+				if self.parent.slotPars[bank_idx][slot_idx] is None:
+					continue
 				
 				if (is_exact_match or is_child_match) and par_name:
 					# Clear this slot
@@ -414,8 +422,8 @@ class SlotManager:
 		# Show popup dialog
 		self.parent.popDialog.Open(
 			title=f"Invalid {par_type} in Slot {slot_idx + 1}",
-			text=f"The {par_type.lower()} is no longer valid.\nEdit the path below to fix it, or click Clear to remove it.",
-			buttons=["Fix", "Clear"],
+			text=f"The {par_type.lower()} is no longer valid.\nEdit the path to fix all related slots, or clear this slot only, or clear all related slots.",
+			buttons=["Fix", "Clear", "Clear All"],
 			textEntry=path_parname,
 			callback=self._on_recovery_dialog_response,
 			escButton=2,  # Escape = Clear button (button 2)
@@ -428,7 +436,7 @@ class SlotManager:
 		
 		Args:
 			info: Dictionary containing button info from PopDialog
-				- info['buttonNum']: Button number clicked (1 = Fix, 2 = Clear)
+				- info['buttonNum']: Button number clicked (1 = Fix, 2 = Clear, 3 = Clear All)
 				- info['button']: Button text
 				- info['ownerComp']: Owner component
 		"""
@@ -449,9 +457,10 @@ class SlotManager:
 		# Clear pending invalidation
 		self._pending_invalidation = None
 		
-		# Button 1 = Fix, Button 2 = Clear
+		# Button 1 = Fix, Button 2 = Clear (single), Button 3 = Clear All (batch)
 		buttonNum = info['buttonNum']
 		if buttonNum == 1:
+			# FIX: Batch update all related slots
 			# FIRST: Check if this is a path change that should trigger batch update
 			# We need to do batch update BEFORE saving to table, otherwise save will clear repo!
 			should_batch_update = False
@@ -479,23 +488,48 @@ class SlotManager:
 				is_pargroup=is_pargroup
 			)
 			
-			if not success:
+			if success:
+				# Recovery succeeded - remove from invalidation queue
+				if (slot_idx, bank_idx) in self._invalidation_queue:
+					self._invalidation_queue.remove((slot_idx, bank_idx))
+			else:
 				# Recovery failed - clear the slot
 				self._clear_slot_data(slot_idx, bank_idx)
+				
+				# Remove from invalidation queue since we're clearing it
+				if (slot_idx, bank_idx) in self._invalidation_queue:
+					self._invalidation_queue.remove((slot_idx, bank_idx))
 				
 				# Track bank for saving after queue completes (don't save now to preserve repo data)
 				self._banks_to_save_after_queue.add(bank_idx)
 				
 				if update_ui:
 					self._update_ui_after_invalidation(slot_idx, bank_idx)
+		elif buttonNum == 2:
+			# CLEAR: Clear only this slot (no batch operation)
+			self._clear_slot_data(slot_idx, bank_idx)
+			
+			# Remove from invalidation queue since we're clearing it
+			if (slot_idx, bank_idx) in self._invalidation_queue:
+				self._invalidation_queue.remove((slot_idx, bank_idx))
+			
+			# Track bank for saving after queue completes (don't save now to preserve repo data)
+			self._banks_to_save_after_queue.add(bank_idx)
+			
+			if update_ui:
+				self._update_ui_after_invalidation(slot_idx, bank_idx)
 		else:
-			# Button 2 = Clear - user wants to clear the slot
-			# Also batch-clear all other slots with the same operator path
+			# CLEAR ALL: Batch-clear all slots with the same operator path
+			# (_batch_clear_operator_path handles removing slots from queue internally)
 			if orig_op_path:
 				self._batch_clear_operator_path(orig_op_path, exclude_slot=(slot_idx, bank_idx))
 			
 			# Clear this slot
 			self._clear_slot_data(slot_idx, bank_idx)
+			
+			# Remove from invalidation queue since we're clearing it
+			if (slot_idx, bank_idx) in self._invalidation_queue:
+				self._invalidation_queue.remove((slot_idx, bank_idx))
 			
 			# Track bank for saving after queue completes (don't save now to preserve repo data)
 			self._banks_to_save_after_queue.add(bank_idx)
@@ -931,9 +965,8 @@ class SlotManager:
 		if hasattr(self.parent, 'ui_manager'):
 			self.parent.ui_manager.refresh_all_button_states()
 		
-		# Update VSN1 slot LEDs (UI colors already handled above)
-		if hasattr(self.parent, 'vsn1_manager'):
-			self.parent.vsn1_manager.update_all_slot_leds()
+		# Update slot LEDs on both VSN1 hardware and UI
+		self.parent.display_manager.update_all_slot_leds()
 		
 		# Update display based on active slot or hover mode
 		if self.parent.activeSlot is not None:
