@@ -598,14 +598,18 @@ class HoveredMidiRelativeExt:
 		if self.activePar is None:
 			return
 
-		# Handle ParGroup
-		if ParameterValidator.is_pargroup(self.activePar):
-			self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
-		else:
-			# Handle single Par
-			self.undo_manager.create_reset_undo_for_parameter(self.activePar)
-		
-		self.display_manager.update_parameter_display(self.activePar)
+		try:
+			# Handle ParGroup
+			if ParameterValidator.is_pargroup(self.activePar):
+				self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
+			else:
+				# Handle single Par
+				self.undo_manager.create_reset_undo_for_parameter(self.activePar)
+			
+			self.display_manager.update_parameter_display(self.activePar)
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 	def onSetDefault(self):
 		"""TouchDesigner callback to set default parameter value"""
@@ -613,21 +617,28 @@ class HoveredMidiRelativeExt:
 		if self.slot_manager.is_invalidation_active():
 			return
 		
-		if self.activePar is None or not self.activePar.isCustom:
+		if self.activePar is None:
 			return
 		
-		# Capture old value for undo
-		old_default = self.activePar.default
-		new_default = self.activePar.eval()
-		
-		# Apply the change
-		self.activePar.default = new_default
-		
-		# Create undo action
-		self.undo_manager.create_set_default_undo(self.activePar, old_default, new_default)
-		
-		# update display
-		self.display_manager.update_parameter_display(self.activePar, bottom_text = '_DEF_')
+		try:
+			if not self.activePar.isCustom:
+				return
+			
+			# Capture old value for undo
+			old_default = self.activePar.default
+			new_default = self.activePar.eval()
+			
+			# Apply the change
+			self.activePar.default = new_default
+			
+			# Create undo action
+			self.undo_manager.create_set_default_undo(self.activePar, old_default, new_default)
+			
+			# update display
+			self.display_manager.update_parameter_display(self.activePar, bottom_text = '_DEF_')
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 	def onSetNorm(self, min_max: str):
 		"""TouchDesigner callback to set norm min or max value"""
@@ -635,48 +646,55 @@ class HoveredMidiRelativeExt:
 		if self.slot_manager.is_invalidation_active():
 			return
 		
-		if self.activePar is None or not self.activePar.isCustom:
+		if self.activePar is None:
 			return
 		
-		_val = self.activePar.eval()
-		
-		if min_max == 'min':
-			# Check if valid (not equal to max)
-			if _val != self.activePar.normMax:
-				# Capture old values for undo
-				old_norm = self.activePar.normMin
-				old_minmax = self.activePar.min
-				
-				# Apply changes
-				self.activePar.normMin = _val
-				self.activePar.min = _val
-				
-				# Create undo action
-				self.undo_manager.create_set_norm_undo(
-					self.activePar, is_min=True,
-					old_norm=old_norm, new_norm=_val,
-					old_minmax=old_minmax, new_minmax=_val
-				)
-		else:
-			# Check if valid (not equal to min)
-			if _val != self.activePar.normMin:
-				# Capture old values for undo
-				old_norm = self.activePar.normMax
-				old_minmax = self.activePar.max
-				
-				# Apply changes
-				self.activePar.normMax = _val
-				self.activePar.max = _val
-				
-				# Create undo action
-				self.undo_manager.create_set_norm_undo(
-					self.activePar, is_min=False,
-					old_norm=old_norm, new_norm=_val,
-					old_minmax=old_minmax, new_minmax=_val
-				)
-		
-		# update display
-		self.display_manager.update_parameter_display(self.activePar, bottom_text=f'_{min_max.upper()}_')
+		try:
+			if not self.activePar.isCustom:
+				return
+			
+			_val = self.activePar.eval()
+			
+			if min_max == 'min':
+				# Check if valid (not equal to max)
+				if _val != self.activePar.normMax:
+					# Capture old values for undo
+					old_norm = self.activePar.normMin
+					old_minmax = self.activePar.min
+					
+					# Apply changes
+					self.activePar.normMin = _val
+					self.activePar.min = _val
+					
+					# Create undo action
+					self.undo_manager.create_set_norm_undo(
+						self.activePar, is_min=True,
+						old_norm=old_norm, new_norm=_val,
+						old_minmax=old_minmax, new_minmax=_val
+					)
+			else:
+				# Check if valid (not equal to min)
+				if _val != self.activePar.normMin:
+					# Capture old values for undo
+					old_norm = self.activePar.normMax
+					old_minmax = self.activePar.max
+					
+					# Apply changes
+					self.activePar.normMax = _val
+					self.activePar.max = _val
+					
+					# Create undo action
+					self.undo_manager.create_set_norm_undo(
+						self.activePar, is_min=False,
+						old_norm=old_norm, new_norm=_val,
+						old_minmax=old_minmax, new_minmax=_val
+					)
+			
+			# update display
+			self.display_manager.update_parameter_display(self.activePar, bottom_text=f'_{min_max.upper()}_')
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 	def onSetClamp(self, min_max: str):
 		"""TouchDesigner callback to set clamp min or max value"""
@@ -684,36 +702,43 @@ class HoveredMidiRelativeExt:
 		if self.slot_manager.is_invalidation_active():
 			return
 		
-		if self.activePar is None or not self.activePar.isCustom:
+		if self.activePar is None:
 			return
 		
-		# Capture old values for undo
-		old_clamp_min = self.activePar.clampMin
-		old_clamp_max = self.activePar.clampMax
-		
-		# Determine what's changing
-		changed_min = (min_max == 'min' or min_max == 'both')
-		changed_max = (min_max == 'max' or min_max == 'both')
-		
-		# Apply changes
-		if changed_min:
-			self.activePar.clampMin = not self.activePar.clampMin
-		if changed_max:
-			self.activePar.clampMax = not self.activePar.clampMax
-		
-		# Create undo action
-		self.undo_manager.create_set_clamp_undo(
-			self.activePar,
-			changed_min=changed_min,
-			changed_max=changed_max,
-			old_clamp_min=old_clamp_min,
-			new_clamp_min=self.activePar.clampMin,
-			old_clamp_max=old_clamp_max,
-			new_clamp_max=self.activePar.clampMax
-		)
-		
-		# update display
-		self.display_manager.update_parameter_display(self.activePar, bottom_text='_CLAMP_')
+		try:
+			if not self.activePar.isCustom:
+				return
+			
+			# Capture old values for undo
+			old_clamp_min = self.activePar.clampMin
+			old_clamp_max = self.activePar.clampMax
+			
+			# Determine what's changing
+			changed_min = (min_max == 'min' or min_max == 'both')
+			changed_max = (min_max == 'max' or min_max == 'both')
+			
+			# Apply changes
+			if changed_min:
+				self.activePar.clampMin = not self.activePar.clampMin
+			if changed_max:
+				self.activePar.clampMax = not self.activePar.clampMax
+			
+			# Create undo action
+			self.undo_manager.create_set_clamp_undo(
+				self.activePar,
+				changed_min=changed_min,
+				changed_max=changed_max,
+				old_clamp_min=old_clamp_min,
+				new_clamp_min=self.activePar.clampMin,
+				old_clamp_max=old_clamp_max,
+				new_clamp_max=self.activePar.clampMax
+			)
+			
+			# update display
+			self.display_manager.update_parameter_display(self.activePar, bottom_text='_CLAMP_')
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 
 	def onReceiveMidiBankSel(self, index: int) -> None:
@@ -760,25 +785,29 @@ class HoveredMidiRelativeExt:
 		run("args[0].display_manager.update_parameter_display(args[1], bottom_text='_CUSTOM_')", self, activePar, delayFrames=1)
 
 	def onActiveValueChange(self, _par):
-		# check if _par is a cached parameter and if the value matches the cached value do nothing
-		if isinstance(_par, ParGroup):
-			return
-
-		# Check if parameter is part of an active slot ParGroup
-		if (self.activeSlot is not None and
-			self.activePar is not None and
-			ParameterValidator.is_pargroup(self.activePar)):
-			# Check if _par is in the active ParGroup
-			for par_in_group in self.activePar:
-				if par_in_group.owner == _par.owner and par_in_group.name == _par.name:
-					return
-
-		if self.lastCachedChange:#
-			if f'{_par.owner.path}:{_par.name}' == self.lastCachedChange[0] and _par.eval() == self.lastCachedChange[1]:
+		try:
+			# check if _par is a cached parameter and if the value matches the cached value do nothing
+			if isinstance(_par, ParGroup):
 				return
 
-		# update display with the new value
-		self.display_manager.update_parameter_display(_par)
+			# Check if parameter is part of an active slot ParGroup
+			if (self.activeSlot is not None and
+				self.activePar is not None and
+				ParameterValidator.is_pargroup(self.activePar)):
+				# Check if _par is in the active ParGroup
+				for par_in_group in self.activePar:
+					if par_in_group.owner == _par.owner and par_in_group.name == _par.name:
+						return
+
+			if self.lastCachedChange:#
+				if f'{_par.owner.path}:{_par.name}' == self.lastCachedChange[0] and _par.eval() == self.lastCachedChange[1]:
+					return
+
+			# update display with the new value
+			self.display_manager.update_parameter_display(_par)
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 	def _set_parexec_pars(self, _par: Par):
 		"""For god knows what reason Dependency objects would not update!!!"""

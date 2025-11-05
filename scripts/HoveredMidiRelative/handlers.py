@@ -117,9 +117,8 @@ class MidiMessageHandler:
 			self.pushed_for_jump = False
 			return True
 
-		if active_par is None or not active_par.valid or (active_par.owner == self.parent.ownerComp):
-			# Clear invalid parameter from all slots
-			self._clear_invalid_parameter_from_slots(active_par)
+		# Only check if parameter exists - validity check will happen naturally via exception
+		if active_par is None or (active_par.owner == self.parent.ownerComp):
 			return False
 
 		# Handle ParGroup

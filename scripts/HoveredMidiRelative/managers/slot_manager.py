@@ -779,6 +779,10 @@ class SlotManager:
 			# Update LEDs and outline color
 			self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
 			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
+			
+			# Check for any invalid parameters in this bank after successful activation
+			self.queue_invalidation_check()
+			
 			return True
 		
 		return False
