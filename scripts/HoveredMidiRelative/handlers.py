@@ -201,9 +201,14 @@ class MidiMessageHandler:
 		active_par = self.parent.repo_manager.get_slot_parameter(block_idx, currBank)
 		if active_par is not None:
 			# Validate parameter before activating
-			if not active_par.valid:
-				# Clear invalid parameter from all slots
-				self._clear_invalid_parameter_from_slots(active_par)
+			try:
+				is_valid = active_par.valid
+			except:
+				is_valid = False
+			
+			if not is_valid:
+				# Parameter is invalid - queue invalidation check to show recovery dialog
+				self.parent.slot_manager.queue_invalidation_check()
 				return False
 
 			# check if user is holding down the push button

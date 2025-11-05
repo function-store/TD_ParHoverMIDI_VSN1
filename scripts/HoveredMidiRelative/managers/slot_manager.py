@@ -45,14 +45,24 @@ class SlotManager:
 		invalid_params = []
 		for bank_idx in range(self.parent.numBanks):
 			for slot_idx in range(self.parent.numSlots):
+				par = self.parent.slotPars[bank_idx][slot_idx]
+				if par is None:
+					continue
+				
+				# Check if parameter is invalid
+				is_invalid = False
 				try:
-					par = self.parent.slotPars[bank_idx][slot_idx]
-					if par and (not par.valid or not par.name):
-						invalid_params.append((slot_idx, bank_idx))
+					# Try to access .valid property
+					if not par.valid:
+						is_invalid = True
+					elif not par.name:
+						is_invalid = True
 				except:
-					par = self.parent.slotPars[bank_idx][slot_idx]
-					if par is not None:
-						invalid_params.append((slot_idx, bank_idx))
+					# Exception accessing parameter properties = invalid
+					is_invalid = True
+				
+				if is_invalid:
+					invalid_params.append((slot_idx, bank_idx))
 		
 		if invalid_params:
 			# Start processing the first one
@@ -725,15 +735,15 @@ class SlotManager:
 		if slot_par is None:
 			return False
 		
-		# Check if parameter is valid - if not, show recovery dialog
+		# Check if parameter is valid - if not, queue invalidation check
 		try:
 			if not slot_par.valid:
-				# Parameter is invalid - show recovery dialog (with show_dialog=True by default)
-				self.invalidate_slot(slot_idx, currBank, update_ui=True, show_dialog=True)
+				# Parameter is invalid - queue invalidation check for all slots
+				self.queue_invalidation_check()
 				return False
 		except:
 			# Accessing .valid failed - parameter is definitely invalid
-			self.invalidate_slot(slot_idx, currBank, update_ui=True, show_dialog=True)
+			self.queue_invalidation_check()
 			return False
 
 		# Clear any unused captured values from previous slot

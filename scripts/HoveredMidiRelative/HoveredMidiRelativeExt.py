@@ -593,10 +593,10 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to reset active parameter (or ParGroup)"""
 		# Block all actions while invalidation is active (dialog or queue processing)
 		if self.slot_manager.is_invalidation_active():
-			return
+			return None
 		
 		if self.activePar is None:
-			return
+			return None
 
 		try:
 			# Handle ParGroup
@@ -615,14 +615,14 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to set default parameter value"""
 		# Block all actions while invalidation is active (dialog or queue processing)
 		if self.slot_manager.is_invalidation_active():
-			return
+			return None
 		
 		if self.activePar is None:
-			return
+			return None
 		
 		try:
 			if not self.activePar.isCustom:
-				return
+				return None
 			
 			# Capture old value for undo
 			old_default = self.activePar.default
@@ -644,14 +644,14 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to set norm min or max value"""
 		# Block all actions while invalidation is active (dialog or queue processing)
 		if self.slot_manager.is_invalidation_active():
-			return
+			return None
 		
 		if self.activePar is None:
-			return
+			return None
 		
 		try:
 			if not self.activePar.isCustom:
-				return
+				return None
 			
 			_val = self.activePar.eval()
 			
@@ -700,14 +700,14 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback to set clamp min or max value"""
 		# Block all actions while invalidation is active (dialog or queue processing)
 		if self.slot_manager.is_invalidation_active():
-			return
+			return None
 		
 		if self.activePar is None:
-			return
+			return None
 		
 		try:
 			if not self.activePar.isCustom:
-				return
+				return None
 			
 			# Capture old values for undo
 			old_clamp_min = self.activePar.clampMin
@@ -788,7 +788,7 @@ class HoveredMidiRelativeExt:
 		try:
 			# check if _par is a cached parameter and if the value matches the cached value do nothing
 			if isinstance(_par, ParGroup):
-				return
+				return None
 
 			# Check if parameter is part of an active slot ParGroup
 			if (self.activeSlot is not None and
@@ -797,11 +797,11 @@ class HoveredMidiRelativeExt:
 				# Check if _par is in the active ParGroup
 				for par_in_group in self.activePar:
 					if par_in_group.owner == _par.owner and par_in_group.name == _par.name:
-						return
+						return None
 
 			if self.lastCachedChange:#
 				if f'{_par.owner.path}:{_par.name}' == self.lastCachedChange[0] and _par.eval() == self.lastCachedChange[1]:
-					return
+					return None
 
 			# update display with the new value
 			self.display_manager.update_parameter_display(_par)
