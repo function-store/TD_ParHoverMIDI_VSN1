@@ -261,7 +261,8 @@ class MidiMessageHandler:
 		# Apply step to each valid parameter in the group
 		for par in par_group:
 			# Skip invalid parameters within the group
-			if par is not None and ParameterValidator.is_valid_parameter(par):
+			# Also skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par):
 				self._do_step_single(par, step, value, update_display=False)
 		
 		# Update display once after all valid parameters are updated

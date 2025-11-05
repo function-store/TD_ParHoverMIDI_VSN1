@@ -129,7 +129,8 @@ class UndoManager:
 		# Collect all valid parameters that need undo
 		pars_to_undo = []
 		for par in par_group:
-			if par is not None and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
 				par_path = f"{par.owner.path}:{par.name}"
 				# Check if we have captured initial value and haven't created undo yet
 				if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
@@ -138,7 +139,8 @@ class UndoManager:
 		# If no parameters need undo, check if we need to capture initial values
 		if not pars_to_undo:
 			for par in par_group:
-				if par is not None and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
+				# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+				if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
 					par_path = f"{par.owner.path}:{par.name}"
 					if par_path not in self.parameterInitialValues:
 						self.capture_initial_parameter_value(par)
@@ -362,14 +364,16 @@ class UndoManager:
 		if not self.parent.evalEnableundo:
 			# Reset without undo
 			for par in par_group:
-				if par is not None and ParameterValidator.is_valid_parameter(par):
+				# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+				if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par):
 					par.reset()
 			return
 		
 		# Capture current state for all valid parameters
 		reset_info_list = []
 		for par in par_group:
-			if par is not None and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
 				par_path = f"{par.owner.path}:{par.name}"
 				old_mode = par.mode
 				old_expr = par.expr if par.mode == ParMode.EXPRESSION else None
