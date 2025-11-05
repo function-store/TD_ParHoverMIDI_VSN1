@@ -79,6 +79,8 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 5. **Set your `Device ID`** in the component's **Mapping** tab (find your device ID in TouchDesigner's MIDI Device Mapper)
 6. Have Grid Editor open at all times when using Intech hardware (see next section)
 
+> The component automatically attempts to open **Grid Editor**
+
 ## Quick Start
 0. Download `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest)
 1. **Setup**: Place the `ParHoverMIDI_VSN1.tox` component in your network (suggested at root `/`)
@@ -92,6 +94,41 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
     - Configure step sizes in the **Mapping** tab (default: 0.001, 0.01, 0.1, 1)
 7. **Parameter Slots**: Check [Parameter Slots System](#parameter-slots-system) to save and recall parameters to control!
 8. **Multiple Banks**: Use [Multiple Banks](#multiple-banks) to organize slots into separate banks for expanded control
+
+### Recommended Setup
+
+**External Repo Setup (Highly Recommended):**
+
+The component stores slot and bank data in an internal Repo table called `SlotsRepo`. To prevent updates from clearing your saved slots, it is **strongly recommended** to set up an **external Repo**:
+
+1. Create a new Table DAT outside of the component using the `Create` custom parameter.
+2. This will point the `Slots Repo` parameter to your external table (e.g., `/repo_storage`)
+
+This ensures that component updates will not affect your saved parameter slots and bank configurations.
+
+**External .tox Setup (Recommended for Multi-Project Workflows):**
+
+For projects that share the same setup across multiple files:
+
+1. Save the component as an external `.tox` file in a shared location (e.g., `C:/Documents/Derivative/Palette/FNStools_ext/`)
+2. In each project, this file into your network as an **external component** (it will show a reference icon)
+3. Set up each project to use an external Repo table (see above)
+
+> If using the In-Component Update feature (see below) the component will be set up as above automatically (except you need to enable `External .tox` parameter manually).
+
+**Benefits:**
+- **Updates are automatic**: When you update the component via the **About** page (see below), all projects using the external `.tox` will instantly receive the update
+- **No manual per-project updates**: Update once, applies everywhere
+- **Preserved slot data**: Your saved slots remain untouched across updates
+
+## In-Component Updates
+
+The component includes a built-in updater accessible from the **About** page custom parameters:
+
+1. Open the component's **About** parameter page
+2. Use the update controls to check for and install new versions
+3. The `.tox` file will be downloaded to `Palette/FNStools_ext/`
+4. With an external Repo and external `.tox` setup, updates will not interfere with your saved slots
 
 ## MIDI Mapping Configuration
 
@@ -116,9 +153,7 @@ For custom configurations or non-VSN1 users wanting to adapt to their devices:
 - The **System** element defines the channel as global variable `gch`
 - Each element's MIDI block can be customized if needed
 
-
 ## Functions
-
 
 ### Parameter Slots System
 The component supports multiple parameter slots that can be assigned to different MIDI buttons for quick access:
@@ -279,6 +314,58 @@ Full undo/redo support for both parameter value adjustments and slot management,
 
 **Note**: All undo/redo functionality is controlled by the `Enable Undo` parameter in the component settings. When enabled, both parameter value changes and slot assignments/clearing are tracked.
 
+### Parameter Recovery System
+Automatic detection and recovery of invalid parameters when operators are moved, renamed, or deleted:
+
+**Automatic Detection**:
+- **On slot activation**: When you try to activate a slot with an invalid parameter
+- **On bank switching**: When switching to a bank containing invalid parameters
+- **On parameter interaction**: When attempting to manipulate an invalid parameter
+- **Background validation**: System automatically scans for invalid parameters after certain operations
+
+**Recovery Dialog**:
+When invalid parameters are detected, a recovery dialog appears with:
+- **Parameter information**: Shows the original operator path and parameter name
+- **Fix button**: Edit the path to point to the new location/name of the parameter
+  - Batch update: Automatically updates all other slots with the same operator path
+  - Smart path matching: Handles both exact matches and child operator paths
+- **Clear button**: Remove only the invalid parameter from this specific slot
+  - Single operation: Only affects the slot that triggered the dialog
+- **Clear All button**: Remove the invalid parameter from all related slots
+  - Batch clear: Automatically clears all slots with the same operator path
+- **Sequential processing**: If multiple parameters are invalid, dialogs appear one at a time
+
+**Batch Operations**:
+- **Batch path updates**: When using Fix, all other slots pointing to the same operator are automatically updated
+- **Single clear**: When using Clear, only the current slot is affected
+- **Batch clearing**: When using Clear All, all slots with parameters from that operator are cleared at once
+- **Smart recovery**: The system identifies related parameters and offers batch operations when appropriate
+
+**Common Use Cases**:
+- **Operator moved**: You moved `/project1/geo1` to `/project1/effects/geo1` → Use Fix to update all related slots
+- **Operator renamed**: You renamed `circle1` to `shape1` → Use Fix to update the path for all related slots
+- **Operator deleted**: You deleted an operator → Use Clear All to remove from all slots, or Clear to remove from just this slot
+- **Single slot cleanup**: One slot has wrong parameter → Use Clear to remove only that slot
+- **Project reorganization**: Restructured your network → Use Fix to update paths in bulk for all related slots
+
+**Undo Support**:
+- **Fix operations are undoable**: Press Ctrl+Z/Cmd+Z to revert batch path updates
+- **Clear operations are undoable**: Undo single slot clears to restore the parameter
+- **Clear All operations are undoable**: Undo batch clear operations to restore all cleared slots
+
+**Visual Feedback**:
+- **`_INVALID_` message**: Displays on screen when attempting to access invalid parameters
+- **Dialog prompts**: Clear interface for fixing or clearing invalid parameters with granular control
+- **Seamless recovery**: After fixing, operation continues normally with the corrected parameter
+
+**Manual Editing**:
+- **Direct table access**: The slot storage tables in `SlotsRepo` (or your external Repo referenced by the `Slots Repo` parameter) can be manually edited
+- **Table structure**: Each bank has its own table with columns: `path` (operator path), `name` (parameter name), `type` (`Par` or `ParGroup`), and `active` (active slot indicator)
+- **Advanced workflows**: Useful for bulk editing, scripting, or transferring configurations between projects
+- **Format compatibility**: Ensure proper formatting when manually editing to maintain system compatibility
+
+> The recovery system ensures your slot assignments remain valid even as your TouchDesigner network evolves, with intelligent batch operations and granular control to handle parameters exactly as needed.
+
 ### UI Parameter Highlighting
 Visual feedback in the TouchDesigner UI helps identify which parameters can be controlled:
 
@@ -315,6 +402,7 @@ The following parameters are available to further customize the functionality of
 - **`Enable UI Color`**: When enabled, applies visual color highlighting to parameters in the TouchDesigner interface to indicate hovered/active states. **NOTE**: Changing UI colors can cause some performance impact when switching between hover mode and slot mode.
 - **`Reset Comm`**: In case GRID Editor reports websocket connection is not active try pulsing this.
 - **`Knob LED Update`**: Choose between "Off", "Value" and "Step" to determine what is indicated on the knob LEDs of VSN1. **NOTE**: Currently when set to "Value", laggy updates can be observed on the hardware unit.
+- **Enable UI**: The component has an internal UI that mirrors the VSN1 state. This takes up about half of the performance of the component, so if not used it is recommended to disable.
 
 ## Visual Feedback
 
@@ -381,12 +469,14 @@ scripts/HoveredMidiRelative/
 ├── constants.py              # All constants and enums
 ├── validators.py             # Parameter validation logic
 ├── formatters.py             # Label and value formatting utilities
+├── decorators.py             # Common decorators for validation/blocking
 ├── handlers.py               # MIDI message processing
 ├── managers/
-│   ├── slot_manager.py       # Parameter slot operations
-│   ├── display_manager.py    # Unified display logic coordinator
-│   ├── vsn1_manager.py       # VSN1 hardware integration
-│   └── ui_manager.py         # Local UI element management
+│   ├── slot_manager.py       # Parameter slot operations & invalidation
+│   ├── display_manager.py    # Unified display & VSN1 hardware rendering
+│   ├── ui_manager.py         # Local UI element management
+│   ├── undo_manager.py       # Undo/redo system for all operations
+│   └── repo_manager.py       # Persistent storage management
 └── HoveredMidiRelativeExt.py # Main extension class
 ```
 
@@ -395,10 +485,11 @@ scripts/HoveredMidiRelative/
 **Core Components:**
 - **`HoveredMidiRelativeExt`**: Main extension class with TouchDesigner integration
 - **`MidiMessageHandler`**: Processes MIDI input (steps, knobs, pulses, slots, banks) with ParGroup support
-- **`DisplayManager`**: Centralizes all display logic and coordinates renderers
-- **`VSN1Manager`**: Handles VSN1 screen updates and LED feedback (with batched LED commands)
+- **`DisplayManager`**: Centralizes all display logic, coordinates UI rendering, and handles VSN1 hardware communication (with batched LED commands)
 - **`UIManager`**: Manages local TouchDesigner UI elements with bank-aware button states
-- **`SlotManager`**: Handles parameter/ParGroup slot assignment, activation, clearing, and bank switching
+- **`SlotManager`**: Handles parameter/ParGroup slot assignment, activation, clearing, bank switching, and parameter invalidation/recovery
+- **`UndoManager`**: Manages undo/redo history for parameter changes, resets, slot operations, and batch updates
+- **`RepoManager`**: Handles persistent storage of slot assignments and bank states
 - **`ParameterValidator`**: Validates parameter compatibility, supports ParGroups with mixed valid/invalid parameters
 - **`LabelFormatter`**: Smart label compression with ParGroup detection (`>` prefix) and priority formatting
 

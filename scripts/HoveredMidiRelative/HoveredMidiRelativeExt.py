@@ -18,9 +18,9 @@ from formatters import LabelFormatter
 from handlers import MidiMessageHandler
 from display_manager import DisplayManager
 from slot_manager import SlotManager
-from vsn1_manager import VSN1Manager
 from ui_manager import UIManager
 from undo_manager import UndoManager
+from repo_manager import RepoManager
 
 
 
@@ -37,7 +37,7 @@ class HoveredMidiRelativeExt:
 		self.midiOut = self.ownerComp.op('midiout1')
 		self.jumpToOp : JumpToOpExt = self.ownerComp.op('JumpToOp')
 		self.websocket: websocketDAT = self.ownerComp.op('websocket1')
-		self.Test = 'test'
+		self.popDialog : PopDialogExt = self.ownerComp.op('popDialog')
 
 		# UI Mod init
 		if _uimod := self.ownerComp.op('td_ui_mod'):
@@ -49,27 +49,23 @@ class HoveredMidiRelativeExt:
 		
 		# Initialize state - can be either a single Par or a ParGroup
 		self.hoveredPar: Optional[Union[Par, ParGroup]] = None
+		self._activeSlotPar: Optional[Union[Par, ParGroup]] = None  # Direct storage of active slot parameter
 		
 		# Initialize helper classes
+		self.repo_manager = RepoManager(self)  # Initialize first as others may depend on it
 		self.midi_handler = MidiMessageHandler(self)
-		self.vsn1_manager = VSN1Manager(self)
 		self.ui_manager = UIManager(self)
+		self.display_manager = DisplayManager(self)  # Must be after ui_manager
 		self.slot_manager = SlotManager(self)
-		self.display_manager = DisplayManager(self)
 		self.undo_manager = UndoManager(self)
 
 		self.display_run_obj = None
 		self.lastCachedChange = None
+		self.slotPars = [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)]
+		self.bankActiveSlots = [None for _ in range(self.numBanks)]
 
-		# Initialize storage
+		# Initialize storage (back to using slotPars and bankActiveSlots for performance)
 		storedItems = [
-			{
-				'name': 'slotPars',
-				'default': [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)],
-				'readOnly': False,
-				'property': True,
-				'dependable': False
-			},
 			{
 				'name': 'activeSlot',
 				'default': None,
@@ -91,13 +87,6 @@ class HoveredMidiRelativeExt:
 				'dependable': False
 			},
 			{
-				'name': 'bankActiveSlots',
-				'default': [None for _ in range(self.numBanks)],
-				'readOnly': False,
-				'property': True,
-				'dependable': False
-			},
-			{
 				'name': 'currentHoveredUIColor',
 				'default': -1,
 				'readOnly': False,
@@ -108,6 +97,9 @@ class HoveredMidiRelativeExt:
 
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
+		
+		# Load from tables on first run 
+		self.repo_manager.load_from_tables_if_needed()
 
 		self.postInit()
 
@@ -125,67 +117,152 @@ class HoveredMidiRelativeExt:
 
 		# set UI stuff based on current evalStepmode
 		self.ui_manager.set_stepmode_indicator(self.stepMode)
+		self.onMidiError(self.midiError)
 
+	def onStart(self):
+		post_update = self.ownerComp.fetch('post_update', False)
+		if post_update:
+			#self.LoadAllFromJSON()
+			self.ownerComp.unstore('post_update')
+			# okay I really fucked this up, so mega-hack below
+			#self.SaveAllToJSON()
+			try:
+				run(
+					"args[0].open_changelog() if args[0] "
+							"and hasattr(args[0], 'open_changelog') else None",
+					self,
+					endFrame=True,
+					delayRef=op.TDResources
+				)
+			except:
+				pass
+
+	def open_changelog(self):
+		try:
+			ret = ui.messageBox(f'{self.ownerComp.name} updated', 'Would you like to see the changelog?', buttons=['No', 'Yes'])
+			if ret == 1:
+				ui.viewFile('https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest')
+		except:
+			pass
+
+		if self.evalAutostartgrideditor:
+			self._start_grid_editor()
+
+	def _start_grid_editor(self):
+		import subprocess
+		import os
+		import sys
+
+		try:
+			if sys.platform == "win32":
+				# Windows implementation
+				result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq Grid Editor.exe'],
+										capture_output=True, text=True, shell=True)
+				if 'Grid Editor.exe' not in result.stdout:
+					# Try common Windows installation paths
+					possible_paths = [
+						os.path.expandvars(r"%LOCALAPPDATA%\Programs\grid-editor\Grid Editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES%\Grid Editor\Grid Editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES(X86)%\Grid Editor\Grid Editor.exe"),
+						r"C:\Program Files\Grid Editor\Grid Editor.exe",
+						r"C:\Program Files (x86)\Grid Editor\Grid Editor.exe"
+					]
+					
+					grid_editor_path = None
+					for path in possible_paths:
+						if os.path.exists(path):
+							grid_editor_path = path
+							break
+					
+					if grid_editor_path:
+						subprocess.Popen([grid_editor_path])
+						debug("Grid Editor started from:", grid_editor_path)
+					else:
+						debug("Grid Editor executable not found. Tried paths:", possible_paths)
+				else:
+					debug("Grid Editor is already running")
+
+			elif sys.platform == "darwin":
+				# macOS implementation
+				result = subprocess.run(['pgrep', '-f', 'Grid Editor'],
+										capture_output=True, text=True)
+				if result.returncode != 0:  # Process not found
+					# Try common macOS application paths
+					possible_paths = [
+						"/Applications/Grid Editor.app",
+						os.path.expanduser("~/Applications/Grid Editor.app"),
+						"/Applications/grid-editor/Grid Editor.app",
+						os.path.expanduser("~/Applications/grid-editor/Grid Editor.app")
+					]
+
+					app_path = None
+					for path in possible_paths:
+						if os.path.exists(path):
+							app_path = path
+							break
+
+					if app_path:
+						subprocess.Popen(["open", app_path])
+						debug("Grid Editor started")
+					else:
+						debug("Grid Editor application not found in common locations:", possible_paths)
+				else:
+					debug("Grid Editor is already running")
+
+			else:
+				debug("Grid Editor launch not supported on this platform:", sys.platform)
+
+		except Exception as e:
+			debug("Error checking/starting Grid Editor:", str(e))
+		return
 
 	def _validate_storage(self):
 		"""Validate storage and ensure proper structure for dynamic bank changes"""
-		# Ensure slotPars is properly structured as 2D array
-		if not isinstance(self.slotPars, list):
-			self.slotPars = []
+		# Ensure storage has correct dimensions for current numBanks/numSlots
+		# Resize slotPars if needed (preserve existing data where possible)
+		if len(self.slotPars) != self.numBanks:
+			old_slotPars = self.slotPars
+			self.slotPars = [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)]
+			
+			# Copy over existing data
+			for bank_idx in range(min(len(old_slotPars), self.numBanks)):
+				for slot_idx in range(min(len(old_slotPars[bank_idx]), self.numSlots)):
+					self.slotPars[bank_idx][slot_idx] = old_slotPars[bank_idx][slot_idx]
+		else:
+			# Check if slot count changed
+			for bank_idx in range(self.numBanks):
+				if len(self.slotPars[bank_idx]) != self.numSlots:
+					old_slots = self.slotPars[bank_idx]
+					self.slotPars[bank_idx] = [None for _ in range(self.numSlots)]
+					# Copy over existing data
+					for slot_idx in range(min(len(old_slots), self.numSlots)):
+						self.slotPars[bank_idx][slot_idx] = old_slots[slot_idx]
 		
-		# Ensure bankActiveSlots is properly structured
-		if not isinstance(self.bankActiveSlots, list):
-			self.bankActiveSlots = []
-		
-		# Ensure we have at least as many banks as configured
-		current_num_banks = self.numBanks
-		
-		# Extend slotPars if we have more banks than before
-		while len(self.slotPars) < current_num_banks:
-			self.slotPars.append([])
-		
-		# Extend bankActiveSlots if we have more banks than before
-		while len(self.bankActiveSlots) < current_num_banks:
-			self.bankActiveSlots.append(None)
-		
-		# Truncate if we have fewer banks than before (but preserve data)
-		if len(self.slotPars) > current_num_banks:
-			self.slotPars = self.slotPars[:current_num_banks]
-		
-		if len(self.bankActiveSlots) > current_num_banks:
-			self.bankActiveSlots = self.bankActiveSlots[:current_num_banks]
+		# Resize bankActiveSlots if needed
+		if len(self.bankActiveSlots) != self.numBanks:
+			old_active = self.bankActiveSlots
+			self.bankActiveSlots = [None for _ in range(self.numBanks)]
+			# Copy over existing active slots
+			for bank_idx in range(min(len(old_active), self.numBanks)):
+				self.bankActiveSlots[bank_idx] = old_active[bank_idx]
 		
 		# Validate current bank index
-		if self.currBank >= current_num_banks:
+		if self.currBank >= self.numBanks:
 			self.currBank = 0
 			self.activeSlot = None
+			self._activeSlotPar = None
 		
-		# Validate each bank's slots
-		for _bank_idx in range(len(self.slotPars)):
-			bank_slots = self.slotPars[_bank_idx]
-			if not isinstance(bank_slots, list):
-				self.slotPars[_bank_idx] = []
-				continue
-				
-			for idx, _par_or_group in enumerate(bank_slots):
-				if _par_or_group is not None:
-					# Handle ParGroup
-					if ParameterValidator.is_pargroup(_par_or_group):
-						# Check if any parameters in the group are still valid
-						has_valid = any(p.valid for p in _par_or_group if p is not None)
-						if not has_valid:
-							self.slotPars[_bank_idx][idx] = None
-							if self.currBank == _bank_idx and self.activeSlot == idx:
-								# Invalidate active slot
-								self.activeSlot = None
-								self.bankActiveSlots[_bank_idx] = None
-					# Handle single Par
-					elif not _par_or_group.valid:
-						self.slotPars[_bank_idx][idx] = None
-						if self.currBank == _bank_idx and self.activeSlot == idx:
-							# Invalidate active slot
-							self.activeSlot = None
-							self.bankActiveSlots[_bank_idx] = None
+		# Validate all parameters in all banks and clear invalid ones
+		self.repo_manager.validate_and_clean_all_banks()
+		
+		# Sync activeSlot with bankActiveSlots
+		active_slot_idx = self.bankActiveSlots[self.currBank]
+		if active_slot_idx is not None:
+			self.activeSlot = active_slot_idx
+			self._activeSlotPar = self.slotPars[self.currBank][active_slot_idx]
+		else:
+			self.activeSlot = None
+			self._activeSlotPar = None
 	
 	def _initialize_VSN1(self):
 		"""Initialize VSN1 screen if enabled"""
@@ -215,9 +292,7 @@ class HoveredMidiRelativeExt:
 
 		if self.knobLedUpdateMode in [KnobLedUpdateMode.STEPS]:
 			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), 0)
-			self.vsn1_manager.update_knob_leds_steps(step_idx)
-
-		self.display_manager.update_all_display(1, 0, 1, 'TD Hover', '_INIT_', compress=False)
+			self.display_manager.update_knob_leds_steps(step_idx)
 		
 # region properties
 		
@@ -250,15 +325,14 @@ class HoveredMidiRelativeExt:
 	@property
 	def activePar(self) -> Optional[Union[Par, ParGroup]]:
 		"""Get currently active parameter (slot takes priority over hovered)
-		Can return a single Par or a ParGroup"""
-		# Prioritize active slot parameters over hovered parameter
-		if (self.activeSlot is not None and 
-			self.activeSlot < self.numSlots and 
-			self.currBank < self.numBanks and
-			self.currBank < len(self.slotPars) and
-			self.activeSlot < len(self.slotPars[self.currBank]) and
-			self.slotPars[self.currBank][self.activeSlot] is not None):
-				return self.slotPars[self.currBank][self.activeSlot]
+		Can return a single Par or a ParGroup
+		
+		For performance, active slot parameter is stored directly in _activeSlotPar
+		when a slot is activated, avoiding list lookups during MIDI handling.
+		"""
+		# Prioritize active slot parameter (stored directly for fast access)
+		if self._activeSlotPar is not None:
+			return self._activeSlotPar
 			
 		if self.hoveredPar is not None:
 			return self.hoveredPar
@@ -300,6 +374,10 @@ class HoveredMidiRelativeExt:
 	def stepMode(self, value: StepMode):
 		self.evalStepmode = value.value
 
+	@property
+	def midiError(self) -> bool:
+		return self.ownerComp.op('info_midi1')['warnings'].eval() or self.ownerComp.op('info_midi1')['errors'].eval()
+
 # endregion properties
 
 # region helper methods
@@ -320,8 +398,8 @@ class HoveredMidiRelativeExt:
 			
 			if should_run:
 				self.display_run_obj = run(
-					"args[0].display_manager.update_all_display(0, 0, 1, 'TD Hover', '...', compress=False)", 
-					self, ScreenMessages.UNSUPPORTED, delayMilliSeconds=1000, delayRef=op.TDResources
+					"args[0].display_manager.update_all_display(0, 0, 1, args[1], args[1], compress=False)", 
+					self, ScreenMessages.HOVER, delayMilliSeconds=1000, delayRef=op.TDResources
 				)
 		else:
 			# Kill any existing display run when we have a valid operator
@@ -335,6 +413,10 @@ class HoveredMidiRelativeExt:
 
 	def onHoveredParChange(self, _op, _parGroup, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		# Clear any captured initial values that never resulted in undo actions
 		# (user hovered but didn't adjust)
 		if self.hoveredPar is not None and self.evalEnableundo:
@@ -342,7 +424,7 @@ class HoveredMidiRelativeExt:
 		
 		self.hoveredPar = None
 
-		if not self.evalActive:
+		if not self.evalActive or self.midiError:
 			return
 
 		if _op is None:
@@ -358,7 +440,7 @@ class HoveredMidiRelativeExt:
 		
 		if not (_op := op(_op)):
 			return
-		
+			
 		# Detect if we're hovering over a ParGroup or a single Par
 		par_group_obj = getattr(_op.parGroup, _parGroup, None) if _parGroup else None
 		single_par = getattr(_op.par, _par, None) if _par else None
@@ -435,37 +517,61 @@ class HoveredMidiRelativeExt:
 		if channel != self.evalChannel or not self.evalActive:
 			return
 		
-		active_par = self.activePar
-		hovered_par = self.hoveredPar
-		index = int(index)
-
-		# Process different message types using helper class
-		if message == MidiConstants.NOTE_ON:
-			# Handle step change messages
-			if self.midi_handler.handle_step_message(index, value):
-				self._manage_empty_operator_display(should_show=False)
-				return
-				
-			# Handle pulse messages
-			if self.midi_handler.handle_push_message(index, value, active_par):
-				self._manage_empty_operator_display(should_show=False)
-				return
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
 		
-			# Handle slot selection messages
-			if self.midi_handler.handle_slot_message(index, value):
-				self._manage_empty_operator_display(should_show=False)
-				return
+		try:
+			active_par = self.activePar
+			hovered_par = self.hoveredPar
+			index = int(index)
+
+			# Process different message types using helper class
+			if message == MidiConstants.NOTE_ON:
+				# Handle step change messages
+				if self.midi_handler.handle_step_message(index, value):
+					self._manage_empty_operator_display(should_show=False)
+					return
+					
+				# Handle pulse messages
+				if self.midi_handler.handle_push_message(index, value, active_par):
+					self._manage_empty_operator_display(should_show=False)
+					return
 			
-		elif message == MidiConstants.CONTROL_CHANGE:
-			# Handle knob control messages
-			if self.midi_handler.handle_knob_message(index, value, active_par):
-				self._manage_empty_operator_display(should_show=False)
-				return
+				# Handle slot selection messages
+				if self.midi_handler.handle_slot_message(index, value):
+					self._manage_empty_operator_display(should_show=False)
+					return
+				
+			elif message == MidiConstants.CONTROL_CHANGE:
+				# Handle knob control messages
+				if self.midi_handler.handle_knob_message(index, value, active_par):
+					self._manage_empty_operator_display(should_show=False)
+					return
+		except Exception as e:
+			# Catch invalid parameter errors at top level
+			if 'Invalid Par' not in str(e) and 'tdError' not in str(type(e).__name__):
+				raise  # Re-raise unexpected errors
+			
+			# Queue up invalid parameters for sequential dialog-based recovery
+			# This will show one dialog at a time, wait for response, then show the next
+			self.slot_manager.queue_invalidation_check()
+			
+			# Clear invalid hovered parameter
+			try:
+				if self.hoveredPar and not self.hoveredPar.valid:
+					self.hoveredPar = None
+			except:
+				self.hoveredPar = None
 
 
 	def onReceiveMidiLearn(self, dat, rowIndex, message, channel, index, value, input, byteData):
 		"""TouchDesigner callback for MIDI learning mode"""
 		if channel != self.evalChannel or not self.evalActive:
+			return
+		
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
 			return
 		
 		hovered_par = self.hoveredPar
@@ -495,6 +601,10 @@ class HoveredMidiRelativeExt:
 
 	def onReceiveMidiSlotLearn(self, index: int):
 		"""TouchDesigner callback for slot learning"""
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return
+		
 		hovered_par = self.hoveredPar
 
 		blocks = self._index_to_blocks(index, self.seqSlots)
@@ -516,118 +626,163 @@ class HoveredMidiRelativeExt:
 
 	def onResetPar(self, force: bool = False):
 		"""TouchDesigner callback to reset active parameter (or ParGroup)"""
-		if self.activePar is None:
-			return
-
-		# Handle ParGroup
-		if ParameterValidator.is_pargroup(self.activePar):
-			self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
-		else:
-			# Handle single Par
-			self.undo_manager.create_reset_undo_for_parameter(self.activePar)
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return None
 		
-		self.display_manager.update_parameter_display(self.activePar)
+		if self.activePar is None:
+			return None
+
+		try:
+			# Handle ParGroup
+			if ParameterValidator.is_pargroup(self.activePar):
+				self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
+			else:
+				# Handle single Par
+				self.undo_manager.create_reset_undo_for_parameter(self.activePar)
+			
+			self.display_manager.update_parameter_display(self.activePar)
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 	def onSetDefault(self):
 		"""TouchDesigner callback to set default parameter value"""
-		if self.activePar is None or not self.activePar.isCustom:
-			return
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return None
 		
-		# Capture old value for undo
-		old_default = self.activePar.default
-		new_default = self.activePar.eval()
+		if self.activePar is None:
+			return None
 		
-		# Apply the change
-		self.activePar.default = new_default
-		
-		# Create undo action
-		self.undo_manager.create_set_default_undo(self.activePar, old_default, new_default)
-		
-		# update display
-		self.display_manager.update_parameter_display(self.activePar, bottom_text = '_DEF_')
+		try:
+			if not self.activePar.isCustom:
+				return None
+			
+			# Capture old value for undo
+			old_default = self.activePar.default
+			new_default = self.activePar.eval()
+			
+			# Apply the change
+			self.activePar.default = new_default
+			
+			# Create undo action
+			self.undo_manager.create_set_default_undo(self.activePar, old_default, new_default)
+			
+			# update display
+			self.display_manager.update_parameter_display(self.activePar, bottom_text = '_DEF_')
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 	def onSetNorm(self, min_max: str):
 		"""TouchDesigner callback to set norm min or max value"""
-		if self.activePar is None or not self.activePar.isCustom:
-			return
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return None
 		
-		_val = self.activePar.eval()
+		if self.activePar is None:
+			return None
 		
-		if min_max == 'min':
-			# Check if valid (not equal to max)
-			if _val != self.activePar.normMax:
-				# Capture old values for undo
-				old_norm = self.activePar.normMin
-				old_minmax = self.activePar.min
-				
-				# Apply changes
-				self.activePar.normMin = _val
-				self.activePar.min = _val
-				
-				# Create undo action
-				self.undo_manager.create_set_norm_undo(
-					self.activePar, is_min=True,
-					old_norm=old_norm, new_norm=_val,
-					old_minmax=old_minmax, new_minmax=_val
-				)
-		else:
-			# Check if valid (not equal to min)
-			if _val != self.activePar.normMin:
-				# Capture old values for undo
-				old_norm = self.activePar.normMax
-				old_minmax = self.activePar.max
-				
-				# Apply changes
-				self.activePar.normMax = _val
-				self.activePar.max = _val
-				
-				# Create undo action
-				self.undo_manager.create_set_norm_undo(
-					self.activePar, is_min=False,
-					old_norm=old_norm, new_norm=_val,
-					old_minmax=old_minmax, new_minmax=_val
-				)
-		
-		# update display
-		self.display_manager.update_parameter_display(self.activePar, bottom_text=f'_{min_max.upper()}_')
+		try:
+			if not self.activePar.isCustom:
+				return None
+			
+			_val = self.activePar.eval()
+			
+			if min_max == 'min':
+				# Check if valid (not equal to max)
+				if _val != self.activePar.normMax:
+					# Capture old values for undo
+					old_norm = self.activePar.normMin
+					old_minmax = self.activePar.min
+					
+					# Apply changes
+					self.activePar.normMin = _val
+					self.activePar.min = _val
+					
+					# Create undo action
+					self.undo_manager.create_set_norm_undo(
+						self.activePar, is_min=True,
+						old_norm=old_norm, new_norm=_val,
+						old_minmax=old_minmax, new_minmax=_val
+					)
+			else:
+				# Check if valid (not equal to min)
+				if _val != self.activePar.normMin:
+					# Capture old values for undo
+					old_norm = self.activePar.normMax
+					old_minmax = self.activePar.max
+					
+					# Apply changes
+					self.activePar.normMax = _val
+					self.activePar.max = _val
+					
+					# Create undo action
+					self.undo_manager.create_set_norm_undo(
+						self.activePar, is_min=False,
+						old_norm=old_norm, new_norm=_val,
+						old_minmax=old_minmax, new_minmax=_val
+					)
+			
+			# update display
+			self.display_manager.update_parameter_display(self.activePar, bottom_text=f'_{min_max.upper()}_')
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 	def onSetClamp(self, min_max: str):
 		"""TouchDesigner callback to set clamp min or max value"""
-		if self.activePar is None or not self.activePar.isCustom:
-			return
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
+			return None
 		
-		# Capture old values for undo
-		old_clamp_min = self.activePar.clampMin
-		old_clamp_max = self.activePar.clampMax
+		if self.activePar is None:
+			return None
 		
-		# Determine what's changing
-		changed_min = (min_max == 'min' or min_max == 'both')
-		changed_max = (min_max == 'max' or min_max == 'both')
-		
-		# Apply changes
-		if changed_min:
-			self.activePar.clampMin = not self.activePar.clampMin
-		if changed_max:
-			self.activePar.clampMax = not self.activePar.clampMax
-		
-		# Create undo action
-		self.undo_manager.create_set_clamp_undo(
-			self.activePar,
-			changed_min=changed_min,
-			changed_max=changed_max,
-			old_clamp_min=old_clamp_min,
-			new_clamp_min=self.activePar.clampMin,
-			old_clamp_max=old_clamp_max,
-			new_clamp_max=self.activePar.clampMax
-		)
-		
-		# update display
-		self.display_manager.update_parameter_display(self.activePar, bottom_text='_CLAMP_')
+		try:
+			if not self.activePar.isCustom:
+				return None
+			
+			# Capture old values for undo
+			old_clamp_min = self.activePar.clampMin
+			old_clamp_max = self.activePar.clampMax
+			
+			# Determine what's changing
+			changed_min = (min_max == 'min' or min_max == 'both')
+			changed_max = (min_max == 'max' or min_max == 'both')
+			
+			# Apply changes
+			if changed_min:
+				self.activePar.clampMin = not self.activePar.clampMin
+			if changed_max:
+				self.activePar.clampMax = not self.activePar.clampMax
+			
+			# Create undo action
+			self.undo_manager.create_set_clamp_undo(
+				self.activePar,
+				changed_min=changed_min,
+				changed_max=changed_max,
+				old_clamp_min=old_clamp_min,
+				new_clamp_min=self.activePar.clampMin,
+				old_clamp_max=old_clamp_max,
+				new_clamp_max=self.activePar.clampMax
+			)
+			
+			# update display
+			self.display_manager.update_parameter_display(self.activePar, bottom_text='_CLAMP_')
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 
 	def onReceiveMidiBankSel(self, index: int) -> None:
 		"""TouchDesigner callback for bank selection MIDI input"""
 		if not self.evalActive:
+			return
+		
+		# Block all actions while invalidation is active (dialog or queue processing)
+		if self.slot_manager.is_invalidation_active():
 			return
 
 		# Handle bank change message
@@ -665,25 +820,29 @@ class HoveredMidiRelativeExt:
 		run("args[0].display_manager.update_parameter_display(args[1], bottom_text='_CUSTOM_')", self, activePar, delayFrames=1)
 
 	def onActiveValueChange(self, _par):
-		# check if _par is a cached parameter and if the value matches the cached value do nothing
-		if isinstance(_par, ParGroup):
-			return
+		try:
+			# check if _par is a cached parameter and if the value matches the cached value do nothing
+			if isinstance(_par, ParGroup):
+				return None
 
-		# Check if parameter is part of an active slot ParGroup
-		if (self.activeSlot is not None and
-			self.activePar is not None and
-			ParameterValidator.is_pargroup(self.activePar)):
-			# Check if _par is in the active ParGroup
-			for par_in_group in self.activePar:
-				if par_in_group.owner == _par.owner and par_in_group.name == _par.name:
-					return
+			# Check if parameter is part of an active slot ParGroup
+			if (self.activeSlot is not None and
+				self.activePar is not None and
+				ParameterValidator.is_pargroup(self.activePar)):
+				# Check if _par is in the active ParGroup
+				for par_in_group in self.activePar:
+					if par_in_group.owner == _par.owner and par_in_group.name == _par.name:
+						return None
 
-		if self.lastCachedChange:#
-			if f'{_par.owner.path}:{_par.name}' == self.lastCachedChange[0] and _par.eval() == self.lastCachedChange[1]:
-				return
+			if self.lastCachedChange:#
+				if f'{_par.owner.path}:{_par.name}' == self.lastCachedChange[0] and _par.eval() == self.lastCachedChange[1]:
+					return None
 
-		# update display with the new value
-		self.display_manager.update_parameter_display(_par)
+			# update display with the new value
+			self.display_manager.update_parameter_display(_par)
+		except:
+			# Parameter became invalid - queue invalidation check
+			self.slot_manager.queue_invalidation_check()
 
 	def _set_parexec_pars(self, _par: Par):
 		"""For god knows what reason Dependency objects would not update!!!"""
@@ -695,6 +854,19 @@ class HoveredMidiRelativeExt:
 			parExec.par.pars = None
 		parExec.cook(force=True)
 
+	def onMidiError(self, isError: bool):
+		if not self.evalActive:
+			return
+		if isError:
+			# display midi error message
+			self.display_manager.update_all_display(0, 0, 1, ScreenMessages.MIDI_ERROR, ScreenMessages.MIDI_ERROR)
+		else:
+			if self.activePar is not None:
+				# update display with current parameter
+				self.display_manager.update_parameter_display(self.activePar)
+			else:
+				# display default hover message
+				self.display_manager.update_all_display(1, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER)
 # endregion midi callbacks
 
 # region helper functions
@@ -745,14 +917,21 @@ class HoveredMidiRelativeExt:
 			self.postInit()
 		else:
 			self.ui_manager.set_hovered_ui_color(-1)
-			self.vsn1_manager.clear_all_slot_leds()
+			self.display_manager.clear_all_slot_leds()
 			self.display_manager.clear_screen()
+
+	def onParStartgrideditor(self):
+		self._start_grid_editor()
+
+	def onParAutostartgrideditor(self, val):
+		if val:
+			self._start_grid_editor()
 
 
 	def onParClear(self):
 		"""TouchDesigner callback to clear all MIDI mappings"""
 		# Clear all slot LEDs before resetting
-		self.vsn1_manager.clear_all_slot_leds()
+		self.display_manager.clear_all_slot_leds()
 		
 		# Reset sequence blocks
 		self.seqSteps.numBlocks = 1
@@ -792,15 +971,15 @@ class HoveredMidiRelativeExt:
 	def onParKnobledupdate(self, _val):
 		"""TouchDesigner callback when knob LED update mode parameter changes"""
 		if KnobLedUpdateMode(_val) in [KnobLedUpdateMode.VALUE]:
-			self.vsn1_manager.update_knob_leds_steps(-1)
+			self.display_manager.update_knob_leds_steps(-1)
 			self.display_manager.update_parameter_display(self.activePar, force_knob_leds=True)
 		elif KnobLedUpdateMode(_val) in [KnobLedUpdateMode.OFF]:
-			self.vsn1_manager.update_knob_leds_gradual(0)
-			self.vsn1_manager.update_knob_leds_steps(-1)
+			self.display_manager.update_knob_leds_gradual(0)
+			self.display_manager.update_knob_leds_steps(-1)
 		else:#
 			step_idx = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), None)
-			self.vsn1_manager.update_knob_leds_gradual(0)
-			self.vsn1_manager.update_knob_leds_steps(step_idx)
+			self.display_manager.update_knob_leds_gradual(0)
+			self.display_manager.update_knob_leds_steps(step_idx)
 
 	def onParVsn1support(self, _par, _val):
 		"""TouchDesigner callback when VSN1 support parameter changes"""
@@ -893,11 +1072,6 @@ class HoveredMidiRelativeExt:
 # endregion parameter callbacks
 	def onProjectPreSave(self):
 		"""TouchDesigner callback when project is pre-saved"""
-		# Validate all banks and all slot parameters
-		for bank_idx in range(len(self.slotPars)):
-			for slot_idx in range(len(self.slotPars[bank_idx])):
-				par = self.slotPars[bank_idx][slot_idx]
-				if par is not None and not par.valid:
-					# Clear invalid parameters silently during save
-					self.slot_manager.clear_slot_in_bank(slot_idx, bank_idx)
+		# Save runtime storage to tables for persistence
+		self.repo_manager.save_to_tables()
 # endregion

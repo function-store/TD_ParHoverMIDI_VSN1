@@ -309,8 +309,12 @@ class UndoManager:
 			par.reset()
 			return
 		
-		# Capture current value before reset
+		# Capture current state before reset
 		par_path = f"{par.owner.path}:{par.name}"
+		old_mode = par.mode
+		old_expr = par.expr if par.mode == ParMode.EXPRESSION else None
+		old_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+		
 		if par.isMenu:
 			current_value = par.menuIndex
 		else:
@@ -319,7 +323,11 @@ class UndoManager:
 		# Perform the reset
 		par.reset()
 		
-		# Get reset value
+		# Get reset state
+		new_mode = par.mode
+		new_expr = par.expr if par.mode == ParMode.EXPRESSION else None
+		new_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+		
 		if par.isMenu:
 			reset_value = par.menuIndex
 		else:
@@ -332,6 +340,12 @@ class UndoManager:
 				'par_path': par_path,
 				'old_value': current_value,
 				'new_value': reset_value,
+				'old_mode': old_mode,
+				'new_mode': new_mode,
+				'old_expr': old_expr,
+				'new_expr': new_expr,
+				'old_bind_expr': old_bind_expr,
+				'new_bind_expr': new_bind_expr,
 				'is_menu': par.isMenu,
 				'par_name': par.name
 			}
@@ -352,11 +366,15 @@ class UndoManager:
 					par.reset()
 			return
 		
-		# Capture current values for all valid parameters
+		# Capture current state for all valid parameters
 		reset_info_list = []
 		for par in par_group:
 			if par is not None and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
 				par_path = f"{par.owner.path}:{par.name}"
+				old_mode = par.mode
+				old_expr = par.expr if par.mode == ParMode.EXPRESSION else None
+				old_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+				
 				if par.isMenu:
 					current_value = par.menuIndex
 				else:
@@ -365,7 +383,11 @@ class UndoManager:
 				# Perform the reset
 				par.reset()
 				
-				# Get reset value
+				# Get reset state
+				new_mode = par.mode
+				new_expr = par.expr if par.mode == ParMode.EXPRESSION else None
+				new_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+				
 				if par.isMenu:
 					reset_value = par.menuIndex
 				else:
@@ -375,6 +397,12 @@ class UndoManager:
 					'par_path': par_path,
 					'old_value': current_value,
 					'new_value': reset_value,
+					'old_mode': old_mode,
+					'new_mode': new_mode,
+					'old_expr': old_expr,
+					'new_expr': new_expr,
+					'old_bind_expr': old_bind_expr,
+					'new_bind_expr': new_bind_expr,
 					'is_menu': par.isMenu,
 					'par_name': par.name
 				})
@@ -418,19 +446,34 @@ class UndoManager:
 			if par is None:
 				return
 			
-			# Set value based on undo/redo
+			# Determine target state based on undo/redo
 			if isUndo:
-				# Restore old value
+				# Restore old state
 				target_value = info['old_value']
+				target_mode = info['old_mode']
+				target_expr = info['old_expr']
+				target_bind_expr = info['old_bind_expr']
 			else:
-				# Restore reset value
+				# Restore reset state
 				target_value = info['new_value']
+				target_mode = info['new_mode']
+				target_expr = info['new_expr']
+				target_bind_expr = info['new_bind_expr']
 			
-			# Apply value
-			if is_menu:
-				par.menuIndex = target_value
-			else:
-				par.val = target_value
+			# Restore mode first
+			par.mode = target_mode
+			
+			# Restore expression or bind expression if applicable
+			if target_mode == ParMode.EXPRESSION and target_expr is not None:
+				par.expr = target_expr
+			elif target_mode == ParMode.EXPORT and target_bind_expr is not None:
+				par.bindExpr = target_bind_expr
+			elif target_mode == ParMode.CONSTANT or target_mode == ParMode.BIND:
+				# Apply value for constant/bind modes
+				if is_menu:
+					par.menuIndex = target_value
+				else:
+					par.val = target_value
 			
 			# Update display if this is the active parameter
 			if self.parent.activePar == par:
@@ -676,15 +719,21 @@ class UndoManager:
 			previous_bank_active_slot = info['previous_bank_active_slot']
 			
 			# Restore the slot to its previous state
-			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
+			self.parent.repo_manager.set_slot_parameter(slot_idx, previous_parameter, bank_idx)
 			self.parent._set_parexec_pars(previous_parameter)
-			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
+			self.parent.repo_manager.set_active_slot(previous_bank_active_slot, bank_idx)
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
 				# Capture the current active slot before changing it
 				old_active_slot = self.parent.activeSlot
 				self.parent.activeSlot = previous_active_slot
+				
+				# Update cached active parameter
+				if previous_active_slot is not None and previous_active_slot < len(self.parent.slotPars[bank_idx]):
+					self.parent._activeSlotPar = self.parent.slotPars[bank_idx][previous_active_slot]
+				else:
+					self.parent._activeSlotPar = None
 				
 				# Update hovered UI color based on restored active slot
 				if previous_active_slot is None:
@@ -715,27 +764,27 @@ class UndoManager:
 						0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 				
-				# Update LEDs - update both the old active slot and the restored active slot
-				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot, previous_slot=old_active_slot)
-				
-				# Also update the restored slot if it's different from the active slots
-				if slot_idx != previous_active_slot and slot_idx != old_active_slot:
-					self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+			# Update LEDs - update both the old active slot and the restored active slot
+			self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot, previous_slot=old_active_slot)
+			
+			# Also update the restored slot if it's different from the active slots
+			if slot_idx != previous_active_slot and slot_idx != old_active_slot:
+				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
 		else:
 			# Redo: apply the assignment again
 			new_parameter = info['new_parameter']
 			
-			self.parent.slotPars[bank_idx][slot_idx] = new_parameter
+			self.parent.repo_manager.set_slot_parameter(slot_idx, new_parameter, bank_idx)
 			self.parent._set_parexec_pars(new_parameter)
 			self.parent.activeSlot = slot_idx
-			self.parent.bankActiveSlots[bank_idx] = slot_idx
+			self.parent._activeSlotPar = new_parameter  # Cache the active parameter
+			self.parent.repo_manager.set_active_slot(slot_idx, bank_idx)
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
 				# Capture the current active slot before changing it
 				old_active_slot = self.parent.activeSlot
 				self.parent.activeSlot = slot_idx
-				self.parent.bankActiveSlots[bank_idx] = slot_idx
 				
 				# Turn off hovered UI color when assigning a slot
 				self.parent.ui_manager.set_hovered_ui_color(-1)
@@ -751,13 +800,10 @@ class UndoManager:
 				# Update LEDs - update both the new active slot and the previously active slot
 				self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
 				self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
-			else:
-				# Still need to update bank active slot even if not current bank
-				self.parent.bankActiveSlots[bank_idx] = slot_idx
-		
-		# Always refresh UI buttons for current bank
-		if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
-			run("args[0].refresh_all_button_states()", self.parent.ui_manager, delayFrames=1)
+			
+			# Always refresh UI buttons for current bank
+			if hasattr(self.parent, 'ui_manager') and self.parent.ui_manager:
+				run("args[0].refresh_all_button_states()", self.parent.ui_manager, delayFrames=1)
 	
 	def create_clear_slot_undo(self, slot_idx: int, bank_idx: int, previous_parameter: Union['Par', 'ParGroup'],
 	                            previous_active_slot: Optional[int], previous_bank_active_slot: Optional[int]):
@@ -822,15 +868,21 @@ class UndoManager:
 				# Parameter reference is completely invalid
 				return
 			
-			self.parent.slotPars[bank_idx][slot_idx] = previous_parameter
+			self.parent.repo_manager.set_slot_parameter(slot_idx, previous_parameter, bank_idx)
 			self.parent._set_parexec_pars(previous_parameter)
-			self.parent.bankActiveSlots[bank_idx] = previous_bank_active_slot
+			self.parent.repo_manager.set_active_slot(previous_bank_active_slot, bank_idx)
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
 				# Capture the current active slot before changing it
 				old_active_slot = self.parent.activeSlot
 				self.parent.activeSlot = previous_active_slot
+				
+				# Update cached active parameter
+				if previous_active_slot is not None and previous_active_slot < len(self.parent.slotPars[bank_idx]):
+					self.parent._activeSlotPar = self.parent.slotPars[bank_idx][previous_active_slot]
+				else:
+					self.parent._activeSlotPar = None
 				
 				# Update hovered UI color based on restored active slot
 				if previous_active_slot is None:
@@ -861,14 +913,14 @@ class UndoManager:
 				# Restore LEDs - update both the old active slot and the new/restored active slot
 				self.parent.display_manager.update_slot_leds(current_slot=previous_active_slot, previous_slot=old_active_slot)
 				
-				# Also update the restored slot if it's different from the active slots
-				if slot_idx != previous_active_slot and slot_idx != old_active_slot:
-					self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
+			# Also update the restored slot if it's different from the active slots
+			if slot_idx != previous_active_slot and slot_idx != old_active_slot:
+				self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
 		else:
 			# Redo: clear the slot again
-			self.parent.slotPars[bank_idx][slot_idx] = None
+			self.parent.repo_manager.clear_slot(slot_idx, bank_idx)
 			self.parent._set_parexec_pars(None)
-			self.parent.bankActiveSlots[bank_idx] = None
+			self.parent.repo_manager.set_active_slot(None, bank_idx)
 			
 			# Only update UI/VSN1/activeSlot if we're currently viewing this bank
 			if is_current_bank:
@@ -884,7 +936,7 @@ class UndoManager:
 				if slot_idx == old_active_slot:
 					# Clearing the currently active slot -> go to hover mode
 					self.parent.activeSlot = None
-					self.parent.bankActiveSlots[bank_idx] = None
+					self.parent._activeSlotPar = None
 					
 					# Restore hovered UI color if enabled (going to hover mode)
 					if self.parent.evalColorhoveredui:
@@ -900,12 +952,10 @@ class UndoManager:
 					self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 				else:
 					# Clearing a non-active slot -> keep current active slot
-					# Update bankActiveSlots to match current activeSlot
-					self.parent.bankActiveSlots[bank_idx] = old_active_slot
 					
 					# Update display based on current active slot
-					if old_active_slot is not None and old_active_slot < len(self.parent.slotPars[bank_idx]):
-						active_par = self.parent.slotPars[bank_idx][old_active_slot]
+					if old_active_slot is not None:
+						active_par = self.parent.repo_manager.get_slot_parameter(old_active_slot, bank_idx)
 						if active_par is not None:
 							# Keep displaying active parameter
 							self.parent.display_manager.update_parameter_display(active_par)
@@ -913,7 +963,8 @@ class UndoManager:
 						else:
 							# Active slot is empty, go to hover
 							self.parent.activeSlot = None
-							self.parent.bankActiveSlots[bank_idx] = None
+							self.parent._activeSlotPar = None
+							self.parent.repo_manager.set_active_slot(None, bank_idx)
 							if self.parent.evalColorhoveredui:
 								self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
 							else:
@@ -924,7 +975,8 @@ class UndoManager:
 					else:
 						# No active slot, go to hover
 						self.parent.activeSlot = None
-						self.parent.bankActiveSlots[bank_idx] = None
+						self.parent._activeSlotPar = None  # Clear cached active slot parameter
+						self.parent.repo_manager.set_active_slot(None, bank_idx)
 						if self.parent.evalColorhoveredui:
 							self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
 						else:
@@ -939,8 +991,8 @@ class UndoManager:
 						self.parent.display_manager.update_slot_leds(current_slot=slot_idx)
 			else:
 				# Not current bank - sync bank active slots
-				if slot_idx == self.parent.bankActiveSlots[bank_idx]:
-					self.parent.bankActiveSlots[bank_idx] = None
+				if slot_idx == self.parent.repo_manager.get_active_slot(bank_idx):
+					self.parent.repo_manager.set_active_slot(None, bank_idx)
 		
 		# Always refresh UI buttons for current bank to ensure correct state
 		# (TouchDesigner's undo system may revert some UI states)

@@ -14,6 +14,7 @@ class ExtTDUIMod:
 			_cols = (float(_cell.val) for _cell in _row)
 			self.PageCols.append(list(_cols))
 		self.containers = [self.ownerComp.op('select_parhover_button')]
+		self.updater = self.ownerComp.parent.HoveredMidiRelative.op("UPDATER")
 
 	@property
 	def current_color_index(self):
@@ -48,6 +49,7 @@ class ExtTDUIMod:
 		if name == 'lselect':
 			op.VSN1_HOVER.openParameters()
 		elif name == 'rselect':
+			op.VSN1_HOVER.par.Enableui = True
 			self.ownerComp.op('window1').par.winopen.pulse()
 		elif name == 'mselect':
 			op.VSN1_HOVER.par.Colorhoveredui.val = not op.VSN1_HOVER.par.Colorhoveredui.eval()
