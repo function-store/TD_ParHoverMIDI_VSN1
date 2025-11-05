@@ -26,7 +26,7 @@ class ExtUpdater:
 		base_major = int(fetchedTag.split('.')[0])
 		tag_flag = new_tag[-1]
 
-		if new_major > base_major and not tag_flag != 'f':
+		if new_major > base_major:
 			self.IsUpdatable.val = False
 		else:
 			self.IsUpdatable.val = (fetchedTag != new_tag)
