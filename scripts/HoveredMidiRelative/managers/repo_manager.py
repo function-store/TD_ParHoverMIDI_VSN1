@@ -124,7 +124,7 @@ class RepoManager:
 					try:
 						target_op = op(op_path)
 						if target_op:
-							if par_type == 'pargroup':
+							if par_type and par_type.lower() == 'pargroup':
 								par = getattr(target_op.parGroup, par_name, None)
 							else:
 								par = getattr(target_op.par, par_name, None)

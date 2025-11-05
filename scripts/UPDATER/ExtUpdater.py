@@ -33,7 +33,7 @@ class ExtUpdater:
 
 	def getGlobalOp(self):
 		globalOpShortcut = self.ownerComp.par.Globalopshortcut.eval()
-		if not globalOpShortcut or not (_op := getattr(op, globalOpShortcut), None):
+		if not globalOpShortcut or not (_op := getattr(op, globalOpShortcut, None)):
 			return False
 		return _op
 

@@ -49,7 +49,7 @@ class ExtTDUIMod:
 		if name == 'lselect':
 			op.VSN1_HOVER.openParameters()
 		elif name == 'rselect':
-			op.VNS1_HOVER.par.Enableui = True
+			op.VSN1_HOVER.par.Enableui = True
 			self.ownerComp.op('window1').par.winopen.pulse()
 		elif name == 'mselect':
 			op.VSN1_HOVER.par.Colorhoveredui.val = not op.VSN1_HOVER.par.Colorhoveredui.eval()
