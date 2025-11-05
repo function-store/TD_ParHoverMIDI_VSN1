@@ -309,8 +309,12 @@ class UndoManager:
 			par.reset()
 			return
 		
-		# Capture current value before reset
+		# Capture current state before reset
 		par_path = f"{par.owner.path}:{par.name}"
+		old_mode = par.mode
+		old_expr = par.expr if par.mode == ParMode.EXPRESSION else None
+		old_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+		
 		if par.isMenu:
 			current_value = par.menuIndex
 		else:
@@ -319,7 +323,11 @@ class UndoManager:
 		# Perform the reset
 		par.reset()
 		
-		# Get reset value
+		# Get reset state
+		new_mode = par.mode
+		new_expr = par.expr if par.mode == ParMode.EXPRESSION else None
+		new_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+		
 		if par.isMenu:
 			reset_value = par.menuIndex
 		else:
@@ -332,6 +340,12 @@ class UndoManager:
 				'par_path': par_path,
 				'old_value': current_value,
 				'new_value': reset_value,
+				'old_mode': old_mode,
+				'new_mode': new_mode,
+				'old_expr': old_expr,
+				'new_expr': new_expr,
+				'old_bind_expr': old_bind_expr,
+				'new_bind_expr': new_bind_expr,
 				'is_menu': par.isMenu,
 				'par_name': par.name
 			}
@@ -352,11 +366,15 @@ class UndoManager:
 					par.reset()
 			return
 		
-		# Capture current values for all valid parameters
+		# Capture current state for all valid parameters
 		reset_info_list = []
 		for par in par_group:
 			if par is not None and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
 				par_path = f"{par.owner.path}:{par.name}"
+				old_mode = par.mode
+				old_expr = par.expr if par.mode == ParMode.EXPRESSION else None
+				old_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+				
 				if par.isMenu:
 					current_value = par.menuIndex
 				else:
@@ -365,7 +383,11 @@ class UndoManager:
 				# Perform the reset
 				par.reset()
 				
-				# Get reset value
+				# Get reset state
+				new_mode = par.mode
+				new_expr = par.expr if par.mode == ParMode.EXPRESSION else None
+				new_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+				
 				if par.isMenu:
 					reset_value = par.menuIndex
 				else:
@@ -375,6 +397,12 @@ class UndoManager:
 					'par_path': par_path,
 					'old_value': current_value,
 					'new_value': reset_value,
+					'old_mode': old_mode,
+					'new_mode': new_mode,
+					'old_expr': old_expr,
+					'new_expr': new_expr,
+					'old_bind_expr': old_bind_expr,
+					'new_bind_expr': new_bind_expr,
 					'is_menu': par.isMenu,
 					'par_name': par.name
 				})
@@ -418,19 +446,34 @@ class UndoManager:
 			if par is None:
 				return
 			
-			# Set value based on undo/redo
+			# Determine target state based on undo/redo
 			if isUndo:
-				# Restore old value
+				# Restore old state
 				target_value = info['old_value']
+				target_mode = info['old_mode']
+				target_expr = info['old_expr']
+				target_bind_expr = info['old_bind_expr']
 			else:
-				# Restore reset value
+				# Restore reset state
 				target_value = info['new_value']
+				target_mode = info['new_mode']
+				target_expr = info['new_expr']
+				target_bind_expr = info['new_bind_expr']
 			
-			# Apply value
-			if is_menu:
-				par.menuIndex = target_value
-			else:
-				par.val = target_value
+			# Restore mode first
+			par.mode = target_mode
+			
+			# Restore expression or bind expression if applicable
+			if target_mode == ParMode.EXPRESSION and target_expr is not None:
+				par.expr = target_expr
+			elif target_mode == ParMode.EXPORT and target_bind_expr is not None:
+				par.bindExpr = target_bind_expr
+			elif target_mode == ParMode.CONSTANT or target_mode == ParMode.BIND:
+				# Apply value for constant/bind modes
+				if is_menu:
+					par.menuIndex = target_value
+				else:
+					par.val = target_value
 			
 			# Update display if this is the active parameter
 			if self.parent.activePar == par:
