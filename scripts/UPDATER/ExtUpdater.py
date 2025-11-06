@@ -78,6 +78,20 @@ class ExtUpdater:
 			newComp.par.externaltox.expr = f"f'{{app.userPaletteFolder}}/FNStools_ext/{fp.baseName}'"
 			newComp.par.Version = self.newTag
 			newComp.par.savebackup = True
+			for _par in _globalOp.customPars:
+				if newComp.par[_par.name] is None:
+					continue
+				if _par.name == 'Version':
+					continue
+				if _par.page.name in ['Version Ctrl']:
+					continue
+
+				# restore mode and expressions and values
+				newComp.par[_par.name].expr = _par.expr
+				newComp.par[_par.name].bindExpr = _par.bindExpr
+				newComp.par[_par.name].val = _par.val
+				newComp.par[_par.name].mode = _par.mode
+
 			newComp.store('post_update', True)
 
 
