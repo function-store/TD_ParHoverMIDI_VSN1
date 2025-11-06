@@ -23,7 +23,7 @@ Below is a summary of the features mapped to [Intech Studio VSN1](https://intech
 - **Multiple Parameter Slots**: Assign parameters or parameter groups to VSN1 buttons for instant access and switching
 - **Multiple Banks**: Organize slots into separate banks using VSN1 buttons for expanded parameter control
 - **Smart Learning System**: Automatically assign VSN1 button mapping
-- **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters
+- **Enhanced Parameter Support**: Full support for Numeric, Menu, Toggle, and Pulse parameters, with optional StrMenu (string menu) support
 - **Adjustable Precision**: Change adjustment step sizes using VSN1 step buttons
 - **Step Mode**: Choose between Fixed (fixed step size) or Adaptive (step scales with parameter range)
 - **Push Step Mode**: Knob push button with three modes - Fixed (hold and rotate for alternate step), Finer (hold for next smaller step), or Coarser (hold for next larger step)
@@ -397,6 +397,7 @@ The following parameters are available to further customize the functionality of
 - **`Loop Menus`**: When enabled, menu parameters loop around (last item → first item). When disabled, menu navigation stops at the edges.
 - **`Enable Undo`**: When enabled, all operations (parameter value changes, parameter resets, slot assignments, and slot clearing) can be undone/redone. Undo/redo works across banks and validates parameter existence before restoring.
 - **`Undo Timeout (ValueChange)`**: Defines how long (in seconds) after a parameter value change the system waits before pushing it to the undo stack. This allows for continuous adjustments to be grouped into a single undo action, preventing excessive undo history entries during rapid knob movements. Default: 1 seconds.
+- **`Control StrMenus`**: When enabled, allows control of StrMenu parameters (parameters where both `isMenu` and `isString` are true). StrMenus behave like menus and can be stepped through. **Note**: StrMenus assigned to slots remain controllable via those slots even when this option is disabled, ensuring previously configured slots continue to work.
 - **`VSN1 Support`**: Enables VSN1 screen updates and LED feedback, displaying adjusted parameter and value (circle size between param normMin/Max values), using websocket communication --- requires Grid Editor to be open!
 - **`Label Display Mode`**: Choose between "Compressed" (removes vowels/spaces) or "Truncated" (simple cut-off) for parameter label formatting on limited displays
 - **`Enable UI Color`**: When enabled, applies visual color highlighting to parameters in the TouchDesigner interface to indicate hovered/active states. **NOTE**: Changing UI colors can cause some performance impact when switching between hover mode and slot mode.

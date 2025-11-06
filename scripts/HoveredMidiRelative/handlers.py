@@ -130,7 +130,7 @@ class MidiMessageHandler:
 			if any(p.owner == self.parent.ownerComp for p in valid_pars):
 				return False
 			
-			error_msg = ParameterValidator.get_validation_error(active_par)
+			error_msg = ParameterValidator.get_validation_error(active_par, self.parent.should_allow_strmenus(active_par))
 			if error_msg:
 				self.parent.display_manager.show_parameter_error(active_par, error_msg)
 				return True  # Parameter group is invalid, error message shown
@@ -159,7 +159,7 @@ class MidiMessageHandler:
 		
 		# Handle single Par
 
-		error_msg = ParameterValidator.get_validation_error(active_par)
+		error_msg = ParameterValidator.get_validation_error(active_par, self.parent.should_allow_strmenus(active_par))
 		if error_msg:
 			self.parent.display_manager.show_parameter_error(active_par, error_msg)
 			return True  # Parameter is invalid, error message shown
@@ -219,7 +219,7 @@ class MidiMessageHandler:
 			# Check for validation errors
 
 			ret = self.parent.slot_manager.activate_slot(block_idx)			
-			error_msg = ParameterValidator.get_validation_error(active_par)
+			error_msg = ParameterValidator.get_validation_error(active_par, self.parent.should_allow_strmenus(active_par))
 			if error_msg:
 				self.parent.display_manager.show_parameter_error(active_par, error_msg)
 			# Activate the slot using slot_manager
@@ -261,7 +261,8 @@ class MidiMessageHandler:
 		# Apply step to each valid parameter in the group
 		for par in par_group:
 			# Skip invalid parameters within the group
-			if par is not None and ParameterValidator.is_valid_parameter(par):
+			# Also skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par):
 				self._do_step_single(par, step, value, update_display=False)
 		
 		# Update display once after all valid parameters are updated
@@ -302,9 +303,9 @@ class MidiMessageHandler:
 			active_par.val = active_par.eval() + step_amount
 			self.parent.lastCachedChange = (f'{active_par.owner.path}:{active_par.name}', active_par.eval())
 			
-		elif active_par.isMenu and not active_par.isString:
-			# NOTE: we don't act on string menus, if we need to, remove the not active_par.isString check
-			# Handle menu parameters - step through menu options
+		elif active_par.isMenu and (not active_par.isString or (active_par.isString and self.parent.should_allow_strmenus(active_par))):
+			# Handle menu parameters - step through menu options (including StrMenus when enabled or from active slot)
+			# StrMenus are menus with isMenu and isString both true
 			if abs(diff) >= 1:  # Only change on significant step
 				current_index = active_par.menuIndex
 				num_menu_items = len(active_par.menuNames)

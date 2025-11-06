@@ -338,6 +338,41 @@ class HoveredMidiRelativeExt:
 			return self.hoveredPar
 			
 		return None
+	
+	def should_allow_strmenus(self, par_to_check: Union[Par, ParGroup] = None) -> bool:
+		"""Check if StrMenu parameters should be allowed
+		
+		StrMenus are allowed if:
+		1. The global evalControlstrmenus flag is enabled, OR
+		2. The parameter being checked is from an active slot (user explicitly assigned it)
+		
+		Args:
+			par_to_check: Optional parameter to check. If None, checks the active parameter.
+		
+		Returns:
+			True if StrMenus should be allowed for this parameter
+		"""
+		# Global flag enabled - allow StrMenus everywhere
+		if self.evalControlstrmenus:
+			return True
+		
+		# Check if parameter is from an active slot
+		if self.activeSlot is not None and self._activeSlotPar is not None:
+			# If no specific parameter provided, check the active one
+			if par_to_check is None:
+				par_to_check = self._activeSlotPar
+			
+			# Check if it's the active slot parameter (single Par)
+			if par_to_check is self._activeSlotPar:
+				return True
+			
+			# Check if it's part of an active slot ParGroup
+			if ParameterValidator.is_pargroup(self._activeSlotPar):
+				for p in self._activeSlotPar:
+					if p is par_to_check:
+						return True
+		
+		return False
 
 	# NOTE: Intermediary property since TD stored properties cannot have setters
 	@property
@@ -464,7 +499,7 @@ class HoveredMidiRelativeExt:
 				
 				# Handle invalid/unsupported parameters when no active slot
 				if self.activeSlot is None:
-					if error_msg := ParameterValidator.get_validation_error(par_group_obj):
+					if error_msg := ParameterValidator.get_validation_error(par_group_obj, self.evalControlstrmenus):
 						self._set_parexec_pars(None)
 						self.display_manager.show_parameter_error(par_group_obj, error_msg)
 						return  # Parameter group is invalid, error message shown
@@ -486,7 +521,7 @@ class HoveredMidiRelativeExt:
 			
 			# Handle invalid/unsupported parameters when no active slot
 			if self.activeSlot is None:
-				if error_msg := ParameterValidator.get_validation_error(single_par):
+				if error_msg := ParameterValidator.get_validation_error(single_par, self.evalControlstrmenus):
 					self.display_manager.show_parameter_error(single_par, error_msg)
 					if error_msg == ScreenMessages.EXPR:
 						self._set_parexec_pars(single_par)

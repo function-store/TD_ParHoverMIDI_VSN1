@@ -185,13 +185,16 @@ class DisplayManager:
 	def _get_parameter_display_values(self, par: Par) -> tuple:
 		"""Get display values (val, min_val, max_val, display_text) for a parameter
 		Returns tuple: (value, min_value, max_value, display_text)"""
-		if par.isMenu and not par.isString:
+		# Allow StrMenus (isMenu and isString) when the feature is enabled or from active slot
+		is_strmenu = par.isMenu and par.isString
+		allow_strmenus = self.parent.should_allow_strmenus(par)
+		
+		if par.isMenu and (not par.isString or (is_strmenu and allow_strmenus)):
 			val = par.menuIndex
 			min_val, max_val = 0, len(par.menuNames) - 1
 			
 			# For string menus, show the actual value if it's not in menuNames
-			# NOTE: we actually don't act on string menus but keeping this in case we need it later
-			if par.isString and par.eval() not in par.menuNames:
+			if is_strmenu and par.eval() not in par.menuNames:
 				display_text = str(par.eval())
 			else:
 				display_text = str(par.menuLabels[par.menuIndex])

@@ -13,6 +13,13 @@ class ParameterValidator:
 	"""Helper class for parameter validation"""
 	
 	@staticmethod
+	def is_strmenu(par) -> bool:
+		"""Check if parameter is a StrMenu (both isMenu and isString)"""
+		if par is None:
+			return False
+		return par.isMenu and par.isString
+	
+	@staticmethod
 	def is_pargroup(obj) -> bool:
 		"""Check if object is a ParGroup"""
 		return isinstance(obj, ParGroup)
@@ -65,11 +72,16 @@ class ParameterValidator:
 		return ParameterValidator.is_valid_parameter(par_or_group) and not par_or_group.eval()
 
 	@staticmethod
-	def is_supported_parameter_type(par_or_group: Union[Par, ParGroup]) -> bool:
+	def is_supported_parameter_type(par_or_group: Union[Par, ParGroup], allow_strmenus: bool = False) -> bool:
 		"""Check if parameter (or ParGroup) is a supported type for MIDI control
 		
 		This checks the parameter TYPE only, not whether it's valid (has expressions, etc).
-		For ParGroups, all parameters must be of supported and consistent types."""
+		For ParGroups, all parameters must be of supported and consistent types.
+		
+		Args:
+			par_or_group: Parameter or ParGroup to check
+			allow_strmenus: Whether to allow StrMenu parameters (isMenu and isString both true)
+		"""
 		if par_or_group is None:
 			return False
 		
@@ -83,7 +95,8 @@ class ParameterValidator:
 			
 			# Check all parameters are of supported types
 			all_supported = all(
-				any(getattr(p, f'is{type.value}') for type in SupportedParameterTypes) and not p.isString
+				any(getattr(p, f'is{type.value}') for type in SupportedParameterTypes) and 
+				(not p.isString or (p.isMenu and p.isString and allow_strmenus))
 				for p in all_pars
 			)
 			
@@ -103,14 +116,21 @@ class ParameterValidator:
 			
 			return True
 		
-		# Handle single Par - just check if it's a supported type
-		return any(getattr(par_or_group, f'is{type.value}') for type in SupportedParameterTypes) and not par_or_group.isString
+		# Handle single Par - check if it's a supported type
+		# Allow StrMenus (isMenu and isString both true) if the feature is enabled
+		is_strmenu = par_or_group.isMenu and par_or_group.isString
+		return any(getattr(par_or_group, f'is{type.value}') for type in SupportedParameterTypes) and (not par_or_group.isString or (is_strmenu and allow_strmenus))
 	
 	@staticmethod
-	def get_validation_error(par_or_group: Union[Par, ParGroup]) -> str:
+	def get_validation_error(par_or_group: Union[Par, ParGroup], allow_strmenus: bool = False) -> str:
 		"""Get validation error message for a parameter (or ParGroup).
-		Returns ScreenMessages constant if invalid, None if valid."""
-		if not ParameterValidator.is_supported_parameter_type(par_or_group):
+		Returns ScreenMessages constant if invalid, None if valid.
+		
+		Args:
+			par_or_group: Parameter or ParGroup to validate
+			allow_strmenus: Whether to allow StrMenu parameters (isMenu and isString both true)
+		"""
+		if not ParameterValidator.is_supported_parameter_type(par_or_group, allow_strmenus):
 			return ScreenMessages.UNSUPPORTED
 		if not ParameterValidator.has_valid_parameters(par_or_group):
 			return ScreenMessages.EXPR
