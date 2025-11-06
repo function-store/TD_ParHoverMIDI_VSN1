@@ -594,7 +594,7 @@ class SlotManager:
 				return False
 			
 			# Verify it's a supported parameter type
-			if not ParameterValidator.is_supported_parameter_type(recovered_par):
+			if not ParameterValidator.is_supported_parameter_type(recovered_par, self.parent.evalControlstrmenus):
 				return False
 			
 			# Success! Restore the parameter to the slot
@@ -637,7 +637,7 @@ class SlotManager:
 		Note: We allow saving parameters with expressions/exports. During manipulation,
 		only valid parameters will be affected (invalid ones are skipped)."""
 		# Only check if the parameter type is supported (not if it's valid/has expressions)
-		if not ParameterValidator.is_supported_parameter_type(parameter):
+		if not ParameterValidator.is_supported_parameter_type(parameter, self.parent.evalControlstrmenus):
 			return False
 
 		currBank = self.parent.currBank
@@ -816,7 +816,7 @@ class SlotManager:
 				self.parent._set_parexec_pars(slot_par)
 			
 			bottom_text = None
-			if error_msg := ParameterValidator.get_validation_error(slot_par):
+			if error_msg := ParameterValidator.get_validation_error(slot_par, self.parent.should_allow_strmenus(slot_par)):
 				bottom_text = error_msg
 			self.parent.display_manager.update_parameter_display(slot_par, bottom_text=bottom_text)
 		
@@ -992,7 +992,7 @@ class SlotManager:
 			# Return to hover mode
 			if self.parent.hoveredPar is not None:
 				# Check if hovered parameter is an expression and handle accordingly
-				if error_msg := ParameterValidator.get_validation_error(self.parent.hoveredPar):
+				if error_msg := ParameterValidator.get_validation_error(self.parent.hoveredPar, self.parent.evalControlstrmenus):
 					self.parent.display_manager.show_parameter_error(self.parent.hoveredPar, error_msg)
 					if error_msg == ScreenMessages.EXPR:
 						self.parent._set_parexec_pars(self.parent.hoveredPar)
@@ -1038,7 +1038,7 @@ class SlotManager:
 
 		if self.parent.hoveredPar is not None and self.parent.hoveredPar.valid:
 			# Check if hovered parameter is an expression and handle accordingly
-			if error_msg := ParameterValidator.get_validation_error(self.parent.hoveredPar):
+			if error_msg := ParameterValidator.get_validation_error(self.parent.hoveredPar, self.parent.evalControlstrmenus):
 				self.parent.display_manager.show_parameter_error(self.parent.hoveredPar, error_msg)
 				if error_msg == ScreenMessages.EXPR:
 					self.parent._set_parexec_pars(self.parent.hoveredPar)

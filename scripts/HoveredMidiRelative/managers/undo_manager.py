@@ -859,14 +859,14 @@ class UndoManager:
 						# ParGroup no longer exists, cannot restore
 						return
 					# Check if it's still a supported type
-					if not ParameterValidator.is_supported_parameter_type(previous_parameter):
+					if not ParameterValidator.is_supported_parameter_type(previous_parameter, self.parent.evalControlstrmenus):
 						return
 				# Handle single Par
 				elif previous_parameter is None or not previous_parameter.valid:
 					# Parameter no longer exists, cannot restore
 					return
 				# Check if single Par is still a supported type
-				elif not ParameterValidator.is_supported_parameter_type(previous_parameter):
+				elif not ParameterValidator.is_supported_parameter_type(previous_parameter, self.parent.evalControlstrmenus):
 					return
 			except:
 				# Parameter reference is completely invalid
