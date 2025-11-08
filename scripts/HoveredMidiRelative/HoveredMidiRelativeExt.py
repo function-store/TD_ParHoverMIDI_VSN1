@@ -107,6 +107,9 @@ class HoveredMidiRelativeExt:
 		# Needed to clear pickle errors due to missing parameters in storage, before we can even validate
 		self._validate_storage()
 
+		if self.evalAutostartgrideditor:
+			self._start_grid_editor()
+
 		# Initialize screen
 		self._initialize_VSN1()
 
@@ -145,8 +148,7 @@ class HoveredMidiRelativeExt:
 		except:
 			pass
 
-		if self.evalAutostartgrideditor:
-			self._start_grid_editor()
+		
 
 	def _start_grid_editor(self):
 		import subprocess
