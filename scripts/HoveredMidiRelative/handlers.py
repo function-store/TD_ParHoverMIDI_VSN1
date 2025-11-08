@@ -303,20 +303,22 @@ class MidiMessageHandler:
 			active_par.val = active_par.eval() + step_amount
 			self.parent.lastCachedChange = (f'{active_par.owner.path}:{active_par.name}', active_par.eval())
 			
-		elif active_par.isMenu and (not active_par.isString or (active_par.isString and self.parent.should_allow_strmenus(active_par))):
+		elif (active_par.isMenu or getattr(active_par, 'style', None) in ['Menu', 'StrMenu']) and (getattr(active_par, 'style', None) != 'StrMenu' or self.parent.should_allow_strmenus(active_par)):
 			# Handle menu parameters - step through menu options (including StrMenus when enabled or from active slot)
-			# StrMenus are menus with isMenu and isString both true
+			# StrMenus are detected by style == 'StrMenu' OR (isMenu and isString both true)
 			if abs(diff) >= 1:  # Only change on significant step
 				current_index = active_par.menuIndex
 				num_menu_items = len(active_par.menuNames)
 				step_direction = 1 if diff > 0 else -1
 				
-				if self.parent.evalLoopmenus:
+				if self.parent.evalLoopmenus and current_index is not None:
 					# Loop around when reaching the end
 					new_index = (current_index + step_direction) % num_menu_items
-				else:
+				elif current_index is not None:
 					# Clamp at the edges
 					new_index = max(0, min(num_menu_items - 1, current_index + step_direction))
+				else:
+					new_index = 0
 				
 				active_par.menuIndex = new_index
 					

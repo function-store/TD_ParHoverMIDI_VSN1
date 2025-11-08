@@ -107,9 +107,6 @@ class HoveredMidiRelativeExt:
 		# Needed to clear pickle errors due to missing parameters in storage, before we can even validate
 		self._validate_storage()
 
-		if self.evalAutostartgrideditor:
-			self._start_grid_editor()
-
 		# Initialize screen
 		self._initialize_VSN1()
 
@@ -120,9 +117,12 @@ class HoveredMidiRelativeExt:
 
 		# set UI stuff based on current evalStepmode
 		self.ui_manager.set_stepmode_indicator(self.stepMode)
-		self.onMidiError(self.midiError)
+		run("args[0].onMidiError(args[1])", self, self.midiError, delayRef=op.TDResources, delayFrames=5)
 
 	def onStart(self):
+		if self.evalAutostartgrideditor:
+			self._start_grid_editor()
+
 		post_update = self.ownerComp.fetch('post_update', False)
 		if post_update:
 			#self.LoadAllFromJSON()
@@ -413,7 +413,7 @@ class HoveredMidiRelativeExt:
 
 	@property
 	def midiError(self) -> bool:
-		return self.ownerComp.op('info_midi1')['warnings'].eval() or self.ownerComp.op('info_midi1')['errors'].eval()
+		return self.ownerComp.op('info_midi1')['warnings'].eval()
 
 # endregion properties
 
@@ -894,6 +894,10 @@ class HoveredMidiRelativeExt:
 	def onMidiError(self, isError: bool):
 		if not self.evalActive:
 			return
+		if isError and 'MIDI' not in self.ownerComp.op('midiin_active').warnings():
+			isError = False
+
+		self.ownerComp.par.Midistatus.val = not isError
 		if isError:
 			# display midi error message
 			self.display_manager.update_all_display(0, 0, 1, ScreenMessages.MIDI_ERROR, ScreenMessages.MIDI_ERROR)
@@ -956,6 +960,27 @@ class HoveredMidiRelativeExt:
 			self.ui_manager.set_hovered_ui_color(-1)
 			self.display_manager.clear_all_slot_leds()
 			self.display_manager.clear_screen()
+
+	def onParMidistatus(self, val):
+		if val:
+			self.ownerComp.clearScriptErrors()
+
+	def onParSlotsreporepo(self, val):
+		# after slots repo changes, clear old data and load from new repo
+		# Clear stored slotPars and bankActiveSlots to invalidate old data
+		num_banks = self.numBanks
+		num_slots = self.numSlots
+		self.slotPars = [[None for _ in range(num_slots)] for _ in range(num_banks)]
+		self.bankActiveSlots = [None for _ in range(num_banks)]
+		self.activeSlot = None
+
+		# Clear any cached active parameter
+		if hasattr(self, '_activeSlotPar'):
+			self._activeSlotPar = None
+
+		# Now load from the new repo's tables
+		self.repo_manager.load_from_tables()
+		self.postInit()
 
 	def onParStartgrideditor(self):
 		self._start_grid_editor()

@@ -185,27 +185,34 @@ class DisplayManager:
 	def _get_parameter_display_values(self, par: Par) -> tuple:
 		"""Get display values (val, min_val, max_val, display_text) for a parameter
 		Returns tuple: (value, min_value, max_value, display_text)"""
-		# Allow StrMenus (isMenu and isString) when the feature is enabled or from active slot
-		is_strmenu = par.isMenu and par.isString
+		# Allow StrMenus (isMenu and isString both true, OR style == 'StrMenu') when the feature is enabled or from active slot
+		is_strmenu = (par.isMenu and par.isString) or getattr(par, 'style', None) == 'StrMenu'
+		is_menu_type = par.isMenu or getattr(par, 'style', None) == 'Menu' or getattr(par, 'style', None) == 'StrMenu'
 		allow_strmenus = self.parent.should_allow_strmenus(par)
-		
-		if par.isMenu and (not par.isString or (is_strmenu and allow_strmenus)):
+
+		if is_menu_type and (not is_strmenu or allow_strmenus):
 			val = par.menuIndex
 			min_val, max_val = 0, len(par.menuNames) - 1
 			
 			# For string menus, show the actual value if it's not in menuNames
 			if is_strmenu and par.eval() not in par.menuNames:
 				display_text = str(par.eval())
-			else:
+			elif par.menuIndex is not None:
 				display_text = str(par.menuLabels[par.menuIndex])
-			
+			else:
+				display_text = ''
+
 			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
 			default = par.default
 			# find default in menuNames
 			# check if default is in menuNames
 			if default in par.menuNames:
 				default_idx = par.menuNames.index(default)
-				norm_default = default_idx / (len(par.menuNames) - 1)
+				# check zero division
+				if len(par.menuNames) - 1 == 0:
+					norm_default = 0
+				else:
+					norm_default = default_idx / (len(par.menuNames) - 1)
 			else:
 				norm_default = 0
 		elif par.isToggle or par.isMomentary:
