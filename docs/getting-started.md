@@ -117,62 +117,32 @@ Let's test that everything is set up correctly:
 
 You've got the basics working - but there's so much more! This component has powerful features for streamlined parameter control:
 
-### 🎯 Core Features You'll Use Daily
+### 🎯 Core Features
 
 - **[Parameter Slots](user-guide.md#parameter-slots-system)** - Save parameters to buttons for instant recall without hovering
 - **[Multiple Banks](user-guide.md#multiple-banks)** - Organize slots into banks (e.g., Bank 0 = lighting, Bank 1 = audio)
 - **[Parameter Shortcuts](user-guide.md#parameter-shortcuts)** - Quick button combos: reset, set default, clamp, and more
 - **[Step Sizes & Modes](user-guide.md#step-modes)** - Adjust precision with Fixed or Adaptive step modes
-- **[Undo/Redo](user-guide.md#undoredo-operations)** - Undo any parameter change with `Ctrl+Z` / `Cmd+Z`
-
-### 🚀 Advanced Capabilities
-
 - **[ParGroup Control](user-guide.md#parameter-slots-system)** - Control entire parameter groups (RGB, XYZ) simultaneously
-- **[Parameter Recovery](advanced.md#parameter-recovery-system)** - Automatic recovery when operators are moved/renamed
 - **[UI Highlighting](user-guide.md#ui-parameter-highlighting)** - Visual feedback in TouchDesigner interface
 - **[Full Customization](user-guide.md#customization-parameters)** - Extensive options to tailor behavior to your workflow
+- **[Parameter Recovery](advanced.md#parameter-recovery-system)** - Automatic recovery when operators are moved/renamed
+- **[Undo/Redo](user-guide.md#undoredo-operations)** - Undo any parameter change with `Ctrl+Z` / `Cmd+Z
 
 **👉 Continue to the [User Guide](user-guide.html) to learn how to use all these features!**
 
 ---
 
-## Best Practices for Update Compatibility
+## 💡 Quick Tip: Updating the Component
 
-To ensure your slot data and configurations are preserved when updating the component:
+Your work is automatically protected! The component creates external storage for your data on first launch, so updates won't affect your saved configurations.
 
-### Automatic Setup with "Externalize Component" Button (Recommended)
+**To update:**
+1. The UI icon in TouchDesigner's top-right turns **yellow** when updates are available
+2. Click it → go to **About** page → hit **Update**
+3. Done! ✅
 
-The easiest way to set up for seamless updates:
-
-1. Open the component's **About** parameter page
-2. Pulse the **`Externalize Component`** button
-3. This automatically:
-   - Saves the component as an external `.tox` file to your Palette folder
-   - Converts the component to an external reference in your project
-   - Creates and links an external Slots Repo table in your project
-   - Ensures all future updates preserve your slot assignments and configurations
-
-**Benefits:**
-- One-click setup for update compatibility
-- Persistent slot data across all updates
-- Works across multiple projects using the same external `.tox`
-- Component updates apply everywhere automatically
-
-### Manual Setup (Advanced Users)
-
-If you prefer manual control:
-
-**External Repo:**
-1. Use the `Create` custom parameter to create an external Repo table (e.g., `/repo_storage`)
-2. The `Slots Repo` parameter will automatically point to this external table
-3. Component updates won't affect your saved slots
-
-**External .tox:**
-1. Save component as external `.tox` to `Palette/FNStools_ext/ParHoverMIDI_VSN1.tox`
-2. In each project, drag this `.tox` as an **external component** (shows reference icon)
-3. Enable the `External .tox` parameter in the component
-
-> The built-in updater (About page) also uses the Palette folder structure for easy external setup
+> **Want to use the component across multiple projects?** Check out the "Externalize Component" button in the About page - it's explained in the [Advanced Guide](advanced.html#update-compatibility--external-setup).
 
 ## Next Steps
 

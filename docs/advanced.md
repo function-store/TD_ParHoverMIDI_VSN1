@@ -11,7 +11,7 @@ Advanced features, MIDI mapping, troubleshooting, and development information.
 ## Table of Contents
 
 - [Parameter Recovery System](#parameter-recovery-system)
-- [Recommended Production Setup](#recommended-production-setup)
+- [Update Compatibility & External Setup](#update-compatibility--external-setup)
 - [MIDI Mapping Configuration](#midi-mapping-configuration)
 - [Known Issues](#known-issues)
 - [Troubleshooting](#troubleshooting)
@@ -110,62 +110,82 @@ Advanced users can directly edit slot storage tables:
 - Backup tables before manual editing
 - Invalid entries will trigger recovery dialogs
 
-## Best Practices for Update Compatibility
+## Update Compatibility & External Setup
 
-Ensuring your slot data and configurations are preserved across component updates.
+Comprehensive guide to external storage and seamless updates.
 
-### Automatic Setup with "Externalize Component" (Recommended)
+### Automatic Slot Data Protection
 
-The fastest way to set up for seamless updates:
+**Already Done For You:**
 
-1. **One-Click Setup:**
-   - Open component's **About** parameter page
-   - Pulse the **`Externalize Component`** button
-   - Automatically handles all external setup
+The component automatically protects your work on first launch:
+- ✅ External Slots Repo is **automatically created** at `/project1/ParHoverMIDI_VSN1_SlotsRepo`
+- ✅ Your slot assignments are stored outside the component
+- ✅ Updates will never affect your saved slots
+- 🔧 Can be disabled via the `Auto-Create Repo` parameter if you prefer manual control
 
-2. **What It Does:**
-   - Saves component as external `.tox` to Palette folder
-   - Converts component to external reference in your project
-   - Creates and links external Slots Repo table
-   - Ensures future updates preserve all slot assignments
+**Customizing the Repo Location:**
+1. Set `Auto-Create Repo` to off
+2. Use the `Create` custom parameter to create an external Repo at your preferred location
+3. Point the `Slots Repo` parameter to your custom table
 
-3. **Benefits:**
-   - One button does everything
-   - Works across multiple projects using the same `.tox`
-   - Updates apply everywhere automatically
-   - Persistent slot data guaranteed
+### Full External Setup with "Externalize Component"
 
-### Manual Setup (Advanced)
+For **maximum update compatibility** and multi-project workflows:
+
+**The One-Click Solution:**
+1. Open the component's **About** parameter page
+2. Pulse the **`Externalize Component`** button
+3. Done! ✅
+
+**What It Does:**
+- Saves the component as an external `.tox` file to `Palette/FNStools_ext/`
+- Converts the component to an external reference in your project
+- Creates and links an external Slots Repo (if not already external)
+- Ensures all future updates preserve your configurations
+
+**Benefits:**
+- 🚀 One-click setup for full external workflow
+- 🔄 Use the same component across multiple projects
+- ⚡ Update the component once, updates apply everywhere
+- 💾 Complete persistence of all data and settings
+
+### In-Component Updater
+
+Built-in updater in the **About** parameter page:
+
+**How to Update:**
+1. The UI icon in TouchDesigner's top-right corner turns **yellow** when updates are available
+2. Click the icon and navigate to **About** page
+3. Review the changelog to see what's new
+4. Click **Update** to install with one click
+5. Component downloads to `Palette/FNStools_ext/`
+
+**Update Safety:**
+- Automatic backup of current version
+- Preserves all slot data (thanks to external repo)
+- Preserves all parameter settings
+- Works seamlessly with external `.tox` setup
+
+### Manual External Setup (Advanced)
 
 If you prefer granular control:
 
-**External Repo Only:**
-1. Use `Create` custom parameter to make external Repo table
-2. Prevents updates from clearing slots
-3. Good for single-project workflows
-
 **External .tox Only:**
-1. Save component to `Palette/FNStools_ext/ParHoverMIDI_VSN1.tox`
-2. Drag as external component in projects
-3. Enable `External .tox` parameter
+1. Save component as external `.tox` to `Palette/FNStools_ext/ParHoverMIDI_VSN1.tox`
+2. In each project, drag this `.tox` as an **external component** (shows reference icon)
+3. Enable the `External .tox` parameter in the component
 4. Good for multi-project workflows
 
-**Both (Best):**
-- Combine external Repo + external .tox
-- Maximum protection and flexibility
-- Required for true update independence
+**Custom External Repo:**
+1. Disable `Auto-Create Repo` parameter
+2. Create a table DAT manually at your preferred location
+3. Set `Slots Repo` parameter to point to your table
+4. Good for custom project structures
 
-### In-Component Updates
-
-Built-in updater in **About** parameter page:
-
-1. Open component's **About** page
-2. Check for updates
-3. View changelog
-4. Install with one click
-5. `.tox` downloads to `Palette/FNStools_ext/`
-
-> **Tip:** Use "Externalize Component" button before first update to avoid any data loss
+**Both (Recommended):**
+- Combine external `.tox` + external Repo for maximum flexibility
+- Best for production environments with multiple projects
 
 ## MIDI Mapping Configuration
 
@@ -290,7 +310,8 @@ The component includes automatic MIDI learning:
 ### Slots Lost After Update
 
 **Solution:**
-- Set up [External Repo](#best-practices-for-update-compatibility) before updating
+- Set up external storage using [Update Compatibility guide](getting-started.html#-best-practices-for-update-compatibility) before updating
+- Use the "Externalize Component" button in About page
 - Restore from backup if available
 - Manually recreate slot assignments
 
