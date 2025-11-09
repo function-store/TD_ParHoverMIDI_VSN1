@@ -529,12 +529,6 @@ class HoveredMidiRelativeExt:
 		# Cancel any active timeout since we're hovering a new parameter
 		self._cancel_hover_timeout()
 		
-		# Clear any captured initial values from previous hover
-		if self.hoveredPar is not None and self.evalEnableundo:
-			self.undo_manager.on_parameter_unhovered(self.hoveredPar)
-		
-		self.hoveredPar = None
-		
 		if not (_op := op(_op)):
 			return
 			
@@ -563,15 +557,30 @@ class HoveredMidiRelativeExt:
 						self._start_hover_timeout(restart_if_sticky=False)
 					return
 				
-				self.hoveredPar = par_group_obj
-				
-				
 				# Handle invalid/unsupported parameters when no active slot
 				if self.activeSlot is None:
 					if error_msg := ParameterValidator.get_validation_error(par_group_obj, self.evalControlstrmenus):
+						# Sticky mode enhancement: ignore unsupported/invalid TYPE parameters completely
+						# When sticky is on and hovering an unsupported type, just ignore it entirely
+						if self.evalStickypar and error_msg in (ScreenMessages.UNSUPPORTED, ScreenMessages.INVALID):
+							# Cancel any timeout - user is actively interacting by hovering
+							self._cancel_hover_timeout()
+							# Ignore this unsupported parameter type completely - don't show error, don't change hoveredPar
+							return
+						
+						# Normal behavior: show error and set as hovered
+						# Clear previous parameter undo captures before setting new one
+						if self.hoveredPar is not None and self.evalEnableundo:
+							self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+						self.hoveredPar = par_group_obj
 						self._set_parexec_pars(None)
 						self.display_manager.show_parameter_error(par_group_obj, error_msg)
 						return  # Parameter group is invalid, error message shown
+				
+				# Clear previous parameter undo captures before setting new one
+				if self.hoveredPar is not None and self.evalEnableundo:
+					self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+				self.hoveredPar = par_group_obj
 					
 				self._set_parexec_pars(None)
 				# set first valid 
@@ -593,15 +602,31 @@ class HoveredMidiRelativeExt:
 					self._start_hover_timeout(restart_if_sticky=False)
 				return
 			
-			self.hoveredPar = single_par
-			
 			# Handle invalid/unsupported parameters when no active slot
 			if self.activeSlot is None:
 				if error_msg := ParameterValidator.get_validation_error(single_par, self.evalControlstrmenus):
+					# Sticky mode enhancement: ignore unsupported/invalid TYPE parameters completely
+					# When sticky is on and hovering an unsupported type, just ignore it entirely
+					if self.evalStickypar and error_msg in (ScreenMessages.UNSUPPORTED, ScreenMessages.INVALID):
+						# Cancel any timeout - user is actively interacting by hovering
+						self._cancel_hover_timeout()
+						# Ignore this unsupported parameter type completely - don't show error, don't change hoveredPar
+						return
+					
+					# Normal behavior: show error and set as hovered
+					# Clear previous parameter undo captures before setting new one
+					if self.hoveredPar is not None and self.evalEnableundo:
+						self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+					self.hoveredPar = single_par
 					self.display_manager.show_parameter_error(single_par, error_msg)
 					if error_msg == ScreenMessages.EXPR:
 						self._set_parexec_pars(single_par)
 					return  # Parameter is invalid, error message shown
+			
+			# Clear previous parameter undo captures before setting new one
+			if self.hoveredPar is not None and self.evalEnableundo:
+				self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+			self.hoveredPar = single_par
 			
 
 		# Update screen if no active slot (only for valid parameters)

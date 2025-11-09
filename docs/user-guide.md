@@ -270,6 +270,7 @@ The `Sticky Par` toggle only matters **after you've moved your cursor away**. It
 - You adjust with MIDI → countdown restarts (parameter stays active longer)
 - You stop adjusting → parameter clears after timeout duration
 - Result: Parameter stays active as long as you're adjusting it
+- **Bonus**: Hovering over invalid parameters (unsupported types, read-only, etc.) is ignored - keeps your valid parameter active. Expression parameters still show.
 
 **Disabled**:
 - You move cursor away → timeout countdown starts
@@ -281,6 +282,7 @@ The `Sticky Par` toggle only matters **after you've moved your cursor away**. It
 - **While hovering**: Parameters stay active indefinitely, regardless of settings
 - **After unhovering**: Timeout and sticky settings determine how long the parameter remains active
 - **In slot mode**: Parameters stay active until you deactivate the slot (timeout doesn't apply)
+- **With sticky enabled**: Invalid parameters (except expressions) are ignored, preventing accidental interruption of your workflow
 
 ---
 
