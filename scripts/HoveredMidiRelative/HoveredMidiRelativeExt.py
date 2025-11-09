@@ -101,7 +101,7 @@ class HoveredMidiRelativeExt:
 		# Load from tables on first run 
 		self.repo_manager.load_from_tables_if_needed()
 
-		self.postInit()
+		run("args[0].postInit()", self, delayRef=op.TDResources, delayFrames=120)
 
 	def postInit(self):
 		# Needed to clear pickle errors due to missing parameters in storage, before we can even validate
