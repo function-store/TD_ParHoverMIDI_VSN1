@@ -1,3 +1,9 @@
+---
+layout: default
+title: Getting Started
+nav_order: 1
+---
+
 # Getting Started
 
 Complete installation and setup guide for TouchDesigner Par Hover Control for VSN1.
@@ -126,7 +132,7 @@ You've got the basics working - but there's so much more! This component has pow
 - **[UI Highlighting](user-guide.md#ui-parameter-highlighting)** - Visual feedback in TouchDesigner interface
 - **[Full Customization](user-guide.md#customization-parameters)** - Extensive options to tailor behavior to your workflow
 
-**👉 Continue to the [User Guide](user-guide.md) to learn how to use all these features!**
+**👉 Continue to the [User Guide](user-guide.html) to learn how to use all these features!**
 
 ---
 
@@ -191,5 +197,5 @@ If you prefer manual control:
 
 ---
 
-[← Back to README](../README.md) | [User Guide →](user-guide.md)
+[← Home](index.html) | [User Guide →](user-guide.html)
 

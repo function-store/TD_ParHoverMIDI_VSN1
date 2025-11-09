@@ -72,10 +72,10 @@
           <MoltenPushButton 
             text="README" 
             style="normal" 
-            click={() => window.open('https://github.com/function-store/TD_ParHoverMIDI_VSN1?tab=readme-ov-file#quick-start', '_blank')} 
+            click={() => window.open('https://function-store.github.io/TD_ParHoverMIDI_VSN1/', '_blank')} 
           />
           <MoltenPushButton 
-            text="Download .tox" 
+            text="Download .tox"
             style="accept" 
             click={() => window.open('https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox', '_blank')} 
           />

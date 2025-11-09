@@ -1,0 +1,22 @@
+title: TouchDesigner Par Hover Control for Intech VSN1
+description: Intuitive parameter control using IntechVSN1 endless encoders and mouse hover interactions
+theme: jekyll-theme-midnight
+
+# GitHub repository
+repository: function-store/TD_ParHoverMIDI_VSN1
+
+# Social links
+github_username: function-store
+
+# Build settings
+markdown: kramdown
+
+# Navigation
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Exclude from build
+exclude:
+  - README.md
+

@@ -1,8 +1,14 @@
+---
+layout: default
+title: User Guide
+nav_order: 2
+---
+
 # User Guide
 
 Complete guide to all features and customization options.
 
-> **New to this component?** Start with [Getting Started](getting-started.md) to install and configure everything first.
+> **New to this component?** Start with [Getting Started](getting-started.html) to install and configure everything first.
 
 ## Overview
 
@@ -319,5 +325,5 @@ Comprehensive feedback through hardware and software.
 
 ---
 
-[← Getting Started](getting-started.md) | [Advanced →](advanced.md)
+[← Getting Started](getting-started.html) | [Advanced →](advanced.html)
 

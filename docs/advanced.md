@@ -1,3 +1,9 @@
+---
+layout: default
+title: Advanced Guide
+nav_order: 3
+---
+
 # Advanced Guide
 
 Advanced features, MIDI mapping, troubleshooting, and development information.
@@ -214,7 +220,6 @@ The component includes automatic MIDI learning:
 ## Known Issues
 
 - Screen updates can be laggy (system tries its best)
-- Knob LED "Value" mode can show laggy updates on hardware
 - UI color changes may cause performance impact when switching modes
 - **Component limitation**: Only one instance allowed per project, and only one project open at a time
 
@@ -423,16 +428,8 @@ When contributing:
    - Use type hints where possible
    - Add docstrings to new functions/classes
    - Keep concerns separated (validators, formatters, etc.)
-
-### Future Roadmap
-
-- Enhanced visual indicators for slot states
-- Performance optimizations for UI coloring
-- Additional parameter type support
-- Improved Grid Editor integration
-- More flexible MIDI mapping options
-
+  
 ---
 
-[← User Guide](user-guide.md) | [Back to README](../README.md)
+[← User Guide](user-guide.html) | [Home](index.html)
 

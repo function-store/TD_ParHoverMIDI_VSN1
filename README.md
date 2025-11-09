@@ -44,6 +44,9 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 
 ## 📖 Documentation
 
+**[📚 View Full Documentation Site](https://function-store.github.io/TD_ParHoverMIDI_VSN1/)** *(recommended)*
+
+Or browse the docs directly:
 - **[Getting Started](docs/getting-started.md)** - Installation, MIDI setup, and first steps
 - **[User Guide](docs/user-guide.md)** - Features, slots/banks, shortcuts, customization
 - **[Advanced](docs/advanced.md)** - Recovery system, production setup, MIDI mapping, troubleshooting
