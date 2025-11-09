@@ -60,7 +60,7 @@ class HoveredMidiRelativeExt:
 		self.slot_manager = SlotManager(self)
 		self.undo_manager = UndoManager(self)
 
-		self.display_run_obj = None
+		self.hover_timeout_run = None  # Run object for hover timeout and empty display
 		self.lastCachedChange = None
 		self.slotPars = [[None for _ in range(self.numSlots)] for _ in range(self.numBanks)]
 		self.bankActiveSlots = [None for _ in range(self.numBanks)]
@@ -346,6 +346,30 @@ class HoveredMidiRelativeExt:
 			
 		return None
 	
+	def _is_component_parameter(self, par_to_check: Union[Par, ParGroup] = None) -> bool:
+		"""Check if a parameter belongs to this component itself
+		
+		Args:
+			par_to_check: Parameter to check. If None, checks the active parameter.
+		
+		Returns:
+			True if parameter belongs to this component
+		"""
+		if par_to_check is None:
+			par_to_check = self.activePar
+		
+		if par_to_check is None:
+			return False
+		
+		try:
+			# For ParGroup, check the first parameter
+			if ParameterValidator.is_pargroup(par_to_check):
+				return par_to_check[0].owner == self.ownerComp
+			else:
+				return par_to_check.owner == self.ownerComp
+		except (AttributeError, IndexError):
+			return False
+	
 	def should_allow_strmenus(self, par_to_check: Union[Par, ParGroup] = None) -> bool:
 		"""Check if StrMenu parameters should be allowed
 		
@@ -424,58 +448,92 @@ class HoveredMidiRelativeExt:
 
 # region helper methods
 
-	def _manage_empty_operator_display(self, should_show: bool):
-		"""Manage the delayed display message when no operator is hovered.
+	def _cancel_hover_timeout(self):
+		"""Cancel any active hover timeout"""
+		try:
+			if self.hover_timeout_run is not None and self.hover_timeout_run.active:
+				self.hover_timeout_run.kill()
+		except (AttributeError, tdError):
+			pass
+	
+	def _on_hover_timeout(self):
+		"""Called when hover timeout expires - clear hovered parameter"""
+		# Only clear if we're still in hover mode (no active slot)
+		if self.activeSlot is not None:
+			return
+		
+		# Clear hovered parameter undo capture
+		if self.hoveredPar is not None and self.evalEnableundo:
+			self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+		
+		# Clear hovered parameter
+		self.hoveredPar = None
+		self._set_parexec_pars(None)
+		
+		# Show empty operator message
+		self.display_manager.update_all_display(0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+	
+	def _start_hover_timeout(self, restart_if_sticky: bool = False):
+		"""Start timeout to clear hovered parameter and show empty message
 		
 		Args:
-			should_show: True to show the empty operator message, False to kill it
+			restart_if_sticky: If True, only restart if evalStickypar is enabled AND
+			                   a timeout is already running (i.e., user has already unhovered).
+			                   If False, always start timeout (used when unhover happens).
 		"""
-		if should_show:
-			# Check if we need to show the empty operator message
-			should_run = True
+		# Not in hover mode - don't start timeout
+		if self.activeSlot is not None:
+			return
+		
+		# If this is a restart request (from MIDI adjustment):
+		if restart_if_sticky:
+			# Only restart if sticky is enabled
+			if not self.evalStickypar:
+				return
+			# Only restart if a timeout is already running (i.e., user has unhovered)
 			try:
-				should_run = self.display_run_obj is None or not self.display_run_obj.active
+				if self.hover_timeout_run is None or not self.hover_timeout_run.active:
+					return  # No timeout running, don't start one
 			except (AttributeError, tdError):
-				pass
-			
-			if should_run:
-				self.display_run_obj = run(
-					"args[0].display_manager.update_all_display(0, 0, 1, args[1], args[1], compress=False)", 
-					self, ScreenMessages.HOVER, delayMilliSeconds=1000, delayRef=op.TDResources
-				)
-		else:
-			# Kill any existing display run when we have a valid operator
-			try:
-				if self.display_run_obj is not None and self.display_run_obj.active:
-					self.display_run_obj.kill()
-			except (AttributeError, tdError):
-				pass
+				return
+		
+		# Cancel existing timeout
+		self._cancel_hover_timeout()
+		
+		# Handle timeout = 0 case (clear immediately)
+		if self.evalHovertimeoutlength <= 0:
+			self._on_hover_timeout()
+			return
+		
+		# Start new timeout
+		delay_ms = int(self.evalHovertimeoutlength * 1000)
+		self.hover_timeout_run = run(
+			"args[0]._on_hover_timeout()", 
+			self, delayMilliSeconds=delay_ms, delayRef=op.TDResources
+		)
 	
 # endregion helper methods
 
 	@block_during_invalidation
 	def onHoveredParChange(self, _op, _parGroup, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
-		# Clear any captured initial values that never resulted in undo actions
-		# (user hovered but didn't adjust)
-		if self.hoveredPar is not None and self.evalEnableundo:
-			self.undo_manager.on_parameter_unhovered(self.hoveredPar)
-		
-		self.hoveredPar = None
-
 		if not self.evalActive or self.midiError:
 			return
 
 		if _op is None:
-			# Only show empty operator message if we don't have an active valid parameter
-			# (activePar already checks for active slot with valid parameter)
-			has_active_param = self.activePar is not None and self.activePar.valid
-			if not has_active_param:
-				self._set_parexec_pars(None)
-			self._manage_empty_operator_display(should_show=not has_active_param)
+			# User stopped hovering - start timeout to clear after delay
+			if self.activeSlot is None:
+				self._start_hover_timeout(restart_if_sticky=False)  # Always start when unhover
 			return
-		else:
-			self._manage_empty_operator_display(should_show=False)
+		
+		# Cancel any active timeout since we're hovering a new parameter
+		self._cancel_hover_timeout()
+		
+		# Clear any captured initial values from previous hover
+		if self.hoveredPar is not None and self.evalEnableundo:
+			self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+		
+		self.hoveredPar = None
 		
 		if not (_op := op(_op)):
 			return
@@ -498,6 +556,13 @@ class HoveredMidiRelativeExt:
 			
 			# Store as ParGroup if it has multiple parameters
 			if par_group_obj is not None:
+				# Skip if this ParGroup belongs to the component itself
+				if self._is_component_parameter(par_group_obj):
+					# Treat as if unhovering - start timeout to clear
+					if self.activeSlot is None:
+						self._start_hover_timeout(restart_if_sticky=False)
+					return
+				
 				self.hoveredPar = par_group_obj
 				
 				
@@ -521,6 +586,13 @@ class HoveredMidiRelativeExt:
 		
 		# Single Par detected (or extracted from single-item ParGroup)
 		if single_par is not None:
+			# Skip if this parameter belongs to the component itself
+			if self._is_component_parameter(single_par):
+				# Treat as if unhovering - start timeout to clear
+				if self.activeSlot is None:
+					self._start_hover_timeout(restart_if_sticky=False)
+				return
+			
 			self.hoveredPar = single_par
 			
 			# Handle invalid/unsupported parameters when no active slot
@@ -565,23 +637,29 @@ class HoveredMidiRelativeExt:
 		if message == MidiConstants.NOTE_ON:
 			# Handle step change messages
 			if self.midi_handler.handle_step_message(index, value):
-				self._manage_empty_operator_display(should_show=False)
+				# Don't restart timeout for component's own parameters
+				if not self._is_component_parameter():
+					self._start_hover_timeout(restart_if_sticky=True)
 				return
 				
 			# Handle pulse messages
 			if self.midi_handler.handle_push_message(index, value, active_par):
-				self._manage_empty_operator_display(should_show=False)
+				# Don't restart timeout for component's own parameters
+				if not self._is_component_parameter():
+					self._start_hover_timeout(restart_if_sticky=True)
 				return
 		
 			# Handle slot selection messages
 			if self.midi_handler.handle_slot_message(index, value):
-				self._manage_empty_operator_display(should_show=False)
+				self._cancel_hover_timeout()  # Cancel timeout when changing slots
 				return
 			
 		elif message == MidiConstants.CONTROL_CHANGE:
 			# Handle knob control messages
 			if self.midi_handler.handle_knob_message(index, value, active_par):
-				self._manage_empty_operator_display(should_show=False)
+				# Don't restart timeout for component's own parameters
+				if not self._is_component_parameter():
+					self._start_hover_timeout(restart_if_sticky=True)
 				return
 
 

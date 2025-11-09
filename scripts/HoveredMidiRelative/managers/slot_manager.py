@@ -739,13 +739,23 @@ class SlotManager:
 		else:
 			self.parent.ui_manager.set_hovered_ui_color(-1)
 		
+		# Don't automatically start timeout when returning from slot mode
+		# hoveredPar might be stale (cleared when slot was activated)
+		# Let hover events naturally handle state: if user is hovering, they can adjust;
+		# if they move away, unhover event will start the timeout
+		
 		# Clear UI button label
 		if hasattr(self.parent, 'ui_manager'):
 			self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
 		
 		# Update display to hover mode
-		self.parent.display_manager.update_all_display(
-			0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+		if self.parent.hoveredPar is not None and self.parent.hoveredPar.valid:
+			# Show the hovered parameter if one exists
+			self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
+		else:
+			# Show empty hover message
+			self.parent.display_manager.update_all_display(
+				0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 		
 		# Update LEDs and outline color
 		# Pass previous_slot to update the cleared slot's LED to show it's now free
@@ -790,6 +800,10 @@ class SlotManager:
 		self.parent.activeSlot = slot_idx
 		self.parent._activeSlotPar = slot_par  # Store directly for ultra-fast access
 		self.parent.bankActiveSlots[currBank] = slot_idx
+		
+		# Cancel hover timeout when switching to slot mode
+		# Don't clear hoveredPar - keep it so it's available when returning to hover mode
+		self.parent._cancel_hover_timeout()
 		
 		# Update table for persistence (only current bank for performance)
 		self.parent.repo_manager.save_bank_to_table(currBank)
@@ -849,6 +863,9 @@ class SlotManager:
 				if old_slot_par is not None:
 					self.parent.undo_manager.on_slot_deactivated(old_slot_par)
 			
+			# Cancel any hover timeout from the old bank
+			self.parent._cancel_hover_timeout()
+			
 			# Save current active slot for current bank
 			self.parent.bankActiveSlots[old_bank] = self.parent.activeSlot
 			
@@ -884,6 +901,10 @@ class SlotManager:
 					self.parent.activeSlot = previous_slot
 					self.parent._activeSlotPar = slot_par  # Store directly for ultra-fast access
 					
+					# Cancel hover timeout when entering slot mode
+					# Don't clear hoveredPar - keep it so it's available when returning to hover mode
+					self.parent._cancel_hover_timeout()
+					
 					# Turn off hovered UI color when recalling a slot
 					self.parent.ui_manager.set_hovered_ui_color(-1)
 					
@@ -899,6 +920,9 @@ class SlotManager:
 						self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
 					else:
 						self.parent.ui_manager.set_hovered_ui_color(-1)
+					
+					# Don't automatically start timeout when returning from slot mode
+					# Let hover events naturally handle state
 			else:
 				self.parent.activeSlot = None
 				self.parent._activeSlotPar = None  # Clear cached active slot parameter
@@ -908,6 +932,9 @@ class SlotManager:
 					self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
 				else:
 					self.parent.ui_manager.set_hovered_ui_color(-1)
+				
+				# Don't automatically start timeout when returning from slot mode
+				# Let hover events naturally handle state
 			
 			# Refresh display and UI for new bank
 			self._refresh_bank_display()
@@ -935,6 +962,9 @@ class SlotManager:
 				self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
 			else:
 				self.parent.ui_manager.set_hovered_ui_color(-1)
+			
+			# Don't automatically start timeout when returning from slot mode
+			# Let hover events naturally handle state
 			
 			# Try to refresh display (might fail if there are invalid parameters)
 			try:
@@ -1028,6 +1058,11 @@ class SlotManager:
 			self.parent.ui_manager.set_hovered_ui_color(self.parent.evalColorindex - 1)
 		else:
 			self.parent.ui_manager.set_hovered_ui_color(-1)
+		
+		# Don't automatically start timeout when returning from slot mode
+		# hoveredPar might be stale (cleared when slot was activated)
+		# Let hover events naturally handle state: if user is hovering, they can adjust;
+		# if they move away, unhover event will start the timeout
 		
 		# Get label for hovered parameter (or ParGroup)
 		if self.parent.hoveredPar is not None and self.parent.hoveredPar.valid:

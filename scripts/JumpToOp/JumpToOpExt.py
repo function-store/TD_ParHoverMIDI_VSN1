@@ -22,7 +22,7 @@ class JumpToOpExt:
 				return self.ownerComp.par.Zoom.eval()
 		return 1.0
 
-	def setZoom(self, currPane: NetworkEditor, zoom: float):
+	def setZoom(self, zoom: float):
 		if currPane := self.currPane:
 			currPane.zoom = zoom
 
@@ -35,7 +35,7 @@ class JumpToOpExt:
 			self.toOp.current = True
 			currPane.home(op=self.toOp)
 			zoom = self.currZoom
-			run(lambda: self.setZoom(currPane, zoom), delayFrames=1)
+			run(lambda: self.setZoom(zoom), delayFrames=1)
 
 	def Jump(self, to_op: OP = None):
 		if currPane := self.currPane:
@@ -49,7 +49,7 @@ class JumpToOpExt:
 			currPane.home(zoom=to_zoom,op=to_op)
 			if not to_zoom:
 				zoom = self.currZoom
-				run(lambda: self.setZoom(currPane, zoom), delayFrames=1)
+				run(lambda: self.setZoom(zoom), delayFrames=1)
 
 
 

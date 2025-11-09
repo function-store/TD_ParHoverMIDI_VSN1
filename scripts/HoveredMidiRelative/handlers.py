@@ -89,6 +89,7 @@ class MidiMessageHandler:
 
 		# Only check if parameter exists - it was validated on activation
 		if active_par is None:
+			debug('active_par is None')
 			return False
 		
 		# Only process actual knob movement (not center/idle position)

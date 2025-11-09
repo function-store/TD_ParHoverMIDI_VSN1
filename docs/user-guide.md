@@ -30,6 +30,7 @@ This component transforms how you control TouchDesigner parameters by combining 
 - [Undo/Redo Operations](#undoredo-operations)
 - [Parameter Pulse](#parameter-pulse)
 - [UI Parameter Highlighting](#ui-parameter-highlighting)
+- [Hover Timeout](#hover-timeout)
 - [Customization Parameters](#customization-parameters)
 - [Visual Feedback](#visual-feedback)
 
@@ -242,6 +243,46 @@ Convenient button in top-right corner of TD's UI:
 - **Left Click**: Opens component parameters dialog
 - **Right Click**: Opens component UI view
 - **Middle Click**: Toggles UI coloring on/off
+
+---
+
+## Hover Timeout
+
+Control how long parameters remain active **after you stop hovering** over them.
+
+> **While Hovering**: Parameters stay active indefinitely. You can adjust them freely with MIDI controls. Timeout and sticky settings have no effect while your cursor is over a parameter.
+
+### Timeout Length
+
+Set `Hover Timeout Length` parameter (in seconds) to control what happens **after you move your cursor away**:
+
+- **Greater than 0**: Parameter stays active for the specified duration, then clears
+- **Set to 0**: Parameter clears immediately when you unhover
+
+After the timeout expires, the component returns to showing the `_HOVER_` message.
+
+### Sticky Parameter
+
+The `Sticky Par` toggle only matters **after you've moved your cursor away**. It controls whether MIDI adjustments extend the timeout:
+
+**Enabled**:
+- You move cursor away → timeout countdown starts
+- You adjust with MIDI → countdown restarts (parameter stays active longer)
+- You stop adjusting → parameter clears after timeout duration
+- Result: Parameter stays active as long as you're adjusting it
+
+**Disabled**:
+- You move cursor away → timeout countdown starts
+- You adjust with MIDI → countdown continues unchanged
+- Parameter clears after the original timeout, even if you're still adjusting
+- Result: Parameter has a fixed lifetime from when you unhover
+
+**Summary:**
+- **While hovering**: Parameters stay active indefinitely, regardless of settings
+- **After unhovering**: Timeout and sticky settings determine how long the parameter remains active
+- **In slot mode**: Parameters stay active until you deactivate the slot (timeout doesn't apply)
+
+---
 
 ## Customization Parameters
 
