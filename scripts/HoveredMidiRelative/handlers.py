@@ -95,8 +95,17 @@ class MidiMessageHandler:
 
 		# Only check if parameter exists - it was validated on activation
 		if active_par is None:
-			# Delegate zoom handling to zoom_manager
-			return self.parent.zoom_manager.handle_zoom_knob(value)
+			# Delegate zoom handling to zoom_manager (if zoom is enabled)
+			enable_zoom = getattr(self.parent, 'evalEnablezoom', False)
+			if enable_zoom:
+				return self.parent.zoom_manager.handle_zoom_knob(value)
+			else:
+				# No zoom, no active parameter - nothing to do
+				self.parent.zoom_manager.clear_target()
+				return False
+		
+		# Parameter is active - clear any zoom state
+		self.parent.zoom_manager.clear_target()
 		
 		# Create undo action on first knob movement
 		self._create_undo_for_parameter(active_par)

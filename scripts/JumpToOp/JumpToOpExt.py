@@ -7,6 +7,7 @@ class JumpToOpExt:
 	def __init__(self, ownerComp):
 		CustomParHelper.Init(self, ownerComp, enable_properties=True, enable_callbacks=True)
 		self.ownerComp = ownerComp
+		self.mousePosExt : TLMouseExt = self.ownerComp.op('MOUSE_POS_IN_NETWORKEDITOR').ext.TLMouseExt
 		
 	@property
 	def currPane(self) -> NetworkEditor | None:
@@ -33,6 +34,7 @@ class JumpToOpExt:
 		if currPane := self.currPane:
 			_chop = self.ownerComp.op('MOUSE_POS_IN_NETWORKEDITOR/xy')
 			if _chop:
+				self.mousePosExt.UpdateMousePosition()
 				return _chop['x'].eval(), _chop['y'].eval()
 		return None
 
