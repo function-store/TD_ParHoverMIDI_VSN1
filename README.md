@@ -27,7 +27,8 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 2. **Download** [`ParHoverMIDI_VSN1.tox`](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox) from the [latest release](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest)
 
 3. **Setup in TouchDesigner**:
-   - Drag the `.tox` into your project (suggested at root `/`)
+   - Drag the `.tox` into your project at **root `/`** (recommended location)
+   - **⚠️ Important**: Only one component instance per project, and only one project open at a time (communication/architecture limitation)
    - **Keep Grid Editor open** (component auto-launches it, needs exclusive access to port `9642`)
    - Open TD's [MIDI Device Mapper](https://docs.derivative.ca/MIDI_Mapper_Dialog), set the VSN1 (*Intech Grid MIDI Device*) as Input and Output device, and note your Grid device's **Device ID**
    - Set this `Device ID` in component's **VSN1/UI** parameter page

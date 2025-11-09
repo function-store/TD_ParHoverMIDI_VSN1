@@ -54,7 +54,9 @@ Download `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/fu
 **2. Add to Project:**
 
 1. Connect your MIDI controller to your system
-2. Drag `ParHoverMIDI_VSN1.tox` into your TouchDesigner project (suggested at root `/`)
+2. Drag `ParHoverMIDI_VSN1.tox` into your TouchDesigner project at **root `/`** (recommended location)
+
+> **⚠️ Important Limitation**: Only one component instance is allowed per project file, and only one TouchDesigner project with this component should be open at a time. This is due to communication and architecture limitations. Always place the component at the project root `/` for best compatibility.
 
 **3. Configure MIDI:**
 

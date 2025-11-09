@@ -216,6 +216,7 @@ The component includes automatic MIDI learning:
 - Screen updates can be laggy (system tries its best)
 - Knob LED "Value" mode can show laggy updates on hardware
 - UI color changes may cause performance impact when switching modes
+- **Component limitation**: Only one instance allowed per project, and only one project open at a time
 
 ## Troubleshooting
 
@@ -284,9 +285,21 @@ The component includes automatic MIDI learning:
 ### Slots Lost After Update
 
 **Solution:**
-- Set up [External Repo](#external-repo-setup-highly-recommended) before updating
+- Set up [External Repo](#best-practices-for-update-compatibility) before updating
 - Restore from backup if available
 - Manually recreate slot assignments
+
+### Multiple Components or Projects
+
+**Issue:**
+- Trying to use multiple component instances in one project
+- Having multiple TouchDesigner projects open with the component
+
+**Solution:**
+- Only use **one component instance** per project file
+- Only have **one project open** at a time with this component
+- Place component at **root `/`** for best compatibility
+- This limitation is due to communication and architecture constraints
 
 ## Development
 
