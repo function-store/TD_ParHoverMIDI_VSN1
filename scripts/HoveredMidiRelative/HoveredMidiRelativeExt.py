@@ -21,6 +21,7 @@ from slot_manager import SlotManager
 from ui_manager import UIManager
 from undo_manager import UndoManager
 from repo_manager import RepoManager
+from decorators import require_valid_parameter, block_during_invalidation
 
 
 
@@ -452,12 +453,9 @@ class HoveredMidiRelativeExt:
 	
 # endregion helper methods
 
+	@block_during_invalidation
 	def onHoveredParChange(self, _op, _parGroup, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
-			return
-		
 		# Clear any captured initial values that never resulted in undo actions
 		# (user hovered but didn't adjust)
 		if self.hoveredPar is not None and self.evalEnableundo:
@@ -553,66 +551,44 @@ class HoveredMidiRelativeExt:
 
 # region midi callbacks
 
+	@require_valid_parameter
 	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):
 		"""TouchDesigner callback for MIDI input processing"""
 		if channel != self.evalChannel or not self.evalActive:
 			return
 		
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
-			return
-		
-		try:
-			active_par = self.activePar
-			hovered_par = self.hoveredPar
-			index = int(index)
+		active_par = self.activePar
+		hovered_par = self.hoveredPar
+		index = int(index)
 
-			# Process different message types using helper class
-			if message == MidiConstants.NOTE_ON:
-				# Handle step change messages
-				if self.midi_handler.handle_step_message(index, value):
-					self._manage_empty_operator_display(should_show=False)
-					return
-					
-				# Handle pulse messages
-				if self.midi_handler.handle_push_message(index, value, active_par):
-					self._manage_empty_operator_display(should_show=False)
-					return
-			
-				# Handle slot selection messages
-				if self.midi_handler.handle_slot_message(index, value):
-					self._manage_empty_operator_display(should_show=False)
-					return
+		# Process different message types using helper class
+		if message == MidiConstants.NOTE_ON:
+			# Handle step change messages
+			if self.midi_handler.handle_step_message(index, value):
+				self._manage_empty_operator_display(should_show=False)
+				return
 				
-			elif message == MidiConstants.CONTROL_CHANGE:
-				# Handle knob control messages
-				if self.midi_handler.handle_knob_message(index, value, active_par):
-					self._manage_empty_operator_display(should_show=False)
-					return
-		except Exception as e:
-			# Catch invalid parameter errors at top level
-			if 'Invalid Par' not in str(e) and 'tdError' not in str(type(e).__name__):
-				raise  # Re-raise unexpected errors
+			# Handle pulse messages
+			if self.midi_handler.handle_push_message(index, value, active_par):
+				self._manage_empty_operator_display(should_show=False)
+				return
+		
+			# Handle slot selection messages
+			if self.midi_handler.handle_slot_message(index, value):
+				self._manage_empty_operator_display(should_show=False)
+				return
 			
-			# Queue up invalid parameters for sequential dialog-based recovery
-			# This will show one dialog at a time, wait for response, then show the next
-			self.slot_manager.queue_invalidation_check()
-			
-			# Clear invalid hovered parameter
-			try:
-				if self.hoveredPar and not self.hoveredPar.valid:
-					self.hoveredPar = None
-			except:
-				self.hoveredPar = None
+		elif message == MidiConstants.CONTROL_CHANGE:
+			# Handle knob control messages
+			if self.midi_handler.handle_knob_message(index, value, active_par):
+				self._manage_empty_operator_display(should_show=False)
+				return
 
 
+	@block_during_invalidation
 	def onReceiveMidiLearn(self, dat, rowIndex, message, channel, index, value, input, byteData):
 		"""TouchDesigner callback for MIDI learning mode"""
 		if channel != self.evalChannel or not self.evalActive:
-			return
-		
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
 			return
 		
 		hovered_par = self.hoveredPar
@@ -640,12 +616,9 @@ class HoveredMidiRelativeExt:
 				hovered_par.val = index
 
 
+	@block_during_invalidation
 	def onReceiveMidiSlotLearn(self, index: int):
 		"""TouchDesigner callback for slot learning"""
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
-			return
-		
 		hovered_par = self.hoveredPar
 
 		blocks = self._index_to_blocks(index, self.seqSlots)
@@ -665,165 +638,134 @@ class HoveredMidiRelativeExt:
 			# No hovered parameter - clear the slot
 			self.slot_manager.clear_slot(block_idx)
 
+	@require_valid_parameter
 	def onResetPar(self, force: bool = False):
 		"""TouchDesigner callback to reset active parameter (or ParGroup)"""
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
-			return None
-		
 		if self.activePar is None:
 			return None
 
-		try:
-			# Handle ParGroup
-			if ParameterValidator.is_pargroup(self.activePar):
-				self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
-			else:
-				# Handle single Par
-				self.undo_manager.create_reset_undo_for_parameter(self.activePar)
-			
-			self.display_manager.update_parameter_display(self.activePar)
-		except:
-			# Parameter became invalid - queue invalidation check
-			self.slot_manager.queue_invalidation_check()
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(self.activePar):
+			self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
+		else:
+			# Handle single Par
+			self.undo_manager.create_reset_undo_for_parameter(self.activePar)
+		
+		self.display_manager.update_parameter_display(self.activePar)
 
+	@require_valid_parameter
 	def onSetDefault(self):
 		"""TouchDesigner callback to set default parameter value"""
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
-			return None
-		
 		if self.activePar is None:
 			return None
 		
-		try:
-			if not self.activePar.isCustom:
-				return None
-			
-			# Capture old value for undo
-			old_default = self.activePar.default
-			new_default = self.activePar.eval()
-			
-			# Apply the change
-			self.activePar.default = new_default
-			
-			# Create undo action
-			self.undo_manager.create_set_default_undo(self.activePar, old_default, new_default)
-			
-			# update display
-			self.display_manager.update_parameter_display(self.activePar, bottom_text = '_DEF_')
-		except:
-			# Parameter became invalid - queue invalidation check
-			self.slot_manager.queue_invalidation_check()
+		if not self.activePar.isCustom:
+			return None
+		
+		# Capture old value for undo
+		old_default = self.activePar.default
+		new_default = self.activePar.eval()
+		
+		# Apply the change
+		self.activePar.default = new_default
+		
+		# Create undo action
+		self.undo_manager.create_set_default_undo(self.activePar, old_default, new_default)
+		
+		# update display
+		self.display_manager.update_parameter_display(self.activePar, bottom_text = '_DEF_')
 
+	@require_valid_parameter
 	def onSetNorm(self, min_max: str):
 		"""TouchDesigner callback to set norm min or max value"""
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
-			return None
-		
 		if self.activePar is None:
 			return None
 		
-		try:
-			if not self.activePar.isCustom:
-				return None
-			
-			_val = self.activePar.eval()
-			
-			if min_max == 'min':
-				# Check if valid (not equal to max)
-				if _val != self.activePar.normMax:
-					# Capture old values for undo
-					old_norm = self.activePar.normMin
-					old_minmax = self.activePar.min
-					
-					# Apply changes
-					self.activePar.normMin = _val
-					self.activePar.min = _val
-					
-					# Create undo action
-					self.undo_manager.create_set_norm_undo(
-						self.activePar, is_min=True,
-						old_norm=old_norm, new_norm=_val,
-						old_minmax=old_minmax, new_minmax=_val
-					)
-			else:
-				# Check if valid (not equal to min)
-				if _val != self.activePar.normMin:
-					# Capture old values for undo
-					old_norm = self.activePar.normMax
-					old_minmax = self.activePar.max
-					
-					# Apply changes
-					self.activePar.normMax = _val
-					self.activePar.max = _val
-					
-					# Create undo action
-					self.undo_manager.create_set_norm_undo(
-						self.activePar, is_min=False,
-						old_norm=old_norm, new_norm=_val,
-						old_minmax=old_minmax, new_minmax=_val
-					)
-			
-			# update display
-			self.display_manager.update_parameter_display(self.activePar, bottom_text=f'_{min_max.upper()}_')
-		except:
-			# Parameter became invalid - queue invalidation check
-			self.slot_manager.queue_invalidation_check()
+		if not self.activePar.isCustom:
+			return None
+		
+		_val = self.activePar.eval()
+		
+		if min_max == 'min':
+			# Check if valid (not equal to max)
+			if _val != self.activePar.normMax:
+				# Capture old values for undo
+				old_norm = self.activePar.normMin
+				old_minmax = self.activePar.min
+				
+				# Apply changes
+				self.activePar.normMin = _val
+				self.activePar.min = _val
+				
+				# Create undo action
+				self.undo_manager.create_set_norm_undo(
+					self.activePar, is_min=True,
+					old_norm=old_norm, new_norm=_val,
+					old_minmax=old_minmax, new_minmax=_val
+				)
+		else:
+			# Check if valid (not equal to min)
+			if _val != self.activePar.normMin:
+				# Capture old values for undo
+				old_norm = self.activePar.normMax
+				old_minmax = self.activePar.max
+				
+				# Apply changes
+				self.activePar.normMax = _val
+				self.activePar.max = _val
+				
+				# Create undo action
+				self.undo_manager.create_set_norm_undo(
+					self.activePar, is_min=False,
+					old_norm=old_norm, new_norm=_val,
+					old_minmax=old_minmax, new_minmax=_val
+				)
+		
+		# update display
+		self.display_manager.update_parameter_display(self.activePar, bottom_text=f'_{min_max.upper()}_')
 
+	@require_valid_parameter
 	def onSetClamp(self, min_max: str):
 		"""TouchDesigner callback to set clamp min or max value"""
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
-			return None
-		
 		if self.activePar is None:
 			return None
 		
-		try:
-			if not self.activePar.isCustom:
-				return None
-			
-			# Capture old values for undo
-			old_clamp_min = self.activePar.clampMin
-			old_clamp_max = self.activePar.clampMax
-			
-			# Determine what's changing
-			changed_min = (min_max == 'min' or min_max == 'both')
-			changed_max = (min_max == 'max' or min_max == 'both')
-			
-			# Apply changes
-			if changed_min:
-				self.activePar.clampMin = not self.activePar.clampMin
-			if changed_max:
-				self.activePar.clampMax = not self.activePar.clampMax
-			
-			# Create undo action
-			self.undo_manager.create_set_clamp_undo(
-				self.activePar,
-				changed_min=changed_min,
-				changed_max=changed_max,
-				old_clamp_min=old_clamp_min,
-				new_clamp_min=self.activePar.clampMin,
-				old_clamp_max=old_clamp_max,
-				new_clamp_max=self.activePar.clampMax
-			)
-			
-			# update display
-			self.display_manager.update_parameter_display(self.activePar, bottom_text='_CLAMP_')
-		except:
-			# Parameter became invalid - queue invalidation check
-			self.slot_manager.queue_invalidation_check()
+		if not self.activePar.isCustom:
+			return None
+		
+		# Capture old values for undo
+		old_clamp_min = self.activePar.clampMin
+		old_clamp_max = self.activePar.clampMax
+		
+		# Determine what's changing
+		changed_min = (min_max == 'min' or min_max == 'both')
+		changed_max = (min_max == 'max' or min_max == 'both')
+		
+		# Apply changes
+		if changed_min:
+			self.activePar.clampMin = not self.activePar.clampMin
+		if changed_max:
+			self.activePar.clampMax = not self.activePar.clampMax
+		
+		# Create undo action
+		self.undo_manager.create_set_clamp_undo(
+			self.activePar,
+			changed_min=changed_min,
+			changed_max=changed_max,
+			old_clamp_min=old_clamp_min,
+			new_clamp_min=self.activePar.clampMin,
+			old_clamp_max=old_clamp_max,
+			new_clamp_max=self.activePar.clampMax
+		)
+		
+		# update display
+		self.display_manager.update_parameter_display(self.activePar, bottom_text='_CLAMP_')
 
 
+	@block_during_invalidation
 	def onReceiveMidiBankSel(self, index: int) -> None:
 		"""TouchDesigner callback for bank selection MIDI input"""
 		if not self.evalActive:
-			return
-		
-		# Block all actions while invalidation is active (dialog or queue processing)
-		if self.slot_manager.is_invalidation_active():
 			return
 
 		# Handle bank change message
