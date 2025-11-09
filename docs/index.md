@@ -76,10 +76,8 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 - USB connection to MIDI controller
 - For VSN1: Grid Editor open with exclusive access to port `9642`
 
-<details>
+<details markdown="1">
 <summary><strong>Alternative Hardware (Other MIDI Controllers)</strong></summary>
-
-<br>
 
 - Generic MIDI controllers with endless encoders in relative mode
 - Turn off `VSN1 Support` parameter for non-VSN1 controllers

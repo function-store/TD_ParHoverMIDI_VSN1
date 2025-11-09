@@ -203,10 +203,8 @@ If you prefer granular control:
 - **MIDI blocks**: Can be customized per element if needed
 - See Grid Editor package documentation for details
   
-<details>
+<details markdown="1">
 <summary><h3 style="display: inline;">Manual Mapping (Custom Configurations / Non-VSN1)</h3></summary>
-
-<br>
 
 For custom configurations or non-VSN1 controllers:
 

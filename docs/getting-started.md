@@ -76,7 +76,7 @@ Download `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/fu
    - **⚠️ CRITICAL**: Set the `Device ID` parameter to match the device ID from MIDI Mapper
    - This links the component to your physical MIDI controller
 
-<details>
+<details markdown="1">
 <summary><h3 style="display: inline;">Setup for Other MIDI Controllers</h3></summary>
 
 If you're using a different endless/relative MIDI encoder (not VSN1):
