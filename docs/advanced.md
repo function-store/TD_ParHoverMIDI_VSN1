@@ -191,17 +191,22 @@ If you prefer granular control:
 
 ### Default VSN1 Mapping
 
-**Quick Setup:**
-- Click `Use Defaults for VSN1` button in **Mapping** tab
-- Automatically configures all MIDI mappings
-
 **Default Configuration:**
 - **MIDI Channel**: 16 (appears as 15 in Grid Editor)
 - **MIDI Indices**: Correspond to element indices in grid
   - TouchDesigner: 1-indexed
   - Grid Editor: 0-indexed
 
-### Manual Mapping
+### Grid Editor Configuration (VSN1)
+
+- **System element**: Defines channel as global variable `gch`
+- **MIDI blocks**: Can be customized per element if needed
+- See Grid Editor package documentation for details
+  
+<details>
+<summary><h3 style="display: inline;">Manual Mapping (Custom Configurations / Non-VSN1)</h3></summary>
+
+<br>
 
 For custom configurations or non-VSN1 controllers:
 
@@ -222,12 +227,6 @@ For custom configurations or non-VSN1 controllers:
    - **Learn Mode**: Hover over empty mapping fields and move MIDI controls
    - **Configure Steps**: Set step sizes in Mapping tab (default: 0.001, 0.01, 0.1, 1)
 
-### Grid Editor Configuration (VSN1)
-
-- **System element**: Defines channel as global variable `gch`
-- **MIDI blocks**: Can be customized per element if needed
-- See Grid Editor package documentation for details
-
 ### Learning System
 
 The component includes automatic MIDI learning:
@@ -236,6 +235,12 @@ The component includes automatic MIDI learning:
 2. Move your MIDI knob or press button
 3. Index automatically assigns
 4. Works for knobs, buttons, steps, banks, and pulse controls
+
+</details>
+
+
+
+
 
 ## Known Issues
 

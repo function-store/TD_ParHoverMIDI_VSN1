@@ -71,23 +71,32 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 **Primary Target:**
 - **Intech Studio VSN1** - Full support with screen updates and LED feedback
 
-**Alternative Hardware:**
-- Generic MIDI controllers with endless encoders in relative mode
-- Turn off `VSN1 Support` parameter for non-VSN1 controllers
-
 **Requirements:**
 - TouchDesigner 2023.12120+
 - USB connection to MIDI controller
 - For VSN1: Grid Editor open with exclusive access to port `9642`
 
+<details>
+<summary><strong>Alternative Hardware (Other MIDI Controllers)</strong></summary>
+
+<br>
+
+- Generic MIDI controllers with endless encoders in relative mode
+- Turn off `VSN1 Support` parameter for non-VSN1 controllers
+- See [Getting Started - Setup for Other MIDI Controllers](getting-started.html#setup-for-other-midi-controllers) for details
+
+</details>
+
 ---
 
 ## 🚀 Quick Start (VSN1)
 
-1. **Install Grid Package**: Install `TouchDesigner Par Hover Control` from Grid Editor Package Manager
+1. **Install Grid Package**: Install `TouchDesigner Par Hover Control` from Grid Editor Package Manager. From the Cloud import `TouchDesigner Par Hover Control` profile to your VSN1!
+   - *Not available in your Package Manager?* See [Getting Started - Grid Editor Setup](getting-started.html#grid-editor-setup-vsn1-users-only) for manual installation
 2. **Download**: Get the latest `.tox` file using the button above
-3. **Setup**: Drag into TouchDesigner at root `/`, set Device ID, pulse `Use Defaults for VSN1`
+3. **Setup**: Set up your MIDI device, Drag into TouchDesigner at root `/`, set Device ID
 4. **Use**: Hover over any parameter and twist your encoder!
+5. **Explore**: There's much more this component can do, so keep on reading!
 
 **👉 [Full installation guide](getting-started.html)**
 
@@ -100,6 +109,10 @@ Contributions are welcome! Visit the [GitHub repository](https://github.com/func
 - Submit pull requests
 - View source code
 - Star the project ⭐
+
+### Patreon
+
+You can also support my work on [Patreon](patreon.com/function_store) where I have a lot of free and exclusive stuff!
 
 ---
 
