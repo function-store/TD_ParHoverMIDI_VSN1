@@ -314,7 +314,3 @@ class UIManager:
 		if _par_idx != 'Auto-Header':
 			_comp_editor_pars.SelectRow(_par_idx+1)
 			_comp_editor_pars.scroll(_par_idx, 0)
-
-	def adjust_ui_zoom(self, adjustment: float):
-		if self.parent.evalKnobzoomui:
-			self.parent.jumpToOp.setZoom(self.parent.jumpToOp.currZoom + adjustment)

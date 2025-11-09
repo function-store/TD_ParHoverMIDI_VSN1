@@ -22,9 +22,43 @@ class JumpToOpExt:
 				return self.ownerComp.par.Zoom.eval()
 		return 1.0
 
-	def setZoom(self, zoom: float):
+	@property
+	def currentZoom(self) -> float:
+		if currPane := self.currPane:
+			return currPane.zoom
+		return 0
+
+	@property
+	def mousePosInEditor(self) -> (float, float):
+		if currPane := self.currPane:
+			_chop = self.ownerComp.op('MOUSE_POS_IN_NETWORKEDITOR/xy')
+			if _chop:
+				return _chop['x'].eval(), _chop['y'].eval()
+		return None
+
+
+	def setZoom(self, zoom: float, to_mouse : bool = False, target_pos: tuple = None):
+		"""Set zoom level and optionally center on a position
+		
+		Args:
+			zoom: Target zoom level
+			to_mouse: If True, center on current mouse position (ignored if target_pos is provided)
+			target_pos: Optional (x, y) tuple to center on. If provided, overrides to_mouse.
+		"""
 		if currPane := self.currPane:
 			currPane.zoom = zoom
+			if target_pos:
+				# Use provided target position
+				_x, _y = target_pos
+				currPane.x = _x
+				currPane.y = _y
+			elif to_mouse:
+				# Use current mouse position
+				_mousePos = self.mousePosInEditor
+				if _mousePos:
+					_x, _y = _mousePos
+					currPane.x = _x
+					currPane.y = _y
 
 	@property
 	def toOp(self) -> OP:

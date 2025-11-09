@@ -87,14 +87,16 @@ class MidiMessageHandler:
 		if index != knob_index:
 			return False
 
-		# Only check if parameter exists - it was validated on activation
-		if active_par is None:
-			debug('active_par is None')
-			return False
+
 		
 		# Only process actual knob movement (not center/idle position)
 		if value == MidiConstants.MIDI_CENTER_VALUE:
 			return True
+
+		# Only check if parameter exists - it was validated on activation
+		if active_par is None:
+			# Delegate zoom handling to zoom_manager
+			return self.parent.zoom_manager.handle_zoom_knob(value)
 		
 		# Create undo action on first knob movement
 		self._create_undo_for_parameter(active_par)

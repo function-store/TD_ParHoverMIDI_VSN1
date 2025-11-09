@@ -21,6 +21,7 @@ from slot_manager import SlotManager
 from ui_manager import UIManager
 from undo_manager import UndoManager
 from repo_manager import RepoManager
+from zoom_manager import ZoomManager
 from decorators import require_valid_parameter, block_during_invalidation
 
 
@@ -59,6 +60,7 @@ class HoveredMidiRelativeExt:
 		self.display_manager = DisplayManager(self)  # Must be after ui_manager
 		self.slot_manager = SlotManager(self)
 		self.undo_manager = UndoManager(self)
+		self.zoom_manager = ZoomManager(self)
 
 		self.hover_timeout_run = None  # Run object for hover timeout and empty display
 		self.lastCachedChange = None
@@ -557,7 +559,7 @@ class HoveredMidiRelativeExt:
 						self._start_hover_timeout(restart_if_sticky=False)
 					return
 				
-				# Handle invalid/unsupported parameters when no active slot
+				# Handle invalid/unsupported parameters when no active slot#
 				if self.activeSlot is None:
 					if error_msg := ParameterValidator.get_validation_error(par_group_obj, self.evalControlstrmenus):
 						# Sticky mode enhancement: ignore unsupported/invalid TYPE parameters completely
