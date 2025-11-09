@@ -1,6 +1,6 @@
 # TouchDesigner Par Hover Control for VSN1
 
-A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. While optimized for VSN1, it's compatible with other endless relative MIDI controllers.
+A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. While optimized for VSN1, it can be made compatible with other endless relative MIDI controllers.
 
 ![VSN1 Hardware](https://github.com/function-store/TD_ParHoverMIDI_VSN1/blob/main/docs/images/hoveredvsn1.jpg)
 
@@ -10,11 +10,10 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 - **VSN1 Integration** - Full screen and LED feedback on VSN1 hardware
 - **Parameter Slots** - Save parameters to buttons for instant recall across multiple banks
 - **ParGroup Support** - Control entire parameter groups (RGB, XYZ) simultaneously
-- **Smart Recovery** - Automatic detection and fixing of invalid parameters when operators move
-- **Undo/Redo** - Full undo support with `Ctrl+Z`/`Ctrl+Y` (Windows) or `Cmd+Z`/`Cmd+Shift+Z` (Mac)
-- **Auto-Updates** - Built-in updater with one-click updates from GitHub releases
-- **Flexible Precision** - Multiple step sizes with Fixed or Adaptive modes
 - **Parameter Shortcuts** - Quick button combos for reset, set default, clamp, and more
+- **Flexible Precision** - Multiple step sizes with Fixed or Adaptive modes
+- **Smart Recovery** - Automatic detection and fixing of invalid parameters when operators move
+- **Auto-Updates** - Built-in updater with one-click updates from GitHub releases
 
 ## 🚀 Quick Start
 
@@ -23,21 +22,21 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 1. **Install Grid Package** (one-time setup):
    - Newer Grid Editor versions: Install `TouchDesigner Par Hover Control` directly from Package Manager
    - Older versions: Clone repo, build, and add manually (see [Getting Started](docs/getting-started.md))
-   - Import `TouchDesigner Par Hover Control` configuration to your VSN1 device
+   - Search for, and import the `TouchDesigner Par Hover Control` configuration from Grid Editor to your VSN1 device
 
-2. **Download** `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest)
+2. **Download** [`ParHoverMIDI_VSN1.tox`](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox) from the [latest release](https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest)
 
 3. **Setup in TouchDesigner**:
    - Drag the `.tox` into your project (suggested at root `/`)
    - **Keep Grid Editor open** (component auto-launches it, needs exclusive access to port `9642`)
-   - Open TD's [MIDI Device Mapper](https://docs.derivative.ca/MIDI_Mapper_Dialog) and note your Grid device's **Device ID**
+   - Open TD's [MIDI Device Mapper](https://docs.derivative.ca/MIDI_Mapper_Dialog), set the VSN1 (*Intech Grid MIDI Device*) as Input and Output device, and note your Grid device's **Device ID**
    - Set this `Device ID` in component's **VSN1/UI** parameter page
-   - Pulse `Use Defaults for VSN1` in **Mapping** tab to auto-configure all mappings
 
 4. **Start Using**:
    - Hover over any parameter and twist your encoder to adjust it!
-   - Save parameters to slots with long-press, switch between banks
-   - Use step buttons for precision control, shortcuts for reset/clamp
+   - Change step size with buttons under the LCD screen
+   - Save parameters to slots with long-press of primary buttons
+   - Switch between banks by long-pressing the step buttons
    - And much more! See [User Guide](docs/user-guide.md) for all features
 
 > **Using other MIDI controllers?** This component works with any endless/relative MIDI encoder. See [Getting Started - Other Controllers](docs/getting-started.md#setup-for-other-midi-controllers) for setup instructions.

@@ -60,7 +60,7 @@ Download `ParHoverMIDI_VSN1.tox` from the [latest release](https://github.com/fu
 
 1. **Set up MIDI Device in TouchDesigner:**
    - Open TouchDesigner's MIDI Device Mapper (Dialogs → MIDI Mapper)
-   - Ensure your Grid/VSN1 MIDI device is visible and active
+   - Ensure your Grid/VSN1 MIDI device is visible and active and set as both Input and Output
    - Note the **Device ID** (this is critical for the next step)
 
 2. **Configure Component:**
@@ -98,20 +98,54 @@ If you're using a different endless/relative MIDI encoder (not VSN1):
 
 1. **Hover over any parameter** in TouchDesigner
 2. **Twist your MIDI encoder** to adjust the value
-3. **Use step buttons** to change precision (0.001, 0.01, 0.1, 1)
+3. **Use step buttons** to change precision (0.001, 0.01, 0.1, 1). Step buttons are the small dark buttons located under the VSN1's LCD screen.
 
 ### Assigning Parameters to Slots
+
+Slots are parameters you can save to a button to recall and control that parameter in sticky mode (meaning hovering over other parameters will not have an effect).
+The slot buttons are the 8 clicky keyboard buttons on the VSN1 device.
 
 1. **Hover over a parameter** you want to save
 2. **Long-press a slot button** on your VSN1/MIDI controller
 3. **Press the slot button** anytime to instantly control that parameter
 4. **Press an empty slot** to go back to **Hover** mode
+5. **Clear a slot** by not hovering over any parameter and long-pressing the slot button you want to clear
+6. **Reassign a slot** by having an existing slot active, hovering over another parameter and long-pressing the the slot button
 
 ### Using Banks
 
 1. **Long-press a Step button** to switch banks
 2. Each bank has its own set of slot assignments
 3. Organize parameters by function (lighting, audio, video, etc.)
+
+## Step Sizes and Modes
+
+### Adjusting Precision
+
+Use your mapped step buttons to cycle through step sizes:
+- Default: 0.001, 0.01, 0.1, 1
+- Configurable in the **Mapping** tab
+
+### Step Modes
+
+**Fixed Mode** (default):
+- Uses exact step size (e.g., 0.01 = 0.01 increment)
+- Consistent across all parameter ranges
+
+**Adaptive Mode**:
+- Step automatically scales to parameter range
+- 0.001 on 0-1 range = 0.001, but on 0-1000 range = 1
+- Toggle: Press leftmost + rightmost step buttons simultaneously
+
+### Push Step Mode
+
+Hold the knob push button while rotating for alternate precision:
+
+**Fixed** (default): Uses custom `Push Step` value
+**Finer**: Current step ÷ 10
+**Coarser**: Current step × 10
+
+Quick assign: Hold push button and press any step button to set it as the push step when in **Fixed** mode.
 
 ## Best Practices for Update Compatibility
 
@@ -150,35 +184,6 @@ If you prefer manual control:
 3. Enable the `External .tox` parameter in the component
 
 > The built-in updater (About page) also uses the Palette folder structure for easy external setup
-
-## Step Sizes and Modes
-
-### Adjusting Precision
-
-Use your mapped step buttons to cycle through step sizes:
-- Default: 0.001, 0.01, 0.1, 1
-- Configurable in the **Mapping** tab
-
-### Step Modes
-
-**Fixed Mode** (default):
-- Uses exact step size (e.g., 0.01 = 0.01 increment)
-- Consistent across all parameter ranges
-
-**Adaptive Mode**:
-- Step automatically scales to parameter range
-- 0.001 on 0-1 range = 0.001, but on 0-1000 range = 1
-- Toggle: Press leftmost + rightmost step buttons simultaneously
-
-### Push Step Mode
-
-Hold the knob push button while rotating for alternate precision:
-
-**Fixed** (default): Uses custom `Push Step` value
-**Finer**: Current step ÷ 10
-**Coarser**: Current step × 10
-
-Quick assign: Hold push button and press any step button to set it as the push step
 
 ## Next Steps
 

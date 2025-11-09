@@ -102,16 +102,6 @@ Quick button combinations for common operations (works with step or bank buttons
 
 Full undo/redo support for parameter changes and slot management.
 
-### Keyboard Shortcuts
-
-**Windows/Linux:**
-- Undo: `Ctrl+Z`
-- Redo: `Ctrl+Y`
-
-**macOS:**
-- Undo: `Cmd+Z`
-- Redo: `Cmd+Shift+Z`
-
 ### What's Tracked
 
 - All parameter value changes via MIDI
