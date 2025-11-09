@@ -213,8 +213,12 @@ class MidiMessageHandler:
 
 			# check if user is holding down the push button
 			if self.parent.knobPushState:
-				self.parent.jumpToOp.Jump(active_par.owner)
-				self.pushed_for_jump = True
+				_parOwner = active_par.owner
+				if _parOwner is not None:
+					self.parent.jumpToOp.Jump(_parOwner)
+					self.pushed_for_jump = True
+					_parOwner.currentPage = active_par.page
+
 			
 			# Check for validation errors
 
