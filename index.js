@@ -12,6 +12,8 @@ let preferenceMessagePort = undefined;
 
 let watchForActiveWindow = false;
 let isWindowActive = false;
+let controlScreenOnConnection = false;
+let controlLedOnConnection = true;
 
 let actionId = 0;
 
@@ -45,8 +47,9 @@ exports.loadPackage = async function (gridController, persistedData) {
     { encoding: "utf-8" },
   );
 
-  console.log({ persistedData });
   watchForActiveWindow = persistedData?.watchForActiveWindow ?? false;
+  controlScreenOnConnection = persistedData?.controlScreenOnConnection ?? false;
+  controlLedOnConnection = persistedData?.controlLedOnConnection ?? true;
 
   function createAction(overrides) {
     gridController.sendMessageToEditor({
@@ -124,9 +127,7 @@ exports.addMessagePort = async function (port, senderId) {
       preferenceMessagePort = undefined;
     });
     port.on("message", (e) => {
-      console.log({ e });
       if (e.data.type === "set-setting") {
-        console.log({ data: e.data });
         if (watchForActiveWindow !== e.data.watchForActiveWindow) {
           watchForActiveWindow = e.data.watchForActiveWindow;
           if (watchForActiveWindow) {
@@ -142,10 +143,22 @@ exports.addMessagePort = async function (port, senderId) {
             });
           }
         }
+        if (controlScreenOnConnection !== e.data.controlScreenOnConnection) {
+          controlScreenOnConnection = e.data.controlScreenOnConnection;
+          // Apply immediately based on current connection state
+          notifyStatusChange();
+        }
+        if (controlLedOnConnection !== e.data.controlLedOnConnection) {
+          controlLedOnConnection = e.data.controlLedOnConnection;
+          // Apply immediately based on current connection state
+          notifyStatusChange();
+        }
         controller.sendMessageToEditor({
           type: "persist-data",
           data: {
             watchForActiveWindow,
+            controlScreenOnConnection,
+            controlLedOnConnection,
           },
         });
       }
@@ -156,10 +169,8 @@ exports.addMessagePort = async function (port, senderId) {
 };
 
 exports.sendMessage = async function (args) {
-  console.log({ args });
   if (Array.isArray(args)) {
     if (watchForActiveWindow && !isWindowActive) {
-      console.log("Window is not active, ignoring message!");
       return;
     }
     if (!clientWs) {
@@ -218,7 +229,6 @@ function activeWindowRequestNoResponse() {
 
 function handleWebsocketMessage(message) {
   let data = JSON.parse(message);
-  console.log({ data });
   
   // If we receive any WebSocket message and we're not in auto mode, reset to auto
   if (ledState !== "auto") {
@@ -252,7 +262,6 @@ end
 lcd:ldaf(0,0,319,239,c[1]);
 lcd:ldrr(3,3,317,237,10,c[2]);
 lcd:ldsw();
-lcd_set_backlight(0);
 `;
   
   controller.sendMessageToEditor({
@@ -267,7 +276,6 @@ function resetLedColorMinOnConnect() {
 for i = 10, 17 do
   set_ledcolmin(i-10,-1,-1,-1,0.05);
 end
-lcd_set_backlight(255);
 `;
   
   controller.sendMessageToEditor({
@@ -277,18 +285,44 @@ lcd_set_backlight(255);
   ledState = "auto";
 }
 
+function setBlackLight(brightness) {
+  let luaScript = "";
+  if (!brightness) {
+    luaScript = `
+    set_l(0);
+    `;
+  } else {
+    luaScript = `
+    set_l(255);
+    `;
+  }
+  
+  controller.sendMessageToEditor({
+    type: "execute-lua-script",
+    script: luaScript
+  });
+}
+
 function notifyStatusChange() {
   preferenceMessagePort?.postMessage({
     type: "clientStatus",
     clientConnected: clientWs !== undefined,
     watchForActiveWindow,
+    controlScreenOnConnection,
+    controlLedOnConnection,
   });
   
-  // Execute set_led for indices 10-17 when not connected
   if (!clientWs) {
-    executeSetLedForIndices10to17();
+    // Disconnected state
+    if (controlScreenOnConnection) {
+      setBlackLight(false);
+    }
+    if (controlLedOnConnection) {
+      executeSetLedForIndices10to17();
+    }
   } else {
-    // Reset LED color minimum when connected
+    // Connected state
+    setBlackLight(true);
     resetLedColorMinOnConnect();
   }
 }

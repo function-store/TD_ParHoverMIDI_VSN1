@@ -21,22 +21,33 @@
   );
 
   let watchForActiveWindow = false;
+  let controlScreenOnConnection = false;
+  let controlLedOnConnection = true;
+  let isReceivingUpdate = false;
 
-  $: (watchForActiveWindow, handleDataChange());
-
-  function handleDataChange() {
-    messagePort.postMessage({
-      type: "set-setting",
-      watchForActiveWindow,
-    });
-  }
+  $: (watchForActiveWindow,
+    controlScreenOnConnection,
+    controlLedOnConnection,
+    !isReceivingUpdate &&
+      (function sendSettings() {
+        messagePort.postMessage({
+          type: "set-setting",
+          watchForActiveWindow,
+          controlScreenOnConnection,
+          controlLedOnConnection,
+        });
+      })());
 
   onMount(() => {
     messagePort.onmessage = (e) => {
       const data = e.data;
       if (data.type === "clientStatus") {
+        isReceivingUpdate = true;
         currentlyConnected = data.clientConnected;
         watchForActiveWindow = data.watchForActiveWindow;
+        controlScreenOnConnection = data.controlScreenOnConnection ?? false;
+        controlLedOnConnection = data.controlLedOnConnection ?? true;
+        setTimeout(() => { isReceivingUpdate = false; }, 10);
       }
     };
     messagePort.start();
@@ -85,6 +96,22 @@
             click={() => window.open('https://youtube.com/c/FunctionStore', '_blank')} 
           />
         </div>
+    </Block>
+
+    <Block>
+      <BlockTitle>Settings</BlockTitle>
+      <BlockBody>
+        <div class="flex flex-col gap-2">
+          <MeltCheckbox
+            title={"Set LEDs when TouchDesigner is disconnected"}
+            bind:target={controlLedOnConnection}
+          />
+          <MeltCheckbox
+            title={"Turn off LCD when TouchDesigner is disconnected"}
+            bind:target={controlScreenOnConnection}
+          />
+        </div>
+      </BlockBody>
     </Block>
   </div>
 </main-app>
