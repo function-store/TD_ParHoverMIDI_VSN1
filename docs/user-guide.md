@@ -357,6 +357,8 @@ The interpolation determines what percentage of the distance to the target posit
 
 **Note**: Activating a slot also makes zoom unavailable until you deactivate the slot and return to hover mode.
 
+> **Credit**: Network Editor mouse position tracking functionality was contributed by [TheTouchLab](https://www.instagram.com/thetouchlab/). 🙏
+
 ---
 
 ## Customization Overview

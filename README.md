@@ -87,6 +87,17 @@ Contributions are welcome! Please:
 
 See [Development](docs/advanced.md#development) for project structure details.
 
+## 🙏 Contributors & Acknowledgments
+
+**Main Developer:**
+- **[Function Store](https://www.functionstore.xyz/link-in-bio)** - Project creator and lead developer
+
+**Special Thanks:**
+- **[Greg Orca](https://www.instagram.com/greg_orca/)** - Valuable feedback and ongoing support
+- **[Dániel Pásztor](https://github.com/danim1130)** - Queued screen updates and GitHub Actions implementation
+- **[Intech Studio](https://intech.studio/)** - General support and hardware collaboration
+- **[TheTouchLab](https://www.instagram.com/thetouchlab/)** - Network Editor mouse position tracking
+
 ## 📝 License
 
 See [LICENSE](LICENSE) file for details.

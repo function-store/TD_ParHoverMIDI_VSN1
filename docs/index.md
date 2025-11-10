@@ -120,6 +120,23 @@ You can also support my work on [Patreon](patreon.com/function_store) where I ha
 
 ---
 
+## 🙏 Contributors & Acknowledgments
+
+<div style="border: 2px solid #667eea; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); margin: 30px 0;">
+
+**Main Developer:**
+- **[Function Store](https://www.functionstore.xyz/link-in-bio)** - Project creator and lead developer
+
+**Special Thanks:**
+- **[Greg Orca](https://www.instagram.com/greg_orca/)** - Valuable feedback and ongoing support
+- **[Dániel Pásztor](https://github.com/danim1130)** - Queued screen updates and GitHub Actions implementation
+- **[Intech Studio](https://intech.studio/)** - General support and hardware collaboration
+- **[TheTouchLab](https://www.instagram.com/thetouchlab/)** - Network Editor mouse position tracking
+
+</div>
+
+---
+
 ## 📝 License
 
 See [LICENSE](https://github.com/function-store/TD_ParHoverMIDI_VSN1/blob/main/LICENSE) file for details.
