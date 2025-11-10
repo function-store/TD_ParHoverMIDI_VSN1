@@ -34,14 +34,40 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 
 ## ✨ Key Features
 
+### Core Control
 - **Hover-based Control** - Adjust any parameter by simply hovering your mouse over it
-- **VSN1 Integration** - Full screen and LED feedback on VSN1 hardware
-- **Parameter Slots** - Save parameters to buttons for instant recall across multiple banks
-- **ParGroup Support** - Control entire parameter groups (RGB, XYZ) simultaneously
-- **Smart Recovery** - Automatic detection and fixing of invalid parameters when operators move
+- **ParGroup Support** - Control entire parameter groups (RGB, XYZ) simultaneously with one knob
+- **Flexible Precision** - Multiple step sizes with Fixed or Adaptive modes for any parameter range
+- **Parameter Pulse** - Trigger pulse, momentary, and toggle parameters with knob push button
+
+### Slots & Banks
+- **Parameter Slots** - Save up to 8 parameters to buttons for instant recall without hovering
+- **Multiple Banks** - 4 independent banks, each with 8 slots (32 parameters total)
+- **Quick Assignment** - Long-press any slot button while hovering to learn the parameter
+
+### Button Shortcuts & Combos
+- **Parameter Operations** - Reset, set default, set min/max, clamp to range with button combos
+- **Step Mode Toggle** - Long-press first + last slot buttons to switch Fixed/Adaptive modes
+- **Bank Switching** - Long-press any step button to switch banks instantly
+- **Jump to Operator** - Push knob + slot button to navigate directly to parameter's operator
+- **Open Component Editor** - Long-press first + fourth buttons to customize parameters
+- **Double-Click Home** - Double-click knob push button to home network editor
+
+### Navigation & Workflow
+- **Network Zoom Navigation** - Smooth zoom and pan in network editor when no parameter is active
+- **Undo/Redo** - Full undo support for all parameter changes and slot operations
+- **UI Highlighting** - Visual feedback in TouchDesigner UI showing active parameter
+- **Sticky Mode** - Keep controlling parameters during timeout without rehovering
+
+### Smart Features
+- **Smart Recovery** - Automatic detection and fixing when operators are moved or renamed
 - **Auto-Updates** - Built-in updater with one-click updates from GitHub
-- **Flexible Precision** - Multiple step sizes with Fixed or Adaptive modes
-- **Parameter Shortcuts** - Quick button combos for reset, set default, clamp, and more
+
+### VSN1 Hardware Integration
+- **LCD Screen Feedback** - Real-time display of parameter values, names, and state
+- **LED Feedback** - Slot buttons show active state, step indicators, and color coding
+- **Grid Editor Package** - Configure LCD/LED behavior on disconnect
+- **WebSocket Communication** - Low-latency screen updates via Grid Editor
 
 ---
 

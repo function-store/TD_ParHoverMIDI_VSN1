@@ -55,10 +55,10 @@ Complete reference for all hardware controls and keyboard shortcuts.
 | Push knob + twist | Use alternate precision | Behavior depends on Push Step Mode |
 | **Parameter Shortcuts** | | |
 | First + second button | Reset to default | Restores parameter's default value |
-| First + third button | Set current as default | Makes current value the new default |
-| Second + third button | Set current as min | Sets normMin and min to current value |
-| Second + fourth button | Set current as max | Sets normMax and max to current value |
-| Third + fourth button | Clamp to range | Brings value within min/max bounds |
+| First + third button | Set current as default | Custom parameters only |
+| Second + third button | Set current as min | Custom parameters only |
+| Second + fourth button | Set current as max | Custom parameters only |
+| Third + fourth button | Clamp to range | Custom parameters only |
 | First + fourth (long-press) | Open component editor | Opens active parameter's operator, or selected COMP if none |
 | **Network Zoom** (when enabled & no active parameter) | | |
 | Twist knob clockwise | Zoom in + pan to cursor | Seek or Target mode (configurable) |

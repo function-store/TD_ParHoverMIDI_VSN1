@@ -185,6 +185,7 @@ Quick button combinations for common operations (works with step or bank buttons
 ### Usage Notes
 
 - Press and hold combinations while hovering or controlling parameters
+- **Set default, set min, set max, and clamp** only work on custom parameters (reset works on all parameters)
 - Min/max affects both visual slider and actual parameter bounds
 - Clamping brings values within defined range
 - Component editor shortcut: Opens active parameter's operator editor, or currently selected COMP's editor if no parameter is active
