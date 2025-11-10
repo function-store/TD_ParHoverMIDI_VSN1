@@ -79,7 +79,7 @@ Two calculation modes determine how parameter adjustments scale:
 
 Hold the knob push button while rotating for alternate precision control:
 
-**Fixed** (default):
+**Fixed**:
 - Hold push + rotate = uses alternate step size
 - Set via `Push Step` custom parameter
 - **Quick assign**: Hold push button + press any step button to set that step as the alternate
@@ -88,7 +88,7 @@ Hold the knob push button while rotating for alternate precision control:
 - Hold push + rotate = current step ÷ 10
 - Gradually increase precision as needed
 
-**Coarser**:
+**Coarser** (default):
 - Hold push + rotate = current step × 10
 - Gradually decrease precision for faster adjustments
 

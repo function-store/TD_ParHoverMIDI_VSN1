@@ -1,0 +1,869 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TouchDesigner Par Hover Control - Quick Reference Cheatsheet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #0f0f1e;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            color: #8fa3ff;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(143, 163, 255, 0.5);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        
+        .subtitle a {
+            color: #8fa3ff;
+            text-decoration: none;
+        }
+        
+        .subtitle a:hover {
+            text-decoration: underline;
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            font-size: 1.8em;
+        }
+        
+        h3 {
+            color: #8fa3ff;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #2a2a3e;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover {
+            background: #252538;
+        }
+        
+        tr td:first-child {
+            font-weight: 600;
+            color: #8fa3ff;
+        }
+        
+        .category-row {
+            background: #252538 !important;
+            font-weight: bold;
+            color: #667eea !important;
+        }
+        
+        .category-row td {
+            padding: 10px 15px;
+            font-size: 1.1em;
+            border-top: 2px solid #667eea;
+        }
+        
+        .note {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .note strong {
+            color: #8fa3ff;
+        }
+        
+        code {
+            background: #2a2a3e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #ff79c6;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+        }
+        
+        /* Custom Scrollbar Styling */
+        /* Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #667eea #1a1a2e;
+        }
+        
+        /* Webkit browsers (Chrome, Safari, Edge) */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            border: 2px solid #1a1a2e;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #8fa3ff 0%, #9966cc 100%);
+        }
+        
+        ::-webkit-scrollbar-corner {
+            background: #1a1a2e;
+        }
+    </style>
+</head>
+<body>    
+    <div class="container">
+        <h1>🎛️ TouchDesigner Par Hover Control</h1>
+        <div class="subtitle">
+            Quick Reference Cheatsheet for Intech VSN1
+        </div>
+        
+        <div class="note" style="margin-bottom: 40px;">
+            <strong>📖 Hardware Glossary (VSN1):</strong>
+            <ul style="margin: 10px 0 0 20px; color: #ddd;">
+                <li><strong>Slot Buttons</strong> - The 8 clicky keyboard buttons on the device (with LED feedback)</li>
+                <li><strong>Step Buttons</strong> - The 4 small dark buttons located under the LCD screen</li>
+                <li><strong>Bank Button</strong> - Any step button when long-pressed (switches banks)</li>
+                <li><strong>Main Knob</strong> - The rotary encoder (twist to adjust, push to pulse/toggle)</li>
+            </ul>
+        </div>
+
+        <!-- Controls & Shortcuts -->
+        <h2>🎮 Controls & Shortcuts</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Control</th>
+                    <th>Action</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="category-row">
+                    <td colspan="3">Basic Controls</td>
+                </tr>
+                <tr>
+                    <td>Twist knob</td>
+                    <td>Adjust hovered/active parameter</td>
+                    <td>Step size affects increment</td>
+                </tr>
+                <tr>
+                    <td>Push knob</td>
+                    <td>Pulse/toggle parameter</td>
+                    <td>Works with Pulse, Momentary, Toggle types</td>
+                </tr>
+                <tr>
+                    <td>Press step button</td>
+                    <td>Change step size</td>
+                    <td>Cycles through 0.001, 0.01, 0.1, 1 (default)</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="3">Slot Operations</td>
+                </tr>
+                <tr>
+                    <td>Press slot button</td>
+                    <td>Activate slot / Return to hover</td>
+                    <td>Press empty slot to exit slot mode</td>
+                </tr>
+                <tr>
+                    <td>Long-press slot button (hovering)</td>
+                    <td>Assign parameter to slot</td>
+                    <td>500ms default hold time</td>
+                </tr>
+                <tr>
+                    <td>Long-press slot button (no hover)</td>
+                    <td>Clear slot assignment</td>
+                    <td>Removes parameter from slot</td>
+                </tr>
+                <tr>
+                    <td>Long-press slot button (slot active)</td>
+                    <td>Reassign slot</td>
+                    <td>New parameter overwrites existing</td>
+                </tr>
+                <tr>
+                    <td>Push knob + slot button</td>
+                    <td>Jump to operator</td>
+                    <td>Opens network at parameter's operator</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="3">Bank Switching</td>
+                </tr>
+                <tr>
+                    <td>Long-press step button</td>
+                    <td>Switch to that bank</td>
+                    <td>Each bank = independent slots</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="3">Step Modes</td>
+                </tr>
+                <tr>
+                    <td>Leftmost + rightmost step buttons</td>
+                    <td>Toggle Fixed/Adaptive mode</td>
+                    <td>Changes step calculation method</td>
+                </tr>
+                <tr>
+                    <td>Push knob + step button</td>
+                    <td>Set alternate push step</td>
+                    <td>Only in "Fixed" push mode</td>
+                </tr>
+                <tr>
+                    <td>Push knob + twist</td>
+                    <td>Use alternate precision</td>
+                    <td>Behavior depends on Push Step Mode</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="3">Parameter Shortcuts</td>
+                </tr>
+                <tr>
+                    <td>First + second button</td>
+                    <td>Reset to default</td>
+                    <td>Restores parameter's default value</td>
+                </tr>
+                <tr>
+                    <td>First + third button</td>
+                    <td>Set current as default</td>
+                    <td>Makes current value the new default</td>
+                </tr>
+                <tr>
+                    <td>Second + third button</td>
+                    <td>Set current as min</td>
+                    <td>Sets normMin and min to current value</td>
+                </tr>
+                <tr>
+                    <td>Second + fourth button</td>
+                    <td>Set current as max</td>
+                    <td>Sets normMax and max to current value</td>
+                </tr>
+                <tr>
+                    <td>Third + fourth button</td>
+                    <td>Clamp to range</td>
+                    <td>Brings value within min/max bounds</td>
+                </tr>
+                <tr>
+                    <td>First + fourth (long-press)</td>
+                    <td>Open component editor</td>
+                    <td>Opens active parameter's operator, or selected COMP if none</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="3">Network Zoom (when enabled & no active parameter)</td>
+                </tr>
+                <tr>
+                    <td>Twist knob clockwise</td>
+                    <td>Zoom in + pan to cursor</td>
+                    <td>Seek or Target mode (configurable)</td>
+                </tr>
+                <tr>
+                    <td>Twist knob counter-clockwise</td>
+                    <td>Zoom out + pan</td>
+                    <td>Works until zoom limit (3x)</td>
+                </tr>
+                <tr>
+                    <td>Push knob</td>
+                    <td>Zoom in fast</td>
+                    <td>Larger zoom increment per twist</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="note">
+            <strong>Button References:</strong> "First" = leftmost, "Second" = second from left, etc. On VSN1: step buttons are under LCD, slot buttons are the 8 clicky keyboard buttons.
+        </div>
+
+        <!-- All Parameters -->
+        <h2>⚙️ All Parameters</h2>
+        
+        <p style="color: #aaa; margin-bottom: 30px;">Complete parameter reference organized by TouchDesigner parameter page.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Description</th>
+                    <th>Default</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="category-row">
+                    <td colspan="3">📄 Custom Page</td>
+                </tr>
+                <tr>
+                    <td>Active</td>
+                    <td>Enable/disable entire component</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>MIDI Status</td>
+                    <td>Shows MIDI connection state (read-only)</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Connected Status</td>
+                    <td>Shows websocket connection state (read-only)</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Re-Init</td>
+                    <td>Pulse to reinitialize component</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Step Mode</td>
+                    <td>"Fixed" or "Adaptive" precision</td>
+                    <td>Fixed</td>
+                </tr>
+                <tr>
+                    <td>Push Step Mode</td>
+                    <td>"Fixed", "Finer", or "Coarser"</td>
+                    <td>Coarser</td>
+                </tr>
+                <tr>
+                    <td>Push Step</td>
+                    <td>Current push step value (read-only)</td>
+                    <td>0.01</td>
+                </tr>
+                <tr>
+                    <td>Loop Menus</td>
+                    <td>Menu parameters wrap around</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Control StrMenus</td>
+                    <td>Allow string-menu parameter control</td>
+                    <td>On</td>
+                </tr>
+                <tr style="background: #1e1e2e; font-style: italic;">
+                    <td>Shortcuts</td>
+                    <td colspan="2"><em>Section header</em></td>
+                </tr>
+                <tr>
+                    <td>Shortcuts</td>
+                    <td>Enable button combo shortcuts</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Slot Learn Hold Length</td>
+                    <td>Long-press duration for slot assignment (sec)</td>
+                    <td>0.33</td>
+                </tr>
+                <tr>
+                    <td>Bank Switch Hold Length</td>
+                    <td>Long-press duration for bank switching (sec)</td>
+                    <td>0.34</td>
+                </tr>
+                <tr>
+                    <td>Reset Par Hold Length</td>
+                    <td>Long-press duration for parameter reset (sec)</td>
+                    <td>0.01</td>
+                </tr>
+                <tr>
+                    <td>MinMaxClamp Hold Length</td>
+                    <td>Long-press duration for clamp operations (sec)</td>
+                    <td>0.01</td>
+                </tr>
+                <tr>
+                    <td>Customize Hold Length</td>
+                    <td>Long-press for component editor jump (sec)</td>
+                    <td>0.33</td>
+                </tr>
+                <tr style="background: #1e1e2e; font-style: italic;">
+                    <td>Misc</td>
+                    <td colspan="2"><em>Section header</em></td>
+                </tr>
+                <tr>
+                    <td>Hover Timeout Length</td>
+                    <td>Seconds parameter stays active after unhover</td>
+                    <td>0.33</td>
+                </tr>
+                <tr>
+                    <td>Sticky Par in Timeout</td>
+                    <td>MIDI adjustments restart timeout countdown</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Enable Undo</td>
+                    <td>Enable undo/redo functionality</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Undo Timeout (ValueChange)</td>
+                    <td>Delay before pushing value changes to stack (sec)</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>Slots Repo</td>
+                    <td>Reference to external storage table</td>
+                    <td>./SlotsRepo</td>
+                </tr>
+                <tr>
+                    <td>Auto Create Repo</td>
+                    <td>Automatically create external repo on init</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Create</td>
+                    <td>Pulse to manually create external repo</td>
+                    <td>-</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="3">📄 VSN1 / UI Page</td>
+                </tr>
+                <tr style="background: #1e1e2e; font-style: italic;">
+                    <td>Intech Studio VSN1 Support</td>
+                    <td colspan="2"><em>Section header</em></td>
+                </tr>
+                <tr>
+                    <td>VSN1 Support</td>
+                    <td>Enable VSN1 screen/LED feedback</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Start Grid Editor</td>
+                    <td>Pulse to launch Grid Editor</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Auto-start Grid Editor</td>
+                    <td>Launch Grid Editor on TD startup</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Network Address</td>
+                    <td>Websocket address</td>
+                    <td>127.0.0.1</td>
+                </tr>
+                <tr>
+                    <td>Port</td>
+                    <td>Websocket port</td>
+                    <td>9642</td>
+                </tr>
+                <tr>
+                    <td>Periodic Reconnect</td>
+                    <td>Attempt periodic reconnection</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Reconnect Period</td>
+                    <td>Reconnection interval (sec)</td>
+                    <td>5</td>
+                </tr>
+                <tr>
+                    <td>Reset Comm</td>
+                    <td>Pulse to reset websocket connection</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Knob Led Update</td>
+                    <td>LED mode: "Off", "Value", or "Step"</td>
+                    <td>Value</td>
+                </tr>
+                <tr style="background: #1e1e2e; font-style: italic;">
+                    <td>TD UI</td>
+                    <td colspan="2"><em>Section header</em></td>
+                </tr>
+                <tr>
+                    <td>Enable UI</td>
+                    <td>Enable internal UI display</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Hide Author Label</td>
+                    <td>Hide author name from UI</td>
+                    <td>Off</td>
+                </tr>
+                <tr>
+                    <td>UI Post FX</td>
+                    <td>Enable bloom effect on UI</td>
+                    <td>Off</td>
+                </tr>
+                <tr>
+                    <td>Color Hovered UI</td>
+                    <td>Apply color to hovered UI elements</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Activate Slot on Jump</td>
+                    <td>Activate parameter when jumping to operator</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Use Current Zoom for Jump</td>
+                    <td>Maintain current zoom level on jump</td>
+                    <td>Off</td>
+                </tr>
+                <tr>
+                    <td>Enable Knob Zoom (if no Par)</td>
+                    <td>Enable network editor zoom navigation</td>
+                    <td>On</td>
+                </tr>
+                <tr>
+                    <td>Zoom Mode</td>
+                    <td>"Seek" (follow cursor) or "Target" (lock)</td>
+                    <td>Seek</td>
+                </tr>
+                <tr>
+                    <td>Zoom Network</td>
+                    <td>Zoom speed per knob increment</td>
+                    <td>0.015</td>
+                </tr>
+                <tr>
+                    <td>Zoom Interpolation</td>
+                    <td>Camera movement smoothness (0.0-1.0)</td>
+                    <td>0.015</td>
+                </tr>
+                <tr style="background: #1e1e2e; font-style: italic;">
+                    <td>General UI Settings</td>
+                    <td colspan="2"><em>Section header</em></td>
+                </tr>
+                <tr>
+                    <td>Color Index</td>
+                    <td>Color palette index for UI</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>Label Display Mode</td>
+                    <td>"Compressed" or "Truncated"</td>
+                    <td>Compressed</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="3">📄 Mapping Page</td>
+                </tr>
+                <tr>
+                    <td>Device Id</td>
+                    <td>MIDI device identifier</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>Channel</td>
+                    <td>MIDI channel</td>
+                    <td>16</td>
+                </tr>
+                <tr>
+                    <td>Learn</td>
+                    <td>Enter MIDI learn mode</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Clear</td>
+                    <td>Clear learned MIDI mappings</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Use Defaults for VSN1</td>
+                    <td>Load default VSN1 MIDI mappings</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Knob Index</td>
+                    <td>MIDI CC index for main knob</td>
+                    <td>9</td>
+                </tr>
+                <tr>
+                    <td>Push Index</td>
+                    <td>MIDI CC index for knob push button</td>
+                    <td>9</td>
+                </tr>
+                <tr style="background: #1e1e2e; font-style: italic;">
+                    <td>Steps</td>
+                    <td colspan="2"><em>Section header</em></td>
+                </tr>
+                <tr>
+                    <td>Index</td>
+                    <td>MIDI index for step buttons</td>
+                    <td>13</td>
+                </tr>
+                <tr>
+                    <td>Step</td>
+                    <td>Step size value</td>
+                    <td>1.0</td>
+                </tr>
+                <tr style="background: #1e1e2e; font-style: italic;">
+                    <td>Slots</td>
+                    <td colspan="2"><em>Section header</em></td>
+                </tr>
+                <tr>
+                    <td>Index</td>
+                    <td>MIDI index for slot buttons</td>
+                    <td>8</td>
+                </tr>
+                <tr style="background: #1e1e2e; font-style: italic;">
+                    <td>Banks</td>
+                    <td colspan="2"><em>Section header</em></td>
+                </tr>
+                <tr>
+                    <td>Index</td>
+                    <td>MIDI index for bank buttons</td>
+                    <td>13</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="3">📄 About Page</td>
+                </tr>
+                <tr>
+                    <td>Author</td>
+                    <td>Component author (read-only)</td>
+                    <td>Function Store</td>
+                </tr>
+                <tr>
+                    <td>Author Links</td>
+                    <td>Open author website</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>README</td>
+                    <td>Open documentation site</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>CHEATSHEET</td>
+                    <td>Open HTML cheatsheet in browser</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Version</td>
+                    <td>Current version (read-only)</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Check</td>
+                    <td>Check for updates</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Update</td>
+                    <td>Download and install update</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Externalize Component</td>
+                    <td>Save to palette and externalize repo</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Show Builtin Params</td>
+                    <td>Show built-in TD parameter pages</td>
+                    <td>Off</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="note">
+            <strong>💡 Tip:</strong> Hover over any custom parameter in the component while holding <strong>Alt</strong> (or <strong>Option</strong> on Mac) to see detailed help text. For complete parameter list, see the <a href="https://function-store.github.io/TD_ParHoverMIDI_VSN1/reference.html" target="_blank" style="color: #8fa3ff;">full reference page</a>.
+        </div>
+
+        <!-- VSN1 MIDI Mappings -->
+        <h2>🎹 VSN1 MIDI Mappings</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Control</th>
+                    <th>MIDI CC</th>
+                    <th>Type</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="category-row">
+                    <td colspan="4">Encoders</td>
+                </tr>
+                <tr>
+                    <td>Main Knob (twist)</td>
+                    <td>9</td>
+                    <td>Relative</td>
+                    <td>Endless encoder, sends relative values</td>
+                </tr>
+                <tr>
+                    <td>Main Knob (push)</td>
+                    <td>9</td>
+                    <td>Momentary</td>
+                    <td>Button press on knob</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="4">Step Buttons (under LCD)</td>
+                </tr>
+                <tr>
+                    <td>Step 0 (0.001)</td>
+                    <td>10</td>
+                    <td>Toggle</td>
+                    <td>Also used for bank 0 switching (long-press)</td>
+                </tr>
+                <tr>
+                    <td>Step 1 (0.01)</td>
+                    <td>11</td>
+                    <td>Toggle</td>
+                    <td>Also used for bank 1 switching (long-press)</td>
+                </tr>
+                <tr>
+                    <td>Step 2 (0.1)</td>
+                    <td>12</td>
+                    <td>Toggle</td>
+                    <td>Also used for bank 2 switching (long-press)</td>
+                </tr>
+                <tr>
+                    <td>Step 3 (1.0)</td>
+                    <td>13</td>
+                    <td>Toggle</td>
+                    <td>Also used for bank 3 switching (long-press)</td>
+                </tr>
+                
+                <tr class="category-row">
+                    <td colspan="4">Slot Buttons (clicky keyboard)</td>
+                </tr>
+                <tr>
+                    <td>Slot 0</td>
+                    <td>1</td>
+                    <td>Toggle</td>
+                    <td>With LED feedback</td>
+                </tr>
+                <tr>
+                    <td>Slot 1</td>
+                    <td>2</td>
+                    <td>Toggle</td>
+                    <td>With LED feedback</td>
+                </tr>
+                <tr>
+                    <td>Slot 2</td>
+                    <td>3</td>
+                    <td>Toggle</td>
+                    <td>With LED feedback</td>
+                </tr>
+                <tr>
+                    <td>Slot 3</td>
+                    <td>4</td>
+                    <td>Toggle</td>
+                    <td>With LED feedback</td>
+                </tr>
+                <tr>
+                    <td>Slot 4</td>
+                    <td>5</td>
+                    <td>Toggle</td>
+                    <td>With LED feedback</td>
+                </tr>
+                <tr>
+                    <td>Slot 5</td>
+                    <td>6</td>
+                    <td>Toggle</td>
+                    <td>With LED feedback</td>
+                </tr>
+                <tr>
+                    <td>Slot 6</td>
+                    <td>7</td>
+                    <td>Toggle</td>
+                    <td>With LED feedback</td>
+                </tr>
+                <tr>
+                    <td>Slot 7</td>
+                    <td>8</td>
+                    <td>Toggle</td>
+                    <td>With LED feedback</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="note">
+            <strong>MIDI Configuration:</strong> Device ID default is 1. Channel default is 16. Knob uses relative/endless encoding (CC 9 for both twist and push). LED feedback via MIDI, screen updates via websocket (port 9642).
+            <br><br>
+            <strong>⚠️ Indexing Note:</strong> TouchDesigner uses 1-based indexing for Channel and MIDI CC, while Grid Editor uses 0-based indexing. For example, Channel 16 in TD = Channel 15 in Grid Editor. This is important for custom/manual mappings.
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 1px solid #2a2a3e; color: #666;">
+            <p>TouchDesigner Par Hover Control for Intech VSN1</p>
+            <p>by <strong style="color: #8fa3ff;">Function Store</strong></p>
+            <p style="margin-top: 10px;">
+                <a href="https://function-store.github.io/TD_ParHoverMIDI_VSN1/" target="_blank" style="color: #667eea; text-decoration: none;">Documentation</a> | 
+                <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1" target="_blank" style="color: #667eea; text-decoration: none;">GitHub</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+

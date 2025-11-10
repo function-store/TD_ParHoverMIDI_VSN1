@@ -51,7 +51,8 @@ Then in Grid Editor:
 
 > The TouchDesigner component automatically attempts to open Grid Editor on startup
 
-**3. Configure Package Preferences (Optional):**
+<details markdown="1">
+<summary><strong>3. Configure Package Preferences (Optional)</strong></summary>
 
 In Grid Editor, open the package preferences to customize VSN1 behavior when TouchDesigner disconnects:
 
@@ -66,6 +67,8 @@ In Grid Editor, open the package preferences to customize VSN1 behavior when Tou
   - Default: **Enabled** (LEDs turn red)
 
 > **💡 Tip**: These are personal preference settings. Many users prefer keeping the LCD on to monitor connection status, while the red LED indicator provides quick visual feedback when disconnected.
+
+</details>
 
 ### TouchDesigner Setup
 

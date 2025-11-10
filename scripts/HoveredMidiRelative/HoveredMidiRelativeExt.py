@@ -114,6 +114,8 @@ class HoveredMidiRelativeExt:
 		if not self.evalActive:
 			return
 
+		self.ownerComp.par.Resetcomm.pulse()
+
 		if self.evalAutostartgrideditor:
 			self._start_grid_editor()
 		# Needed to clear pickle errors due to missing parameters in storage, before we can even validate
