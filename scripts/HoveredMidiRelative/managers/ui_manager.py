@@ -314,3 +314,10 @@ class UIManager:
 		if _par_idx != 'Auto-Header':
 			_comp_editor_pars.SelectRow(_par_idx+1)
 			_comp_editor_pars.scroll(_par_idx, 0)
+
+	def home(self):
+		"""home the network editor"""
+		# currPane
+		currPane = self.parent.jumpToOp.ext.JumpToOpExt.currPane
+		if currPane:
+			currPane.home(zoom=True)

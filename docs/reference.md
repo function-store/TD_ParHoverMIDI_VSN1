@@ -63,7 +63,8 @@ Complete reference for all hardware controls and keyboard shortcuts.
 | **Network Zoom** (when enabled & no active parameter) | | |
 | Twist knob clockwise | Zoom in + pan to cursor | Seek or Target mode (configurable) |
 | Twist knob counter-clockwise | Zoom out + pan | Works until zoom limit (3x) |
-| Push knob | Zoom in fast | Larger zoom increment per twist |
+| Push knob + twist | Zoom in fast | Larger zoom increment per twist |
+| Double-click knob push button | Home network editor | Fit all to view |
 
 > **Button References**: "First" = leftmost, "Second" = second from left, etc. On VSN1: step buttons are under LCD, slot buttons are the 8 clicky keyboard buttons.
 

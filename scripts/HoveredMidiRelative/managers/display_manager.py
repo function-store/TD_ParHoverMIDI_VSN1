@@ -193,66 +193,75 @@ class DisplayManager:
 		is_menu_type = par.isMenu or getattr(par, 'style', None) == 'Menu' or getattr(par, 'style', None) == 'StrMenu'
 		allow_strmenus = self.parent.should_allow_strmenus(par)
 
-		if is_menu_type and (not is_strmenu or allow_strmenus):
-			val = par.menuIndex
-			min_val, max_val = 0, len(par.menuNames) - 1
-			
-			# For string menus, show the actual value if it's not in menuNames
-			if is_strmenu and par.eval() not in par.menuNames:
-				display_text = str(par.eval())
-			elif par.menuIndex is not None:
-				display_text = str(par.menuLabels[par.menuIndex])
-			else:
-				display_text = ''
-
-			display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
-			default = par.default
-			# find default in menuNames
-			# check if default is in menuNames
-			if default in par.menuNames:
-				default_idx = par.menuNames.index(default)
-				# check zero division
-				if len(par.menuNames) - 1 == 0:
-					norm_default = 0
-				else:
-					norm_default = default_idx / (len(par.menuNames) - 1)
-			else:
-				norm_default = 0
-		elif par.isToggle or par.isMomentary:
-			val = 1 if par.eval() else 0
-			min_val, max_val = 0, 1
-			display_text = "On" if val else "Off"
-			norm_default = 1 if par.default else 0
-			
-		elif par.isPulse:
-			# HACK: sorry
-			if (state :=getattr(self.parent.midi_handler, 'is_from_pulsepush', 0)) > 0:
-				val = 0 if par.eval() else 1
-				# HACK: sorry
+		try:
+			if is_menu_type and (not is_strmenu or allow_strmenus):
+				val = par.menuIndex
+				min_val, max_val = 0, len(par.menuNames) - 1
 				
-				if state == 2:
-					self.parent.midi_handler.is_from_pulsepush = 3
-				elif state == 3:
-					self.parent.midi_handler.is_from_pulsepush = 0
-			else:
-				val = 1 if par.eval() else 0
-			min_val, max_val = 0, 1
-			display_text = "_PULSE_"
-			norm_default = 1 if par.eval() else 0
+				# For string menus, show the actual value if it's not in menuNames
+				if is_strmenu and par.eval() not in par.menuNames:
+					display_text = str(par.eval())
+				elif par.menuIndex is not None:
+					display_text = str(par.menuLabels[par.menuIndex])
+				else:
+					display_text = ''
 
-		elif par.isNumber:  # Numeric parameter
-			val = par.eval()
-			min_val, max_val = par.normMin, par.normMax
-			display_text = None
-			norm_default = tdu.remap(par.default, min_val, max_val, 0, 1)
-			norm_default = tdu.clamp(norm_default, 0, 1)
-		else:
+				display_text = LabelFormatter.format_label(display_text, self.parent.labelDisplayMode)
+				default = par.default
+				# find default in menuNames
+				# check if default is in menuNames
+				if default in par.menuNames:
+					default_idx = par.menuNames.index(default)
+					# check zero division
+					if len(par.menuNames) - 1 == 0:
+						norm_default = 0
+					else:
+						norm_default = default_idx / (len(par.menuNames) - 1)
+				else:
+					norm_default = 0
+			elif par.isToggle or par.isMomentary:
+				val = 1 if par.eval() else 0
+				min_val, max_val = 0, 1
+				display_text = "On" if val else "Off"
+				norm_default = 1 if par.default else 0
+				
+			elif par.isPulse:
+				# HACK: sorry
+				if (state :=getattr(self.parent.midi_handler, 'is_from_pulsepush', 0)) > 0:
+					val = 0 if par.eval() else 1
+					# HACK: sorry
+					
+					if state == 2:
+						self.parent.midi_handler.is_from_pulsepush = 3
+					elif state == 3:
+						self.parent.midi_handler.is_from_pulsepush = 0
+				else:
+					val = 1 if par.eval() else 0
+				min_val, max_val = 0, 1
+				display_text = "_PULSE_"
+				norm_default = 1 if par.eval() else 0
+
+			elif par.isNumber:  # Numeric parameter
+				val = par.eval()
+				min_val, max_val = par.normMin, par.normMax
+				display_text = None
+				norm_default = tdu.remap(par.default, min_val, max_val, 0, 1)
+				norm_default = tdu.clamp(norm_default, 0, 1)
+			else:
+				val = 0
+				min_val, max_val = 0, 0
+				display_text = None
+				norm_default = -1
+
+			
+			clamps = (par.clampMin, par.clampMax)
+		except Exception as e:
 			val = 0
 			min_val, max_val = 0, 0
-			display_text = None
+			display_text = '_ERR_'
 			norm_default = -1
+			clamps = (0, 0)
 
-		clamps = (par.clampMin, par.clampMax)
 		return val, min_val, max_val, display_text, norm_default, clamps
 	
 	def _get_parameter_label(self, original: Union[Par, ParGroup], display_par: Par) -> str:

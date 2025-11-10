@@ -311,6 +311,8 @@ Set `Enable Zoom` toggle to activate network zoom navigation. When enabled and n
 
 **Push for Fast Zoom**: Hold the knob push button while rotating for 5× faster zoom speed.
 
+**Home Network**: Double-click the knob push button to home the network editor (fit all to view).
+
 **Zoom Limit**: Zooming in stops at 3× magnification (configurable in `zoom_manager.py`). You can still:
 - Zoom out from any zoom level
 - Pan around at maximum zoom by continuing to rotate the knob

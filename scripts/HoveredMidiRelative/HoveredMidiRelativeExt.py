@@ -928,6 +928,15 @@ class HoveredMidiRelativeExt:
 		self.ui_manager.open_comp_editor(activePar)
 		run("args[0].display_manager.update_parameter_display(args[1], bottom_text='_CUSTOM_')", self, activePar, delayFrames=1)
 
+	def onDoublePush(self):
+		"""TouchDesigner callback when double push is detected"""
+		if not self.evalActive:
+			return
+		if self.hoveredPar is not None or self.activeSlot is not None:
+			return
+		
+		self.ui_manager.home()
+
 	def onActiveValueChange(self, _par):
 		try:
 			# check if _par is a cached parameter and if the value matches the cached value do nothing
