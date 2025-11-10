@@ -1,0 +1,137 @@
+// Custom styles for purple gradient accents
+// These styles complement the purple_dark color scheme
+
+// Purple gradient for buttons and accents
+.btn-primary,
+.aux-nav .aux-nav-list-item a {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  
+  &:hover {
+    background: linear-gradient(135deg, #7a8eff 0%, #8a5bb2 100%) !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6) !important;
+  }
+}
+
+// Navigation active state with gradient
+.navigation-list-link.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%) !important;
+  border-left: 3px solid #667eea !important;
+  font-weight: 600;
+}
+
+// Table header with gradient
+table th {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%) !important;
+  border-bottom: 2px solid #667eea !important;
+}
+
+// Blockquotes with purple accent
+blockquote {
+  border-left: 3px solid #667eea !important;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%) !important;
+}
+
+// Search input focus with purple glow
+.search-input:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 5px rgba(102, 126, 234, 0.5) !important;
+}
+
+// Custom scrollbar with purple gradient
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1333;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #7986cb 0%, #8e5cb8 100%);
+}
+
+// Site title with gradient text
+.site-title {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: bold !important;
+}
+
+// Inline styled divs (documentation cards from index.md)
+div[style*="border: 2px solid #667eea"] {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%) !important;
+  border: 2px solid #667eea !important;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+// Large download button hover effect
+a[style*="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"] {
+  transition: all 0.3s ease !important;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6) !important;
+  }
+}
+
+// Collapsible sections (details/summary)
+details {
+  background-color: rgba(26, 19, 51, 0.3) !important;
+  border: 1px solid #667eea !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  margin: 20px 0 !important;
+  
+  summary {
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    color: #8fa3ff !important;
+    margin: -12px -16px !important;
+    padding: 12px 16px !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    list-style: none !important;
+    
+    &::-webkit-details-marker {
+      display: none !important;
+    }
+    
+    &::before {
+      content: "▶ " !important;
+      display: inline-block !important;
+      transition: transform 0.2s ease !important;
+    }
+    
+    &:hover {
+      background-color: rgba(102, 126, 234, 0.2) !important;
+      color: #b4c5ff !important;
+    }
+    
+    strong {
+      color: #8fa3ff !important;
+    }
+  }
+  
+  &[open] {
+    summary {
+      margin-bottom: 12px !important;
+      border-bottom: 1px solid rgba(102, 126, 234, 0.3) !important;
+      
+      &::before {
+        transform: rotate(90deg) !important;
+      }
+    }
+  }
+}
+

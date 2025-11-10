@@ -1,0 +1,36 @@
+// Custom Purple Dark Color Scheme
+// Based on just-the-docs dark theme with purple gradient accents
+
+@import "./color_schemes/dark";
+
+// Purple gradient colors
+$purple-000: #f5f6fa;
+$purple-100: #e8eaf6;
+$purple-200: #c5cae9;
+$purple-300: #9fa8da;
+$purple-400: #7986cb;
+$purple-500: #667eea;
+$purple-600: #5e6cd8;
+$purple-700: #764ba2;
+$purple-800: #512da8;
+$purple-900: #311b92;
+
+// Override specific colors with purple accents
+$link-color: #8fa3ff;
+$btn-primary-color: $purple-500;
+$base-button-color: $purple-500;
+
+// Keep dark background
+$body-background-color: #0d0221;
+$sidebar-color: #0f0b1f;
+$border-color: #444;
+
+// Code and pre backgrounds
+$code-background-color: #1a1333;
+
+// Table colors
+$table-background-color: #1a1333;
+
+// Search
+$search-background-color: #1a1333;
+
