@@ -186,12 +186,12 @@ class UIManager:
 		# Update UI parameter to show current bank
 		self.ui.par.Bankindicatorindex = bank_idx
 
-	def set_stepmode_indicator(self, step_mode: StepMode):
+	def set_stepmode_indicator(self, step_mode: StepMode, step_indicator: int):
 		"""Set mode indicator in UI"""
 		if not self.ui_enabled:
 			return
 		self.ui.par.Modecolorindex = 1 if step_mode == StepMode.FIXED else 2
-		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', 0.5)
+		self.render_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', 0.5, step_indicator=step_indicator)
 
 	def set_hovered_ui_color(self, color_index: int, force = False):
 		"""Set hovered UI color with proper brightness adjustments per element type.

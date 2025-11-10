@@ -672,6 +672,9 @@ class SlotManager:
 		self.parent.activeSlot = slot_idx
 		self.parent.bankActiveSlots[currBank] = slot_idx
 		self.parent._activeSlotPar = parameter  # Cache the active parameter for fast access
+				
+		# Don't clear hoveredPar - user might still be hovering for another learn
+		# It will be cleared when they unhover or when deactivating the slot
 		
 		# Turn off hovered UI color when assigning a slot
 		self.parent.ui_manager.set_hovered_ui_color(-1)
@@ -801,8 +804,10 @@ class SlotManager:
 		self.parent._activeSlotPar = slot_par  # Store directly for ultra-fast access
 		self.parent.bankActiveSlots[currBank] = slot_idx
 		
+		# Don't clear hoveredPar - user might still be hovering for another learn
+		# It will be cleared when they unhover or when deactivating the slot
+		
 		# Cancel hover timeout when switching to slot mode
-		# Don't clear hoveredPar - keep it so it's available when returning to hover mode
 		self.parent._cancel_hover_timeout()
 		
 		# Update table for persistence (only current bank for performance)
@@ -1037,9 +1042,8 @@ class SlotManager:
 	
 	def deactivate_current_slot(self):
 		"""Deactivate current slot and return to hover mode"""
-		if self.parent.activeSlot is None or self.parent._activeSlotPar is None or not self.parent._activeSlotPar.valid:
-			return
-		self.parent._set_parexec_pars(self.parent.hoveredPar)
+		if self.parent.activeSlot is None:
+			return  # Nothing to deactivate
 		
 		old_active_slot = self.parent.activeSlot
 		currBank = self.parent.currBank
@@ -1047,8 +1051,12 @@ class SlotManager:
 		# Clear active slot
 		self.parent.activeSlot = None
 		self.parent._activeSlotPar = None  # Clear cached active slot parameter
-		self.parent._set_parexec_pars(None)
 		self.parent.bankActiveSlots[currBank] = None
+		
+		# Don't clear hoveredPar here! It might be needed for learning.
+		# The learn handler runs AFTER this, so clearing hoveredPar breaks learning.
+		# hoveredPar will be cleared by unhover events naturally.
+		self.parent._set_parexec_pars(None)
 		
 		# Update table for persistence (only current bank for performance)
 		self.parent.repo_manager.save_bank_to_table(currBank)
@@ -1059,30 +1067,11 @@ class SlotManager:
 		else:
 			self.parent.ui_manager.set_hovered_ui_color(-1)
 		
-		# Don't automatically start timeout when returning from slot mode
-		# hoveredPar might be stale (cleared when slot was activated)
-		# Let hover events naturally handle state: if user is hovering, they can adjust;
-		# if they move away, unhover event will start the timeout
-		
-		# Get label for hovered parameter (or ParGroup)
-		if self.parent.hoveredPar is not None and self.parent.hoveredPar.valid:
-			# Use formatter to get proper label (handles both Par and ParGroup)
-			label = LabelFormatter.get_label_for_parameter(self.parent.hoveredPar, self.parent.labelDisplayMode)
-		else:
-			label = ScreenMessages.HOVER
-
-		if self.parent.hoveredPar is not None and self.parent.hoveredPar.valid:
-			# Check if hovered parameter is an expression and handle accordingly
-			if error_msg := ParameterValidator.get_validation_error(self.parent.hoveredPar, self.parent.evalControlstrmenus):
-				self.parent.display_manager.show_parameter_error(self.parent.hoveredPar, error_msg)
-				if error_msg == ScreenMessages.EXPR:
-					self.parent._set_parexec_pars(self.parent.hoveredPar)
-			else:
-				# Valid parameter - update display normally
-				self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
-
-		else:
-			self.parent.display_manager.update_all_display(0, 0, 1, label, ScreenMessages.HOVER, compress=False)
+		# Show HOVER message since we're now in empty hover mode
+		# If user is actively hovering, onHoveredParChange will immediately update the display
+		self.parent.display_manager.update_all_display(
+			0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
+		)
 
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)

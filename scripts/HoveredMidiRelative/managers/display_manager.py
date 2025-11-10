@@ -111,15 +111,18 @@ class DisplayManager:
 		else:
 			bottom_text = LabelFormatter.format_value(val)
 
-		# Delegate to renderers with processed data
-		self._render_vsn1_display(val, norm_min, norm_max, processed_label, bottom_text, step_indicator=step_indicator, norm_default=norm_default, clamps=clamps)
-		
+
 		if bottom_text in [ScreenMessages.HOVER, ScreenMessages.EXPR, ScreenMessages.UNSUPPORTED] and self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE]:
 			self.update_knob_leds_gradual(0)
 		elif self.parent.knobLedUpdateMode in [KnobLedUpdateMode.VALUE] and step_indicator is None:
 			percentage = tdu.clamp(percentage, 0, 1)
 			self.update_knob_leds_gradual(percentage)
 
+		if step_indicator is None:
+			# get current step if not provided for some reason
+			step_indicator = next((i for i, s in enumerate(self.parent.seqSteps) if s.par.Step.eval() == self.parent._currStep), None)
+		# Delegate to renderers with processed data
+		self._render_vsn1_display(val, norm_min, norm_max, processed_label, bottom_text, step_indicator=step_indicator, norm_default=norm_default, clamps=clamps)
 		
 		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator=step_indicator, norm_default=norm_default, clamps=clamps)
     
@@ -368,15 +371,17 @@ class DisplayManager:
 
 	def set_stepmode_indicator(self, step_mode: StepMode):
 		"""Set mode indicator in UI"""
+		curr_step = self.parent._currStep
+		step_indicator = next((i for i, s in enumerate(self.parent.seqSteps) if s.par.Step.eval() == curr_step), None)
 		# VSN1
 		if self.is_vsn1_enabled():
 			if step_mode == StepMode.FIXED:
 				self.grid_comm.SendLua(f'ci=2')
 			else:
 				self.grid_comm.SendLua(f'ci=3')
-			self._render_vsn1_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_')
+			self._render_vsn1_display(0.5, 0, 1, '_MODE_', '_FIXED_' if step_mode == StepMode.FIXED else '_ADAPT_', step_indicator=step_indicator)
 		# UI
-		self.ui_renderer.set_stepmode_indicator(step_mode)
+		self.ui_renderer.set_stepmode_indicator(step_mode, step_indicator)
 	
 	# ============================================================================
 	# VSN1 Hardware Communication Methods (Private)

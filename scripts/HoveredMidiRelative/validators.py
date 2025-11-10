@@ -52,9 +52,10 @@ class ParameterValidator:
 		if ParameterValidator.is_pargroup(par_or_group):
 			# Don't validate groups here - use has_valid_parameters instead
 			return False
-		
+		valid_mode = par_or_group.mode in [ParMode.CONSTANT, ParMode.BIND]
+		valid_valid = par_or_group.valid and par_or_group.enable and not par_or_group.readOnly
 		# Handle single Par
-		return par_or_group.mode in [ParMode.CONSTANT, ParMode.BIND]
+		return valid_mode and valid_valid
 	
 	@staticmethod
 	def has_valid_parameters(par_or_group: Union[Par, ParGroup]) -> bool:

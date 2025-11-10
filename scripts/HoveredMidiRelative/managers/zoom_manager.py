@@ -107,7 +107,7 @@ class ZoomManager:
 		
 		# Start new timeout
 		delay_ms = int(self.timeout_seconds * 1000)
-		# debug(f'starting timeout for {delay_ms}ms')
+
 		try:
 			self.timeout_run = run(
 				"args[0].on_timeout()", 
