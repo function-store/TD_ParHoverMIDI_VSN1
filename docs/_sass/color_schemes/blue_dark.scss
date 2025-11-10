@@ -1,0 +1,36 @@
+// Custom Blue Dark Color Scheme
+// Based on just-the-docs dark theme with blue gradient accents
+
+@import "./color_schemes/dark";
+
+// Blue gradient colors
+$blue-000: #f0f4f8;
+$blue-100: #d9e8f5;
+$blue-200: #b3d4ea;
+$blue-300: #7db3d9;
+$blue-400: #5B9BD5;
+$blue-500: #4A90E2;
+$blue-600: #3A7BC8;
+$blue-700: #2E5C8A;
+$blue-800: #1E3A5F;
+$blue-900: #0F1E3A;
+
+// Override specific colors with blue accents
+$link-color: #7DB3D9;
+$btn-primary-color: $blue-500;
+$base-button-color: $blue-500;
+
+// Keep dark background with slight blue tint
+$body-background-color: #0a0e14;
+$sidebar-color: #0d1117;
+$border-color: #30363d;
+
+// Code and pre backgrounds
+$code-background-color: #161b22;
+
+// Table colors
+$table-background-color: #161b22;
+
+// Search
+$search-background-color: #161b22;
+

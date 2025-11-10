@@ -1,20 +1,20 @@
-// Custom styles for purple gradient accents
-// These styles complement the purple_dark color scheme
+// Custom styles for blue gradient accents
+// These styles complement the blue_dark color scheme
 
-// Purple gradient for buttons and accents
+// Blue gradient for buttons and accents
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%) !important;
   border: none !important;
   
   &:hover {
-    background: linear-gradient(135deg, #7a8eff 0%, #8a5bb2 100%) !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6) !important;
+    background: linear-gradient(135deg, #5B9BD5 0%, #3A7BC8 100%) !important;
+    box-shadow: 0 4px 15px rgba(74, 144, 226, 0.6) !important;
   }
 }
 
 // Top-right aux navigation buttons with better contrast
 .aux-nav .aux-nav-list-item a {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%) !important;
   color: #ffffff !important;
   border: none !important;
   font-weight: 600 !important;
@@ -23,60 +23,60 @@
   text-decoration: none !important;
   
   &:hover {
-    background: linear-gradient(135deg, #7a8eff 0%, #8a5bb2 100%) !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6) !important;
+    background: linear-gradient(135deg, #5B9BD5 0%, #3A7BC8 100%) !important;
+    box-shadow: 0 4px 15px rgba(74, 144, 226, 0.6) !important;
     color: #ffffff !important;
   }
 }
 
 // Navigation active state with gradient
 .navigation-list-link.active {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%) !important;
-  border-left: 3px solid #667eea !important;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.2) 0%, rgba(46, 92, 138, 0.2) 100%) !important;
+  border-left: 3px solid #4A90E2 !important;
   font-weight: 600;
 }
 
 // Table header with gradient
 table th {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%) !important;
-  border-bottom: 2px solid #667eea !important;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.2) 0%, rgba(46, 92, 138, 0.2) 100%) !important;
+  border-bottom: 2px solid #4A90E2 !important;
 }
 
-// Blockquotes with purple accent
+// Blockquotes with blue accent
 blockquote {
-  border-left: 3px solid #667eea !important;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%) !important;
+  border-left: 3px solid #4A90E2 !important;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(46, 92, 138, 0.1) 100%) !important;
 }
 
-// Search input focus with purple glow
+// Search input focus with blue glow
 .search-input:focus {
-  border-color: #667eea !important;
-  box-shadow: 0 0 5px rgba(102, 126, 234, 0.5) !important;
+  border-color: #4A90E2 !important;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.5) !important;
 }
 
-// Custom scrollbar with purple gradient
+// Custom scrollbar with blue gradient
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1333;
+  background: #161b22;
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%);
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #7986cb 0%, #8e5cb8 100%);
+  background: linear-gradient(135deg, #5B9BD5 0%, #3A7BC8 100%);
 }
 
 // Site title with gradient text
 .site-title {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -88,27 +88,27 @@ blockquote {
 }
 
 // Inline styled divs (documentation cards from index.md)
-div[style*="border: 2px solid #667eea"] {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%) !important;
-  border: 2px solid #667eea !important;
+div[style*="border: 2px solid"] {
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(46, 92, 138, 0.15) 100%) !important;
+  border: 2px solid #4A90E2 !important;
   border-radius: 10px;
   backdrop-filter: blur(10px);
 }
 
 // Large download button hover effect
-a[style*="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"] {
+a[style*="background: linear-gradient"] {
   transition: all 0.3s ease !important;
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6) !important;
+    box-shadow: 0 8px 25px rgba(74, 144, 226, 0.6) !important;
   }
 }
 
 // Collapsible sections (details/summary)
 details {
-  background-color: rgba(26, 19, 51, 0.3) !important;
-  border: 1px solid #667eea !important;
+  background-color: rgba(22, 27, 34, 0.3) !important;
+  border: 1px solid #4A90E2 !important;
   border-radius: 6px !important;
   padding: 12px 16px !important;
   margin: 20px 0 !important;
@@ -116,7 +116,7 @@ details {
   summary {
     cursor: pointer !important;
     font-weight: 600 !important;
-    color: #8fa3ff !important;
+    color: #7DB3D9 !important;
     margin: -12px -16px !important;
     padding: 12px 16px !important;
     border-radius: 6px !important;
@@ -134,19 +134,19 @@ details {
     }
     
     &:hover {
-      background-color: rgba(102, 126, 234, 0.2) !important;
-      color: #b4c5ff !important;
+      background-color: rgba(74, 144, 226, 0.2) !important;
+      color: #A5D1F0 !important;
     }
     
     strong {
-      color: #8fa3ff !important;
+      color: #7DB3D9 !important;
     }
   }
   
   &[open] {
     summary {
       margin-bottom: 12px !important;
-      border-bottom: 1px solid rgba(102, 126, 234, 0.3) !important;
+      border-bottom: 1px solid rgba(74, 144, 226, 0.3) !important;
       
       &::before {
         transform: rotate(90deg) !important;
@@ -154,4 +154,3 @@ details {
     }
   }
 }
-

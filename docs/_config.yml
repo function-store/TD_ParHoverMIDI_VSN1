@@ -39,8 +39,8 @@ back_to_top_text: "Back to top"
 # Footer content
 footer_content: 'Made with ❤️ for the TouchDesigner community by <a href="https://www.functionstore.xyz/link-in-bio">Function Store</a>'
 
-# Color scheme - custom purple dark theme
-color_scheme: purple_dark
+# Color scheme - custom blue dark theme
+color_scheme: blue_dark
 
 # Aux links for the upper right navigation
 aux_links:

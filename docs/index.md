@@ -20,13 +20,13 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 
 <div style="text-align: center; margin: 50px 0;">
   <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox" 
-     style="display: inline-block; padding: 20px 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+     style="display: inline-block; padding: 20px 50px; background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%); 
             color: white; text-decoration: none; border-radius: 10px; font-size: 22px; font-weight: bold; 
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5); transition: all 0.3s ease;">
+            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.5); transition: all 0.3s ease;">
     ⬇️ Download ParHoverMIDI_VSN1.tox
   </a>
   <p style="margin-top: 20px; color: #bbb; font-size: 16px;">
-    <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest" style="color: #8fa3ff; text-decoration: none;">Latest Release</a> • Includes Auto-Updater
+    <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest" style="color: #7DB3D9; text-decoration: none;">Latest Release</a> • Includes Auto-Updater
   </p>
 </div>
 
@@ -74,25 +74,25 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 ## 📖 Documentation
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin: 40px 0;">
-  <div style="border: 2px solid #667eea; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%); backdrop-filter: blur(10px);">
+  <div style="border: 2px solid #4A90E2; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(46, 92, 138, 0.15) 100%); backdrop-filter: blur(10px);">
     <h3 style="margin-top: 0; color: #8fa3ff;">🚀 Getting Started</h3>
     <p style="color: #ddd;">Installation, MIDI setup, and first steps to get up and running quickly.</p>
     <a href="getting-started.html" style="color: #8fa3ff; font-weight: bold; text-decoration: none;">Read Guide →</a>
   </div>
   
-  <div style="border: 2px solid #667eea; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%); backdrop-filter: blur(10px);">
+  <div style="border: 2px solid #4A90E2; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(46, 92, 138, 0.15) 100%); backdrop-filter: blur(10px);">
     <h3 style="margin-top: 0; color: #8fa3ff;">📚 User Guide</h3>
     <p style="color: #ddd;">Complete guide to all features: slots, banks, shortcuts, undo/redo, and customization.</p>
     <a href="user-guide.html" style="color: #8fa3ff; font-weight: bold; text-decoration: none;">Read Guide →</a>
   </div>
   
-  <div style="border: 2px solid #667eea; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%); backdrop-filter: blur(10px);">
+  <div style="border: 2px solid #4A90E2; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(46, 92, 138, 0.15) 100%); backdrop-filter: blur(10px);">
     <h3 style="margin-top: 0; color: #8fa3ff;">🔍 Quick Reference</h3>
     <p style="color: #ddd;">Fast lookup tables for controls, shortcuts, parameters, and MIDI mappings.</p>
     <a href="reference.html" style="color: #8fa3ff; font-weight: bold; text-decoration: none;">View Reference →</a>
   </div>
   
-  <div style="border: 2px solid #667eea; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%); backdrop-filter: blur(10px);">
+  <div style="border: 2px solid #4A90E2; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(46, 92, 138, 0.15) 100%); backdrop-filter: blur(10px);">
     <h3 style="margin-top: 0; color: #8fa3ff;">⚙️ Advanced Guide</h3>
     <p style="color: #ddd;">Recovery system, production setup, MIDI mapping details, and troubleshooting.</p>
     <a href="advanced.html" style="color: #8fa3ff; font-weight: bold; text-decoration: none;">Read Guide →</a>
@@ -151,7 +151,7 @@ You can also support my work on [Patreon](patreon.com/function_store) where I ha
 
 ## 🙏 Contributors & Acknowledgments
 
-<div style="border: 2px solid #667eea; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); margin: 30px 0;" markdown="1">
+<div style="border: 2px solid #4A90E2; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(46, 92, 138, 0.1) 100%); margin: 30px 0;" markdown="1">
 
 **Main Developer:**
 - **[Function Store](https://www.functionstore.xyz/link-in-bio)** - Project creator and lead developer
