@@ -15,7 +15,7 @@ class ZoomManager:
 		self.start_pos = None  # Starting pane position for smooth interpolation
 		self.is_target_locked = False  # Track if target is locked (for "Target" mode)
 		self.timeout_seconds = 0.33 # Timeout in seconds if target is locked
-		self.zoom_limit = 3
+		self.zoom_limit = 2.5
 	
 	def capture_target_locked(self):
 		"""Capture and lock to initial mouse position (Target mode)"""

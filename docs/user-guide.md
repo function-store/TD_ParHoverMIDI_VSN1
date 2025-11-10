@@ -20,6 +20,7 @@ This component transforms how you control TouchDesigner parameters by combining 
 - **ParGroups**: Control entire parameter groups (RGB, XYZ) simultaneously  
 - **Undo/Redo**: Full undo support for all operations
 - **Auto-Recovery**: Automatic fixing when operators are moved/renamed
+- **Network Zoom**: Smooth zoom and pan navigation when no parameter is active
 
 ## Table of Contents
 
@@ -31,6 +32,7 @@ This component transforms how you control TouchDesigner parameters by combining 
 - [Parameter Pulse](#parameter-pulse)
 - [UI Parameter Highlighting](#ui-parameter-highlighting)
 - [Hover Timeout](#hover-timeout)
+- [Network Zoom Navigation](#network-zoom-navigation)
 - [Customization Parameters](#customization-parameters)
 - [Visual Feedback](#visual-feedback)
 
@@ -286,6 +288,74 @@ The `Sticky Par` toggle only matters **after you've moved your cursor away**. It
 
 ---
 
+## Network Zoom Navigation
+
+When no parameter is active (no hover, no active slot), use your MIDI knob to zoom and navigate in the network editor.
+
+> **⚠️ Important**: Zoom is only available when no parameter is active. If you've recently hovered a parameter, you must wait for the [Hover Timeout](#hover-timeout) to expire before zoom becomes available. Set `Hover Timeout Length` to 0 for immediate access to zoom after unhovering.
+
+### Enabling Zoom
+
+Set `Enable Zoom` toggle to activate network zoom navigation. When enabled and no parameter is active, rotating your knob controls zoom and panning.
+
+### Zoom Behavior
+
+**Zoom Amount**: Set `Zoom Network` parameter to control zoom speed per knob increment (default: 0.015).
+- **Higher values**: Faster zoom
+- **Lower values**: More precise control
+- **Set to 0**: Disables zoom (even if `Enable Zoom` is on)
+- **Negative values**: Reverses zoom direction
+
+**Push for Fast Zoom**: Hold the knob push button while rotating for 5× faster zoom speed.
+
+**Zoom Limit**: Zooming in stops at 3× magnification (configurable in `zoom_manager.py`). You can still:
+- Zoom out from any zoom level
+- Pan around at maximum zoom by continuing to rotate the knob
+
+### Zoom Modes
+
+Set `Zoom Mode` parameter to choose targeting behavior:
+
+**Seek Mode** (default):
+- Camera continuously **follows** your cursor position
+- Each zoom action updates target to current mouse location
+- Great for dynamic navigation while exploring
+- Smooth interpolation prevents jarring jumps
+
+**Target Mode**:
+- Camera **locks** to initial cursor position when you start zooming
+- Target stays fixed until you stop zooming (timeout expires)
+- Great for precise zooming to a specific point
+- Ideal when you want the zoom center to stay consistent
+
+Both modes use smooth interpolation to prevent sudden camera jumps.
+
+### Zoom Interpolation
+
+Set `Zoom Interpolation` parameter (0.0 to 1.0, default: 0.015) to control smoothness:
+- **Lower values** (0.05-0.10): Very smooth, gradual movement
+- **Default** (0.15): Balanced smoothness and responsiveness  
+- **Higher values** (0.20-0.30): More responsive, less smoothing
+- **Value of 1.0**: Instant (no interpolation)
+
+The interpolation determines what percentage of the distance to the target position is covered with each knob turn.
+
+### How It Works
+
+1. **No active parameter**: Knob controls zoom + panning
+2. **Hover parameter**: Knob adjusts parameter value, zoom state clears automatically
+3. **Unhover parameter**: Parameter stays active for `Hover Timeout Length` duration
+4. **Timeout expires**: Parameter clears, zoom becomes available again
+
+**Typical Workflow:**
+- Adjust parameter → Move cursor away → Wait for timeout → Zoom becomes available
+- For instant zoom access: Set `Hover Timeout Length` to 0
+- For extended parameter control: Set timeout > 0 and enable `Sticky Par`
+
+**Note**: Activating a slot also makes zoom unavailable until you deactivate the slot and return to hover mode.
+
+---
+
 ## Customization Parameters
 
 All available parameters for customizing behavior:
@@ -305,6 +375,18 @@ All available parameters for customizing behavior:
 
 - **`Enable Undo`**: Enable/disable undo/redo for all operations
 - **`Undo Timeout (ValueChange)`**: Seconds to wait before pushing value changes to undo stack (groups rapid adjustments). Default: 1 second.
+
+### Hover Timeout
+
+- **`Hover Timeout Length`**: Seconds parameter stays active after unhovering (0 = immediate clear). Default: 0.
+- **`Sticky Par`**: When enabled, MIDI adjustments restart timeout countdown. When disabled, timeout runs regardless of adjustments.
+
+### Network Zoom
+
+- **`Enable Zoom`**: Toggle to enable network editor zoom navigation when no parameter is active
+- **`Zoom Network`**: Zoom speed per knob increment (0 = disabled, negative = reverse). Default: 0.02.
+- **`Zoom Mode`**: "Seek" (follows cursor) or "Target" (locks to initial position). Default: Seek.
+- **`Zoom Interpolation`**: Smoothness of camera movement (0.0-1.0, lower = smoother). Default: 0.15.
 
 ### VSN1 Integration
 

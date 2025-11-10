@@ -12,6 +12,7 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 - **ParGroup Support** - Control entire parameter groups (RGB, XYZ) simultaneously
 - **Parameter Shortcuts** - Quick button combos for reset, set default, clamp, and more
 - **Flexible Precision** - Multiple step sizes with Fixed or Adaptive modes
+- **Network Zoom Navigation** - Smooth zoom and pan in network editor when no parameter is active
 - **Smart Recovery** - Automatic detection and fixing of invalid parameters when operators move
 - **Auto-Updates** - Built-in updater with one-click updates from GitHub releases
 
