@@ -13,6 +13,9 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 
 <div style="text-align: center; margin: 40px 0;">
   <img src="images/hoveredvsn1.jpg" alt="VSN1 Hardware" style="max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);">
+  <p style="color: #999; font-size: 14px; margin-top: 15px; font-style: italic;">
+    This is just a portion of the features — check out <a href="#-key-features" style="color: #8fa3ff; text-decoration: none;">Key Features</a> below for the complete list!
+  </p>
 </div>
 
 <div style="text-align: center; margin: 50px 0;">
@@ -140,8 +143,6 @@ You can also support my work on [Patreon](patreon.com/function_store) where I ha
 ## 📝 License
 
 See [LICENSE](https://github.com/function-store/TD_ParHoverMIDI_VSN1/blob/main/LICENSE) file for details.
-
----
 
 <div style="text-align: center; margin-top: 60px; padding-top: 30px; border-top: 2px solid #444;">
   <p style="color: #bbb;">
