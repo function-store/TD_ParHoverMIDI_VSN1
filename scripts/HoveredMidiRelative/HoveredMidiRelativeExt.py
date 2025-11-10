@@ -111,6 +111,11 @@ class HoveredMidiRelativeExt:
 		run("args[0].postInit()", self, delayRef=op.TDResources, delayFrames=120)
 
 	def postInit(self):
+		if not self.evalActive:
+			return
+
+		if self.evalAutostartgrideditor:
+			self._start_grid_editor()
 		# Needed to clear pickle errors due to missing parameters in storage, before we can even validate
 		self._validate_storage()
 
@@ -127,9 +132,6 @@ class HoveredMidiRelativeExt:
 		run("args[0].onMidiError(args[1])", self, self.midiError, delayRef=op.TDResources, delayFrames=5)
 
 	def onStart(self):
-		if self.evalAutostartgrideditor:
-			self._start_grid_editor()
-
 		post_update = self.ownerComp.fetch('post_update', False)
 		if post_update:
 			#self.LoadAllFromJSON()
@@ -1008,6 +1010,9 @@ class HoveredMidiRelativeExt:
 		if val:
 			self.postInit()
 		else:
+			# Clear all active states when deactivating
+			self.hoveredPar = None
+			self.zoom_manager.clear_target()
 			self.ui_manager.set_hovered_ui_color(-1)
 			self.display_manager.clear_all_slot_leds()
 			self.display_manager.clear_screen()

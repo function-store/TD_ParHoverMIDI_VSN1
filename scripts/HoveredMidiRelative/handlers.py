@@ -230,6 +230,8 @@ class MidiMessageHandler:
 					self.parent.jumpToOp.Jump(_parOwner)
 					self.pushed_for_jump = True
 					_parOwner.currentPage = active_par.page
+					if not self.parent.evalActivateonjump:
+						return
 
 			
 			# Check for validation errors
