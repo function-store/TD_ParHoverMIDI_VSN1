@@ -1,6 +1,6 @@
 title: TouchDesigner Par Hover Control for Intech VSN1
 description: Intuitive parameter control using IntechVSN1 endless encoders and mouse hover interactions
-theme: jekyll-theme-midnight
+remote_theme: just-the-docs/just-the-docs
 
 # GitHub repository
 repository: function-store/TD_ParHoverMIDI_VSN1
@@ -10,11 +10,46 @@ github_username: function-store
 
 # Build settings
 markdown: kramdown
+kramdown:
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
 
 # Navigation
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
+
+# Just the Docs configuration
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+# Enable back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Footer content
+footer_content: 'Made with ❤️ for the TouchDesigner community by <a href="https://www.functionstore.xyz/link-in-bio">Function Store</a>'
+
+# Color scheme - custom purple theme
+color_scheme: custom_purple
+
+# Aux links for the upper right navigation
+aux_links:
+  "GitHub":
+    - "https://github.com/function-store/TD_ParHoverMIDI_VSN1"
+  "Download Latest":
+    - "https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox"
+
+# Heading anchor links
+heading_anchors: true
 
 # Exclude from build
 exclude:

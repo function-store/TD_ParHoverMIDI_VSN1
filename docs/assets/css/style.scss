@@ -3,124 +3,72 @@
 
 @import "{{ site.theme }}";
 
-// Force dark theme
-body {
-  background-color: #1a1a1a !important;
-  color: #e0e0e0 !important;
+// Additional custom styling for Just the Docs theme
+// The main colors are defined in _sass/color_schemes/custom_purple.scss
+
+// Main content width
+.main-content {
+  max-width: 1200px;
 }
 
-header {
-  background: linear-gradient(135deg, #2d1b3d 0%, #1a1a2e 100%) !important;
+// Custom styling for inline styled divs (documentation cards)
+div[style*="border: 2px solid #667eea"] {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%) !important;
+  border: 2px solid #667eea !important;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
 }
 
-#header {
-  background: linear-gradient(135deg, #2d1b3d 0%, #1a1a2e 100%) !important;
+// Large download button
+a[style*="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"] {
+  transition: all 0.3s ease !important;
   
-  nav {
-    background: transparent !important;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6) !important;
+  }
+}
+
+// Site title with gradient
+.site-title {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: bold;
+}
+
+// Aux links (top right navigation)
+.aux-nav {
+  .aux-nav-list-item a {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff !important;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-weight: 600;
+    transition: all 0.2s ease;
     
-    li {
-      background: transparent !important;
-      
-      a {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: #ffffff !important;
-      }
+    &:hover {
+      background: linear-gradient(135deg, #7a8eff 0%, #8a5bb2 100%);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6);
+      text-decoration: none;
     }
   }
 }
 
-.inner {
-  max-width: 1200px;
+// Navigation active states
+.navigation-list-link.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  border-left: 3px solid #667eea;
+  font-weight: 600;
 }
 
-a {
-  color: #8fa3ff !important;
-  
-  &:hover {
-    color: #b4c5ff !important;
-  }
-}
-
-h1, h2, h3, h4, h5, h6 {
-  color: #ffffff !important;
-}
-
-code {
-  background-color: #2d2d2d !important;
-  color: #e0e0e0 !important;
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-
-pre {
-  background-color: #2d2d2d !important;
-  border: 1px solid #404040 !important;
-  
-  code {
-    background-color: transparent !important;
-  }
-}
-
-blockquote {
-  border-left: 3px solid #667eea !important;
-  background-color: rgba(102, 126, 234, 0.1) !important;
-  color: #d0d0d0 !important;
-}
-
+// Table styling enhancements
 table {
-  background-color: #2d2d2d !important;
-  
   th {
-    background-color: #3d3d3d !important;
-    color: #ffffff !important;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    border-bottom: 2px solid #667eea;
   }
-  
-  td {
-    border-color: #404040 !important;
-    color: #e0e0e0 !important;
-  }
-  
-  tr:nth-child(even) {
-    background-color: #252525 !important;
-  }
-}
-
-hr {
-  border-color: #404040 !important;
-}
-
-// Button styling - View on GitHub - AGGRESSIVE
-#header nav li.fork a,
-#header nav a,
-.fork a,
-nav a,
-.btn, 
-#forkme_banner, 
-a.button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: #ffffff !important;
-  border: none !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
-  font-weight: 600 !important;
-  padding: 10px 20px !important;
-  border-radius: 4px !important;
-  
-  &:hover {
-    background: linear-gradient(135deg, #7a8eff 0%, #8a5bb2 100%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6) !important;
-  }
-  
-  strong {
-    color: #ffffff !important;
-  }
-}
-
-// Custom styling for documentation cards
-.doc-card {
-  background: rgba(102, 126, 234, 0.15) !important;
-  border: 2px solid #667eea !important;
 }
 
 // Collapsible sections (details/summary)
