@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Advanced Guide
-nav_order: 3
+nav_order: 4
 ---
 
 # Advanced Guide
@@ -455,5 +455,5 @@ When contributing:
   
 ---
 
-[← User Guide](user-guide.html) | [Home](index.html)
+[← Quick Reference](reference.html) | [Home](index.html)
 

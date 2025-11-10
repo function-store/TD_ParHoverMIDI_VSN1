@@ -51,6 +51,22 @@ Then in Grid Editor:
 
 > The TouchDesigner component automatically attempts to open Grid Editor on startup
 
+**3. Configure Package Preferences (Optional):**
+
+In Grid Editor, open the package preferences to customize VSN1 behavior when TouchDesigner disconnects:
+
+- **Turn off LCD when TouchDesigner is disconnected** - Controls the screen backlight state
+  - When enabled: LCD backlight turns off when disconnected (saves power, reduces visual distraction)
+  - When disabled: LCD stays on at all times
+  - Default: **Disabled** (LCD stays on)
+
+- **Set LEDs to red when TouchDesigner is disconnected** - Controls LED indicator state
+  - When enabled: All slot button LEDs turn red when disconnected (visual connection status)
+  - When disabled: LEDs remain in their last state
+  - Default: **Enabled** (LEDs turn red)
+
+> **💡 Tip**: These are personal preference settings. Many users prefer keeping the LCD on to monitor connection status, while the red LED indicator provides quick visual feedback when disconnected.
+
 ### TouchDesigner Setup
 
 **1. Download Component:**
@@ -113,6 +129,8 @@ Let's test that everything is set up correctly:
 - Verify your controller sends endless/relative MIDI (not standard potentiometer values)
 - For VSN1: Ensure Grid Editor is open and the package is loaded on your device
 
+> **💡 Helpful Tip**: Hover over any custom parameter in the component while holding **Alt** (or **Option** on Mac) to see detailed help text for that parameter!
+
 ## What's Next? Discover All the Features!
 
 You've got the basics working - but there's so much more! This component has powerful features for streamlined parameter control:
@@ -147,6 +165,7 @@ Your work is automatically protected! The component creates external storage for
 ## Next Steps
 
 - **[User Guide](user-guide.md)** - Learn all features, shortcuts, and customization options
+- **[Quick Reference](reference.md)** - Fast lookup tables for controls, parameters, and MIDI mappings
 - **[Advanced](advanced.md)** - Parameter recovery, MIDI mapping details, troubleshooting
 
 ## Troubleshooting

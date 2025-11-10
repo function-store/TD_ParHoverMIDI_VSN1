@@ -39,6 +39,7 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
    - Change step size with buttons under the LCD screen
    - Save parameters to slots with long-press of primary buttons
    - Switch between banks by long-pressing the step buttons
+   - **💡 Tip**: Hover over any custom parameter while holding **Alt** (or **Option** on Mac) to see help text
    - And much more! See [User Guide](docs/user-guide.md) for all features
 
 > **Using other MIDI controllers?** This component works with any endless/relative MIDI encoder. See [Getting Started - Other Controllers](docs/getting-started.md#setup-for-other-midi-controllers) for setup instructions.
@@ -50,6 +51,7 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 Or browse the docs directly:
 - **[Getting Started](docs/getting-started.md)** - Installation, MIDI setup, and first steps
 - **[User Guide](docs/user-guide.md)** - Features, slots/banks, shortcuts, customization
+- **[Quick Reference](docs/reference.md)** - Fast lookup tables for controls, parameters, and MIDI mappings
 - **[Advanced](docs/advanced.md)** - Recovery system, production setup, MIDI mapping, troubleshooting
 
 ## 🎛️ Hardware Compatibility

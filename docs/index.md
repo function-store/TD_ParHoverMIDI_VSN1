@@ -58,6 +58,12 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
   </div>
   
   <div style="border: 2px solid #667eea; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%); backdrop-filter: blur(10px);">
+    <h3 style="margin-top: 0; color: #8fa3ff;">🔍 Quick Reference</h3>
+    <p style="color: #ddd;">Fast lookup tables for controls, shortcuts, parameters, and MIDI mappings.</p>
+    <a href="reference.html" style="color: #8fa3ff; font-weight: bold; text-decoration: none;">View Reference →</a>
+  </div>
+  
+  <div style="border: 2px solid #667eea; border-radius: 10px; padding: 25px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%); backdrop-filter: blur(10px);">
     <h3 style="margin-top: 0; color: #8fa3ff;">⚙️ Advanced Guide</h3>
     <p style="color: #ddd;">Recovery system, production setup, MIDI mapping details, and troubleshooting.</p>
     <a href="advanced.html" style="color: #8fa3ff; font-weight: bold; text-decoration: none;">Read Guide →</a>

@@ -33,8 +33,9 @@ This component transforms how you control TouchDesigner parameters by combining 
 - [UI Parameter Highlighting](#ui-parameter-highlighting)
 - [Hover Timeout](#hover-timeout)
 - [Network Zoom Navigation](#network-zoom-navigation)
-- [Customization Parameters](#customization-parameters)
 - [Visual Feedback](#visual-feedback)
+
+> **🔍 Looking for quick reference tables?** See the [Quick Reference](reference.html) page for complete tables of controls, shortcuts, parameters, and MIDI mappings.
 
 > **💡 Tip**: This guide focuses on features and usage. For installation and setup, see [Getting Started](getting-started.md).
 
@@ -179,14 +180,16 @@ Quick button combinations for common operations (works with step or bank buttons
 | **Second + Third** | Set current value as min (normMin and min) |
 | **Second + Fourth** | Set current value as max (normMax and max) |
 | **Third + Fourth** | Clamp value to min/max range |
-| **First + Fourth (long press)** | Open component editor for active parameter |
+| **First + Fourth (long press)** | Open component editor (active parameter's operator, or currently selected COMP if none) |
 
 ### Usage Notes
 
 - Press and hold combinations while hovering or controlling parameters
 - Min/max affects both visual slider and actual parameter bounds
 - Clamping brings values within defined range
-- Component editor shortcut works with all parameter types
+- Component editor shortcut: Opens active parameter's operator editor, or currently selected COMP's editor if no parameter is active
+
+---
 
 ## Undo/Redo Operations
 
@@ -356,49 +359,28 @@ The interpolation determines what percentage of the distance to the target posit
 
 ---
 
-## Customization Parameters
+## Customization Overview
 
-All available parameters for customizing behavior:
+The component offers extensive customization through custom parameters organized in the parameter dialog.
 
-### Step Configuration
+> **💡 Parameter Help**: Hover over any custom parameter in the component while holding **Alt** (or **Option** on Mac) to see detailed help text for that parameter.
 
-- **`Step Size`**: Adjustable in each Step block (default: 0.001, 0.01, 0.1, 1)
-- **`Step Mode`**: "Fixed" or "Adaptive" (toggle: leftmost + rightmost step buttons)
-- **`Push Step Mode`**: "Fixed", "Finer", or "Coarser"
+### Key Customization Areas
 
-### Parameter Behavior
+- **Step Configuration**: Adjust step sizes, modes (Fixed/Adaptive), and push behavior
+- **Parameter Behavior**: Control menu looping, StrMenu support
+- **Undo System**: Configure undo/redo functionality and timeout
+- **Shortcuts**: Enable/disable button combos and adjust hold lengths
+- **Hover Timeout**: Control how long parameters stay active after unhovering
+- **Storage**: Configure external repo for persistent slot/bank data
+- **VSN1 Integration**: Screen updates, LED feedback, websocket settings
+- **UI Settings**: Color highlighting, internal UI, bloom effects
+- **Network Zoom**: Zoom navigation speed, mode, and interpolation
+- **MIDI Configuration**: Device ID, channel, learn mode, CC mappings
 
-- **`Loop Menus`**: When enabled, menu parameters loop (last → first). When disabled, stops at edges.
-- **`Control StrMenus`**: Allow control of StrMenu parameters (both `isMenu` and `isString`). Note: StrMenus assigned to slots remain controllable even when disabled.
+> **📋 Complete Parameter Reference**: See the [Quick Reference](reference.html#all-parameters) page for a complete table of all 80+ parameters with descriptions and defaults.
 
-### Undo System
-
-- **`Enable Undo`**: Enable/disable undo/redo for all operations
-- **`Undo Timeout (ValueChange)`**: Seconds to wait before pushing value changes to undo stack (groups rapid adjustments). Default: 1 second.
-
-### Hover Timeout
-
-- **`Hover Timeout Length`**: Seconds parameter stays active after unhovering (0 = immediate clear). Default: 0.
-- **`Sticky Par`**: When enabled, MIDI adjustments restart timeout countdown. When disabled, timeout runs regardless of adjustments.
-
-### Network Zoom
-
-- **`Enable Zoom`**: Toggle to enable network editor zoom navigation when no parameter is active
-- **`Zoom Network`**: Zoom speed per knob increment (0 = disabled, negative = reverse). Default: 0.02.
-- **`Zoom Mode`**: "Seek" (follows cursor) or "Target" (locks to initial position). Default: Seek.
-- **`Zoom Interpolation`**: Smoothness of camera movement (0.0-1.0, lower = smoother). Default: 0.15.
-
-### VSN1 Integration
-
-- **`VSN1 Support`**: Enable screen updates and LED feedback (requires Grid Editor open)
-- **`Label Display Mode`**: "Compressed" (removes vowels/spaces) or "Truncated" (simple cut-off)
-- **`Knob LED Update`**: "Off", "Value", or "Step" for knob ring LED indication
-- **`Reset Comm`**: Pulse to reset websocket connection if Grid Editor reports issues
-
-### UI Settings
-
-- **`Enable UI Color`**: Apply color highlighting to TD interface (performance impact when switching modes)
-- **`Enable UI`**: Toggle internal UI that mirrors VSN1 state (disabling saves ~50% performance)
+---
 
 ## Visual Feedback
 
@@ -433,5 +415,5 @@ Comprehensive feedback through hardware and software.
 
 ---
 
-[← Getting Started](getting-started.html) | [Advanced →](advanced.html)
+[← Getting Started](getting-started.html) | [Quick Reference](reference.html) | [Advanced →](advanced.html)
 
