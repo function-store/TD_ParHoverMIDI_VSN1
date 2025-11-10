@@ -19,6 +19,7 @@ kramdown:
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
+  - jekyll-include-cache
 
 # Just the Docs configuration
 search_enabled: true
@@ -37,9 +38,6 @@ back_to_top_text: "Back to top"
 
 # Footer content
 footer_content: 'Made with ❤️ for the TouchDesigner community by <a href="https://www.functionstore.xyz/link-in-bio">Function Store</a>'
-
-# Color scheme - custom purple theme
-color_scheme: custom_purple
 
 # Aux links for the upper right navigation
 aux_links:

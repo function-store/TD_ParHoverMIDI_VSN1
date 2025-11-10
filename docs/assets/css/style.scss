@@ -1,14 +1,135 @@
 ---
 ---
 
-@import "{{ site.theme }}";
+// Custom Purple Dark Theme for Just the Docs
+// Override theme colors and add purple gradient accents
+// Note: Just-the-docs loads its own CSS, this file only contains overrides
 
-// Additional custom styling for Just the Docs theme
-// The main colors are defined in _sass/color_schemes/custom_purple.scss
+// Base dark theme colors
+body {
+  background-color: #0d0221 !important;
+  color: #ddd !important;
+}
 
-// Main content width
+// Sidebar
+.side-bar {
+  background-color: #0f0b1f !important;
+  border-right: 1px solid #444 !important;
+}
+
+// Main content area
 .main-content {
   max-width: 1200px;
+  background-color: #0d0221 !important;
+  
+  h1, h2, h3, h4, h5, h6 {
+    color: #fff !important;
+  }
+  
+  p, li, td {
+    color: #ddd !important;
+  }
+}
+
+// Links
+a {
+  color: #8fa3ff !important;
+  
+  &:hover {
+    color: #b4c5ff !important;
+  }
+}
+
+// Code
+code {
+  background-color: #1a1333 !important;
+  color: #9fa8da !important;
+  border: 1px solid #444 !important;
+}
+
+pre {
+  background-color: #1a1333 !important;
+  border: 1px solid #444 !important;
+  
+  code {
+    background-color: transparent !important;
+    border: none !important;
+  }
+}
+
+// Tables
+table {
+  background-color: #1a1333 !important;
+  border: 1px solid #444 !important;
+  
+  th {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%) !important;
+    color: #fff !important;
+    border-bottom: 2px solid #667eea !important;
+  }
+  
+  td {
+    border-color: #444 !important;
+    color: #ddd !important;
+  }
+  
+  tr:nth-child(even) {
+    background-color: rgba(26, 19, 51, 0.5) !important;
+  }
+}
+
+// Blockquotes
+blockquote {
+  border-left: 3px solid #667eea !important;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%) !important;
+  color: #ddd !important;
+  padding: 15px 20px !important;
+  margin: 20px 0 !important;
+  border-radius: 5px !important;
+}
+
+// Search
+.search-input {
+  background-color: #1a1333 !important;
+  color: #ddd !important;
+  border: 1px solid #444 !important;
+  
+  &:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 5px rgba(102, 126, 234, 0.5) !important;
+  }
+}
+
+// Footer
+.site-footer {
+  background-color: #0f0b1f !important;
+  border-top: 1px solid #444 !important;
+  color: #bbb !important;
+}
+
+// Horizontal rules
+hr {
+  border-color: #444 !important;
+}
+
+// Custom scrollbar
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1333;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #7986cb 0%, #8e5cb8 100%);
 }
 
 // Custom styling for inline styled divs (documentation cards)
