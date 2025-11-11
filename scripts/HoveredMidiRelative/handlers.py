@@ -49,6 +49,7 @@ class MidiMessageHandler:
 	
 	def _create_undo_for_parameter(self, active_par: Union['Par', 'ParGroup']):
 		"""Create undo action for parameter or ParGroup (only if initial value was captured).
+		Also handles multi-operator editing by capturing all parameters being adjusted together.
 		
 		Args:
 			active_par: The parameter or ParGroup to create undo for
@@ -58,6 +59,18 @@ class MidiMessageHandler:
 			self.parent.undo_manager.create_pargroup_undo(active_par)
 		else:
 			# Handle single Par
+			# Check if multi-operator editing is active (hover mode + multi-adjust enabled)
+			if self.parent.activeSlot is None:  # hover mode
+				multi_mode = self.parent.evalMultiadjustmode
+				if multi_mode != MultiAdjustMode.OFF.value:
+					# Get matching parameters from other selected operators
+					matching_pars = ParameterValidator.get_matching_selected_pars(active_par)
+					if matching_pars:
+						# Create grouped undo for main + matching parameters
+						self.parent.undo_manager.create_multi_parameter_undo(active_par, matching_pars)
+						return
+			
+			# Normal single parameter undo
 			self.parent.undo_manager.create_parameter_undo(active_par)
 	
 	def handle_step_message(self, index: int, value: int) -> bool:

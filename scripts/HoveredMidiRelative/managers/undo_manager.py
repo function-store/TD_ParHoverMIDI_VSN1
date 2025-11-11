@@ -160,6 +160,53 @@ class UndoManager:
 		finally:
 			ui.undo.endBlock()
 	
+	def create_multi_parameter_undo(self, main_par: 'Par', additional_pars: list):
+		"""Create a single undo action for multiple parameters (main + multi-operator editing).
+		
+		Args:
+			main_par: The main parameter being adjusted
+			additional_pars: List of additional parameters being adjusted simultaneously
+		"""
+		if not self.parent.evalEnableundo:
+			return
+		
+		# Collect all parameters that need undo (main + additionals)
+		pars_to_undo = []
+		
+		# Check main parameter
+		if not main_par.isPulse:
+			par_path = f"{main_par.owner.path}:{main_par.name}"
+			if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
+				pars_to_undo.append(main_par)
+		
+		# Check additional parameters
+		for par in additional_pars:
+			if par is not None and not par.isPulse:
+				par_path = f"{par.owner.path}:{par.name}"
+				# Capture initial value if not already captured
+				if par_path not in self.parameterInitialValues:
+					self.capture_initial_parameter_value(par)
+				# Add to undo list if we have initial value and haven't created undo yet
+				if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
+					pars_to_undo.append(par)
+		
+		# If no parameters need undo, return
+		if not pars_to_undo:
+			return
+		
+		# Create single undo block for all parameters
+		if len(pars_to_undo) == 1:
+			# Only one parameter needs undo - use simple block name
+			self.create_parameter_undo(pars_to_undo[0], skip_block=False)
+		else:
+			# Multiple parameters - create grouped undo
+			ui.undo.startBlock(f'Change {main_par.name} (Multi-Op)')
+			try:
+				for par in pars_to_undo:
+					self.create_parameter_undo(par, skip_block=True)
+			finally:
+				ui.undo.endBlock()
+	
 	def start_undo_timeout(self, timeout_ms: float = None):
 		"""Start/restart timeout to clear captured parameter values after inactivity.
 		
