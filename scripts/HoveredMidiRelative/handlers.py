@@ -5,7 +5,7 @@ Author : Dan@DAN-4090
 Saveorigin : HoveredMidiRelative.187.toe
 Saveversion : 2023.12120
 Info Header End'''
-from constants import MidiConstants, VSN1ColorIndex, ScreenMessages, StepMode, PushStepMode
+from constants import MidiConstants, ScreenMessages, StepMode, PushStepMode, MultiAdjustMode
 from validators import ParameterValidator
 from typing import Union
 
@@ -175,22 +175,29 @@ class MidiMessageHandler:
 		if error_msg:
 			self.parent.display_manager.show_parameter_error(active_par, error_msg)
 			return True  # Parameter is invalid, error message shown
-			
-		if value == MidiConstants.MAX_VELOCITY:
-			if active_par.isMomentary:
-				active_par.val = not active_par.default
-			if active_par.isPulse:
-				# HACK: sorry
-				self.is_from_pulsepush = 1
-		elif value == 0:
-			if active_par.isPulse:
-				active_par.pulse()
-				# HACK: sorry
-				self.is_from_pulsepush = 2
-			elif active_par.isMomentary:
-				active_par.val = active_par.default
-			elif active_par.isToggle:
-				active_par.val = not active_par.eval()		
+		
+		# Apply push action to main parameter
+		self._apply_push_to_parameter(active_par, value, is_main_parameter=True)
+		
+		if self.parent.activeSlot is None: # hover mode
+			# Multi-operator editing: Apply same change to other selected operators of same type
+			# Only in hover mode (not slot mode)
+			mulit_mode = self.parent.evalMultiadjustmode
+			# For push operations we actually don't care about the mode other than off... I think...
+			if mulit_mode != MultiAdjustMode.OFF.value:
+				matching_pars = ParameterValidator.get_matching_selected_pars(active_par)
+				if matching_pars:
+					for other_par in matching_pars:
+						try:
+							# Get the same parameter on the other operator
+							if other_par is None or not ParameterValidator.is_valid_parameter(other_par):
+								continue
+							
+							self._apply_push_to_parameter(other_par, value, is_main_parameter=False)
+						except:
+							# If any error occurs with one operator, continue with others
+							continue
+		
 		self.parent.display_manager.update_parameter_display(active_par)
 		
 		return True
@@ -286,47 +293,43 @@ class MidiMessageHandler:
 		# Update display once after all valid parameters are updated
 		self.parent.display_manager.update_parameter_display(par_group)
 	
-	def _do_step_single(self, active_par: Par, step: float, value: int, update_display: bool = True):
-		"""Apply step value to a single parameter based on MIDI input"""
-		# Validate parameter is editable (constant or bind mode, not expression/export)
-		if not ParameterValidator.is_valid_parameter(active_par):
-			# Parameter has expression or is in export mode - show error and skip
-			if update_display:
-				self.parent.display_manager.show_parameter_error(active_par, ScreenMessages.EXPR)
-			return
+	
+	def _apply_step_to_parameter(self, par: Par, step: float, diff: int, update_cached_change: bool = False):
+		"""Apply a step adjustment to a single parameter.
 		
-		diff = value - MidiConstants.MIDI_CENTER_VALUE
-		
-		if active_par.isNumber:
-			# Apply secondary step if active
-			if self.parent.knobPushState:
-				step = self._get_push_step(step)
-			
+		Args:
+			par: The parameter to adjust
+			step: The step size
+			diff: The direction and magnitude of change (value - MIDI_CENTER_VALUE)
+			update_cached_change: Whether to update lastCachedChange (only for main parameter)
+		"""
+		if par.isNumber:
 			# Calculate step amount based on mode
 			if self.parent.stepMode == StepMode.FIXED:
 				step_amount = step * diff
-			else: # Adaptive mode - step scales with parameter range
-				min_val, max_val = active_par.normMin, active_par.normMax
+			else:  # Adaptive mode - step scales with parameter range
+				min_val, max_val = par.normMin, par.normMax
 				step_amount = ((max_val - min_val) * step) * diff
 			
 			# Handle integer parameters with different step behavior
-			if active_par.isInt:
+			if par.isInt:
 				if self.parent.stepMode == StepMode.FIXED:
-					# TODO: debatable if this fixed step is good for ints in fixed mode. What's the alternative?
 					step_amount = 1 if diff > 0 else -1
 				else:
+					min_val, max_val = par.normMin, par.normMax
 					step_amount = max(1, ((max_val - min_val) * step)) * (1 if diff > 0 else -1)
-				
-			# Apply the step to current value
-			active_par.val = active_par.eval() + step_amount
-			self.parent.lastCachedChange = (f'{active_par.owner.path}:{active_par.name}', active_par.eval())
 			
-		elif (active_par.isMenu or getattr(active_par, 'style', None) in ['Menu', 'StrMenu']) and (getattr(active_par, 'style', None) != 'StrMenu' or self.parent.should_allow_strmenus(active_par)):
-			# Handle menu parameters - step through menu options (including StrMenus when enabled or from active slot)
-			# StrMenus are detected by style == 'StrMenu' OR (isMenu and isString both true)
+			# Apply the step to current value
+			par.val = par.eval() + step_amount
+			
+			if update_cached_change:
+				self.parent.lastCachedChange = (f'{par.owner.path}:{par.name}', par.eval())
+		
+		elif (par.isMenu or getattr(par, 'style', None) in ['Menu', 'StrMenu']) and (getattr(par, 'style', None) != 'StrMenu' or self.parent.should_allow_strmenus(par)):
+			# Handle menu parameters - step through menu options
 			if abs(diff) >= 1:  # Only change on significant step
-				current_index = active_par.menuIndex
-				num_menu_items = len(active_par.menuNames)
+				current_index = par.menuIndex
+				num_menu_items = len(par.menuNames)
 				step_direction = 1 if diff > 0 else -1
 				
 				if self.parent.evalLoopmenus and current_index is not None:
@@ -338,18 +341,82 @@ class MidiMessageHandler:
 				else:
 					new_index = 0
 				
-				active_par.menuIndex = new_index
-					
-		elif active_par.isToggle or active_par.isMomentary:
+				par.menuIndex = new_index
+		
+		elif par.isToggle or par.isMomentary:
 			# Handle toggle parameters - step through on/off states
-			current_val = active_par.eval()
+			current_val = par.eval()
 			if diff > 0 and not current_val:
-				active_par.val = True
+				par.val = True
 			elif diff < 0 and current_val:
-				active_par.val = False
-		else:
-			# Unsupported parameter type
+				par.val = False
+	
+	def _apply_push_to_parameter(self, par: Par, value: int, is_main_parameter: bool = False):
+		"""Apply a push button action to a single parameter.
+		
+		Args:
+			par: The parameter to adjust
+			value: The MIDI velocity value
+			is_main_parameter: Whether this is the main hovered parameter (for pulse hack flag)
+		"""
+		if value == MidiConstants.MAX_VELOCITY:
+			if par.isMomentary:
+				par.val = not par.default
+			if par.isPulse and is_main_parameter:
+				# HACK: sorry (only for main parameter)
+				self.is_from_pulsepush = 1
+		elif value == 0:
+			if par.isPulse:
+				par.pulse()
+				if is_main_parameter:
+					# HACK: sorry (only for main parameter)
+					self.is_from_pulsepush = 2
+			elif par.isMomentary:
+				par.val = par.default
+			elif par.isToggle:
+				par.val = not par.eval()
+	
+	def _do_step_single(self, active_par: Par, step: float, value: int, update_display: bool = True):
+		"""Apply step value to a single parameter based on MIDI input
+		
+		In hover mode (not slot mode), if multiple operators of the same type are selected,
+		the same parameter change will be applied to all of them."""
+		# Validate parameter is editable (constant or bind mode, not expression/export)
+		if not ParameterValidator.is_valid_parameter(active_par):
+			# Parameter has expression or is in export mode - show error and skip
+			if update_display:
+				self.parent.display_manager.show_parameter_error(active_par, ScreenMessages.EXPR)
 			return
+		
+		# Apply secondary step if active (for numbers)
+		if self.parent.knobPushState:
+			step = self._get_push_step(step)
+		
+		diff = value - MidiConstants.MIDI_CENTER_VALUE
+		
+		# Apply step to main parameter
+		self._apply_step_to_parameter(active_par, step, diff, update_cached_change=True)
+		
+		if self.parent.activeSlot is None: # hover mode
+			# Multi-operator editing: Apply same change to other selected operators of same type
+			# Only in hover mode (not slot mode)
+			mulit_mode = self.parent.evalMultiadjustmode
+			if mulit_mode != MultiAdjustMode.OFF.value:
+				matching_pars = ParameterValidator.get_matching_selected_pars(active_par)
+				if matching_pars:
+					for other_par in matching_pars:
+						try:
+							if other_par is None or not ParameterValidator.is_valid_parameter(other_par):
+								continue
+							
+							if mulit_mode == MultiAdjustMode.SNAP.value:
+								other_par.val = active_par.eval()
+							elif mulit_mode == MultiAdjustMode.RELATIVE.value:
+								# Apply the same step adjustment
+								self._apply_step_to_parameter(other_par, step, diff, update_cached_change=False)
+						except:
+							# If any error occurs with one operator, continue with others
+							continue
 		
 		# Update screen display (only if requested)
 		if update_display:

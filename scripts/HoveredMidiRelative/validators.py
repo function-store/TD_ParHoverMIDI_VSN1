@@ -155,3 +155,28 @@ class ParameterValidator:
 		if not ParameterValidator.has_valid_parameters(par_or_group):
 			return ScreenMessages.EXPR
 		return None
+
+	@staticmethod
+	def get_matching_selected_pars(par: Par):
+		"""Get list of selected operators that match the parameter's owner type.
+		Only works in hover mode (not slot mode) for multi-operator editing."""
+		try:
+			owner = par.owner
+			parent_comp = owner.parent()
+			
+			# Get selected children in the parent
+			if not parent_comp or not hasattr(parent_comp, 'selectedChildren'):
+				return []
+			
+			selected = parent_comp.selectedChildren
+			if not selected or len(selected) <= 1:
+				return []
+
+			matching_pars = [
+				_op.par[par.name] for _op in selected 
+				if _op != par.owner and _op.par[par.name] is not None
+			]
+
+			return matching_pars
+		except Exception as e:
+			return []

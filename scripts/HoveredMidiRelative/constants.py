@@ -74,6 +74,11 @@ class PushStepMode(Enum):
 	FINER = 'Finer'
 	COARSER = 'Coarser'
 
+class MultiAdjustMode(Enum):
+	OFF = 'Off'
+	SNAP = 'Snap'
+	RELATIVE = 'Relative'
+
 class OverrideUIElements:
 	"""
 	List of parameters to override in the UI.
