@@ -31,14 +31,14 @@
   let isReceivingUpdate = false;
   let hasReceivedInitialStatus = false; // Prevent sending defaults before receiving initial state
 
-  $: (watchForActiveWindow,
-    controlScreenOnConnection,
-    controlLedOnConnection,
-    inactivityTimeoutMinutes,
-    screenDimLevel,
-    screenActiveLevel,
-    !isReceivingUpdate &&
-    hasReceivedInitialStatus && // Only send after receiving initial state
+  $: {
+    watchForActiveWindow;
+    controlScreenOnConnection;
+    controlLedOnConnection;
+    inactivityTimeoutMinutes;
+    screenDimLevel;
+    screenActiveLevel;
+    if (!isReceivingUpdate && hasReceivedInitialStatus) {
       messagePort.postMessage({
         type: "set-setting",
         watchForActiveWindow,
@@ -48,6 +48,8 @@
         screenDimLevel,
         screenActiveLevel,
       });
+    }
+  }
 
   onMount(() => {
     messagePort.onmessage = (e) => {
