@@ -435,7 +435,7 @@ class DisplayManager:
 			clamps = (0, 0)
 		info_lua = '{' + ','.join(f"'{s}'" for s in info) + '}' if info else '{}'
 		clamps_lua = '{'+f'{1 if clamps[0] else 0}, {1 if clamps[1] else 0}'+ '}'
-		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator}, {norm_default}, {info_lua}, {clamps_lua})"
+		lua_code = f"update_param({val}, {norm_min}, {norm_max}, '{processed_label}', '{bottom_text}', {step_indicator}, {norm_default}, {info_lua}, {clamps_lua}, {self.parent.currBank if self.parent.currBank is not None else 0})"
 		self.grid_comm.SendLua(lua_code, queue=True)
 	
 	def clear_all_slot_leds(self):

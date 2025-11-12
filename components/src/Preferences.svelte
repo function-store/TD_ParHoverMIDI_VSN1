@@ -7,8 +7,10 @@
     Block,
     BlockBody,
     BlockTitle,
+    BlockRow,
     MoltenPushButton,
     MeltCheckbox,
+    MeltSlider,
   } from "@intechstudio/grid-uikit";
   import { onMount } from "svelte";
 
@@ -23,20 +25,29 @@
   let watchForActiveWindow = false;
   let controlScreenOnConnection = false;
   let controlLedOnConnection = true;
+  let inactivityTimeoutMinutes = 0; // Default off
+  let screenDimLevel = 0; // 0-100%, 0 = fully off
+  let screenActiveLevel = 100; // 0-100%, 100 = full brightness
   let isReceivingUpdate = false;
+  let hasReceivedInitialStatus = false; // Prevent sending defaults before receiving initial state
 
   $: (watchForActiveWindow,
     controlScreenOnConnection,
     controlLedOnConnection,
+    inactivityTimeoutMinutes,
+    screenDimLevel,
+    screenActiveLevel,
     !isReceivingUpdate &&
-      (function sendSettings() {
-        messagePort.postMessage({
-          type: "set-setting",
-          watchForActiveWindow,
-          controlScreenOnConnection,
-          controlLedOnConnection,
-        });
-      })());
+    hasReceivedInitialStatus && // Only send after receiving initial state
+      messagePort.postMessage({
+        type: "set-setting",
+        watchForActiveWindow,
+        controlScreenOnConnection,
+        controlLedOnConnection,
+        inactivityTimeoutMinutes,
+        screenDimLevel,
+        screenActiveLevel,
+      });
 
   onMount(() => {
     messagePort.onmessage = (e) => {
@@ -45,9 +56,16 @@
         isReceivingUpdate = true;
         currentlyConnected = data.clientConnected;
         watchForActiveWindow = data.watchForActiveWindow;
-        controlScreenOnConnection = data.controlScreenOnConnection ?? false;
-        controlLedOnConnection = data.controlLedOnConnection ?? true;
-        setTimeout(() => { isReceivingUpdate = false; }, 10);
+        // Use explicit undefined checks for booleans to ensure false values are preserved
+        controlScreenOnConnection = data.controlScreenOnConnection !== undefined ? data.controlScreenOnConnection : false;
+        controlLedOnConnection = data.controlLedOnConnection !== undefined ? data.controlLedOnConnection : true;
+        inactivityTimeoutMinutes = data.inactivityTimeoutMinutes ?? 5;
+        screenDimLevel = data.screenDimLevel ?? 0;
+        screenActiveLevel = data.screenActiveLevel ?? 100;
+        setTimeout(() => { 
+          isReceivingUpdate = false;
+          hasReceivedInitialStatus = true; // Enable reactive statement after initial state is loaded
+        }, 10);
       }
     };
     messagePort.start();
@@ -101,15 +119,74 @@
     <Block>
       <BlockTitle>Settings</BlockTitle>
       <BlockBody>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-4">
           <MeltCheckbox
             title={"Set LEDs when TouchDesigner is disconnected"}
             bind:target={controlLedOnConnection}
           />
           <MeltCheckbox
-            title={"Turn off LCD when TouchDesigner is disconnected"}
+            title={"Turn off screen when TouchDesigner is disconnected"}
             bind:target={controlScreenOnConnection}
           />
+          
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium">
+              Screen inactivity timeout (minutes, 0 = disabled)
+            </label>
+            <input
+              type="number"
+              bind:value={inactivityTimeoutMinutes}
+              min="0"
+              max="60"
+              step="0.1"
+              class="px-3 py-2 bg-primary border border-secondary rounded-md text-sm"
+            />
+            <span class="text-xs text-secondary-content">
+              {inactivityTimeoutMinutes === 0 
+                ? 'Timeout disabled' 
+                : `Screen dims after specified inactivity`}
+            </span>
+          </div>
+          
+          <BlockRow border="transparent">
+            <div class="flex flex-col gap-1 flex-1">
+              <label class="text-sm font-medium">
+                Inactive brightness
+              </label>
+              <div class="flex items-center gap-2">
+                <MeltSlider
+                  bind:target={screenDimLevel}
+                  min={0}
+                  max={100}
+                  step={1}
+                />
+                <span class="text-sm font-mono w-12 text-right">{screenDimLevel}%</span>
+              </div>
+              <span class="text-xs text-secondary-content">
+                After timeout
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-1 flex-1">
+              <label class="text-sm font-medium">
+                Active brightness
+              </label>
+              <div class="flex items-center gap-2">
+                <MeltSlider
+                  bind:target={screenActiveLevel}
+                  min={0}
+                  max={100}
+                  step={1}
+                />
+                <span class="text-sm font-mono w-12 text-right">{screenActiveLevel}%</span>
+              </div>
+              <span class="text-xs text-secondary-content">
+                When active
+              </span>
+            </div>
+            
+
+          </BlockRow>
         </div>
       </BlockBody>
     </Block>

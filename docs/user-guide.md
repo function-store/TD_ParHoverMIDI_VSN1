@@ -17,6 +17,7 @@ This component transforms how you control TouchDesigner parameters by combining 
 - **Precision Control**: Multiple step sizes with Fixed or Adaptive modes
 - **Slots & Banks**: Save parameters to buttons for instant recall across multiple banks
 - **Shortcuts**: Quick button combos for reset, default, clamp operations
+- **Multi-Operator Editing**: Adjust the same parameter on multiple selected operators simultaneously
 - **ParGroups**: Control entire parameter groups (RGB, XYZ) simultaneously  
 - **Undo/Redo**: Full undo support for all operations
 - **Auto-Recovery**: Automatic fixing when operators are moved/renamed
@@ -28,12 +29,14 @@ This component transforms how you control TouchDesigner parameters by combining 
 - [Parameter Slots System](#parameter-slots-system)
 - [Multiple Banks](#multiple-banks)
 - [Parameter Shortcuts](#parameter-shortcuts)
+- [Multi-Operator Editing](#multi-operator-editing)
 - [Undo/Redo Operations](#undoredo-operations)
 - [Parameter Pulse](#parameter-pulse)
 - [UI Parameter Highlighting](#ui-parameter-highlighting)
 - [Hover Timeout](#hover-timeout)
 - [Network Zoom Navigation](#network-zoom-navigation)
 - [Visual Feedback](#visual-feedback)
+- [Grid Editor Settings (VSN1)](#grid-editor-settings-vsn1)
 
 > **🔍 Looking for quick reference tables?** See the [Quick Reference](reference.html) page for complete tables of controls, shortcuts, parameters, and MIDI mappings.
 
@@ -189,6 +192,64 @@ Quick button combinations for common operations (works with step or bank buttons
 - Min/max affects both visual slider and actual parameter bounds
 - Clamping brings values within defined range
 - Component editor shortcut: Opens active parameter's operator editor, or currently selected COMP's editor if no parameter is active
+
+---
+
+## Multi-Operator Editing
+
+Adjust the same parameter across multiple selected operators simultaneously in hover mode.
+
+### How It Works
+
+When you select multiple operators of the same type and hover over a parameter:
+
+1. **Adjust the parameter** on the hovered operator
+2. **All selected operators** of the same type have that parameter adjusted automatically
+3. **Single undo/redo** - all changes are grouped together
+
+### Modes
+
+Configure multi-adjust behavior via the `Multi Adjust Mode` parameter:
+
+| Mode | Behavior |
+|------|----------|
+| **Off** | Disabled - only adjusts hovered operator |
+| **Snap** | All matching parameters snap to the same value |
+| **Relative** | Each parameter adjusts by the same amount (preserves relative differences) |
+
+### What Gets Adjusted
+
+The system automatically finds:
+- Operators with the **same type** as the hovered operator (e.g., all `constantCOMPs`)
+- That are **currently selected**
+- And adjusts their **matching parameter** (by name)
+
+### Works With
+
+- ✅ **Knob adjustments** - value changes
+- ✅ **Push button** - pulse/momentary/toggle
+- ✅ **Parameter shortcuts** - reset, set default, set min/max, clamp
+- ✅ **Undo/redo** - all changes are grouped
+
+### Requirements
+
+- Only works in **hover mode** (not when using slots)
+- All parameters must be **custom parameters** for default/min/max/clamp operations
+- Selected operators must be the **same type**
+
+### Example Use Cases
+
+**Snap Mode**: Set multiple Constant TOPs to the same color
+- Select 5 `constantTOPs`
+- Hover over `colorr` on one of them
+- Adjust → All 5 snap to the same red value
+
+**Relative Mode**: Brighten multiple lights proportionally
+- Select 3 Constant TOPs with different brightness values (0.3, 0.5, 0.8)
+- Hover over `colorr` on one
+- Increase by 0.1 → All increase by 0.1 (now 0.4, 0.6, 0.9)
+
+> **💡 Tip**: Use **Relative mode** to maintain existing differences between parameters while adjusting them together. Use **Snap mode** to synchronize all parameters to the same value.
 
 ---
 
@@ -417,6 +478,89 @@ Comprehensive feedback through hardware and software.
 - Editable parameters with distinct colors
 - Bank indicator in UI
 - Real-time updates during interaction
+
+The component includes an optional internal UI display that mirrors the VSN1 screen content directly in TouchDesigner, providing visual feedback even when the hardware screen is not visible:
+
+<div style="text-align: center; margin: 30px 0;">
+  <img src="images/vsn_td_ui.jpg" alt="TouchDesigner UI mirroring VSN1 screen" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);">
+  <p style="color: #999; font-size: 14px; margin-top: 10px; font-style: italic;">
+    The TouchDesigner UI display mirrors the VSN1 screen, showing parameter values, slot assignments, and bank information in real-time.
+  </p>
+</div>
+
+This UI can be enabled/disabled via the `Enable UI` parameter and is useful for:
+- **Development**: See parameter feedback without looking at hardware
+- **Screenshots/Documentation**: Capture UI state for reference
+- **Multi-monitor setups**: Keep feedback visible on a secondary display
+- **Accessibility**: Larger, easier-to-read display than hardware screen
+
+> The UI takes up about half of the performance of the tool, so if you're not using it,
+> it is suggested to turn it off!
+
+---
+
+## Grid Editor Settings (VSN1)
+
+Configure VSN1 hardware behavior through the Grid Editor package preferences.
+
+### Accessing Settings
+
+In Grid Editor:
+1. Navigate to the **Packages** tab
+2. Find **TouchDesigner Par Hover Control** package
+3. Click the **gear icon** to open preferences
+
+### Available Settings
+
+#### Connection Behavior
+
+**Turn off LCD when TouchDesigner is disconnected:**
+- Default: `Off`
+- When enabled: LCD backlight turns off if TouchDesigner disconnects from Grid Editor
+- When disabled: LCD stays on regardless of connection state
+
+**Turn off LED when TouchDesigner is disconnected:**
+- Default: `On`
+- When enabled: All button LEDs turn off if TouchDesigner disconnects
+- When disabled: LEDs maintain their last state during disconnection
+
+#### Screen Power Management
+
+**Screen inactivity timeout (minutes):**
+- Default: `5 minutes`
+- Range: `0` (disabled) to any positive value
+- Dims the screen after specified minutes of no MIDI activity
+- Set to `0` to disable automatic dimming
+
+**Screen active brightness (0-100%):**
+- Default: `100%`
+- Controls LCD brightness during normal operation
+- Lower values extend battery life
+
+**Screen inactive brightness (0-100%):**
+- Default: `0%` (off)
+- Controls LCD brightness after inactivity timeout
+- Set to `0` to turn screen completely off
+- Set higher to dim instead of turning off
+
+### Typical Configurations
+
+**Maximum Battery Life:**
+- Screen inactivity timeout: `2 minutes`
+- Active brightness: `70%`
+- Inactive brightness: `0%`
+
+**Always On, Full Brightness:**
+- Screen inactivity timeout: `0` (disabled)
+- Active brightness: `100%`
+- Inactive brightness: `100%`
+
+**Dim When Idle:**
+- Screen inactivity timeout: `5 minutes`
+- Active brightness: `100%`
+- Inactive brightness: `20%`
+
+> **💡 Tip**: The inactivity timer resets with any MIDI message from TouchDesigner. Screen immediately returns to active brightness when new messages are received.
 
 ---
 

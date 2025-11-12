@@ -86,6 +86,7 @@ Complete parameter reference organized by TouchDesigner parameter page.
 | `Push Step` | Current push step value (read-only) | 0.01 |
 | `Loop Menus` | Menu parameters wrap around | On |
 | `Control StrMenus` | Allow string-menu parameter control | On |
+| `Multi Adjust Mode` | Multi-operator editing: "Off", "Snap", or "Relative" | Off |
 | _Shortcuts_ | _(Section header)_ | |
 | `Shortcuts` | Enable button combo shortcuts | On |
 | `Slot Learn Hold Length` | Long-press duration for slot assignment (sec) | 0.33 |

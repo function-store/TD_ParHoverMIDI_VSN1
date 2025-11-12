@@ -14,6 +14,9 @@ let watchForActiveWindow = false;
 let isWindowActive = false;
 let controlScreenOnConnection = false;
 let controlLedOnConnection = true;
+let inactivityTimeoutMinutes = 5; // Default
+let screenDimLevel = 0; // 0-100%, 0 = fully off
+let screenActiveLevel = 100; // 0-100%, 100 = full brightness
 
 let actionId = 0;
 
@@ -22,6 +25,9 @@ let messageQueTimeoutId = undefined;
 let messageQueTimeout = 50;
 
 let ledState = "auto"; // "auto" or "red"
+
+let inactivityTimeoutId = undefined;
+let isScreenActive = true;
 
 function queUpdateMessage(message) {
   latestUpdateParameMessage = message;
@@ -40,6 +46,33 @@ function sendNextMessage() {
   messageQueTimeoutId = setTimeout(sendNextMessage, messageQueTimeout);
 }
 
+function startInactivityTimeout() {
+  clearTimeout(inactivityTimeoutId);
+  
+  // Don't start timeout if disabled (0 minutes)
+  if (inactivityTimeoutMinutes <= 0) {
+    return;
+  }
+  
+  // Convert minutes to milliseconds
+  const timeoutMs = inactivityTimeoutMinutes * 60 * 1000;
+  
+  inactivityTimeoutId = setTimeout(() => {
+    // Dim screen after inactivity
+    if (isScreenActive) {
+      isScreenActive = false;
+      // Convert 0-100% to 0-255 brightness value
+      const brightness = Math.round((screenDimLevel / 100) * 255);
+      setBlackLight(brightness);
+    }
+  }, timeoutMs);
+}
+
+function clearInactivityTimeout() {
+  clearTimeout(inactivityTimeoutId);
+  inactivityTimeoutId = undefined;
+}
+
 exports.loadPackage = async function (gridController, persistedData) {
   controller = gridController;
   let actionIconSvg = fs.readFileSync(
@@ -48,8 +81,29 @@ exports.loadPackage = async function (gridController, persistedData) {
   );
 
   watchForActiveWindow = persistedData?.watchForActiveWindow ?? false;
-  controlScreenOnConnection = persistedData?.controlScreenOnConnection ?? false;
-  controlLedOnConnection = persistedData?.controlLedOnConnection ?? true;
+  // Use explicit undefined checks for booleans to ensure false values are preserved
+  controlScreenOnConnection = persistedData?.controlScreenOnConnection !== undefined ? persistedData.controlScreenOnConnection : false;
+  controlLedOnConnection = persistedData?.controlLedOnConnection !== undefined ? persistedData.controlLedOnConnection : true;
+  inactivityTimeoutMinutes = persistedData?.inactivityTimeoutMinutes ?? 5;
+  screenDimLevel = persistedData?.screenDimLevel ?? 0;
+  screenActiveLevel = persistedData?.screenActiveLevel ?? 100;
+  
+  // Ensure initial settings are persisted if they were using defaults
+  if (!persistedData || persistedData.controlScreenOnConnection === undefined) {
+    setTimeout(() => {
+      gridController.sendMessageToEditor({
+        type: "persist-data",
+        data: {
+          watchForActiveWindow,
+          controlScreenOnConnection,
+          controlLedOnConnection,
+          inactivityTimeoutMinutes,
+          screenDimLevel,
+          screenActiveLevel,
+        },
+      });
+    }, 50);
+  }
 
   function createAction(overrides) {
     gridController.sendMessageToEditor({
@@ -73,17 +127,21 @@ exports.loadPackage = async function (gridController, persistedData) {
 
   wss = new WebSocket.Server({ port: websocketPort });
 
-  console.log(
-    `TouchDesigner Hover Control server is listening on ws://localhost:${websocketPort}`,
-  );
   wss.on("connection", (ws) => {
     clientWs = ws;
 
     ws.on("message", handleWebsocketMessage);
     notifyStatusChange();
+    
+    // Start inactivity timeout when client connects
+    isScreenActive = true;
+    startInactivityTimeout();
 
     ws.on("close", () => {
       clientWs = undefined;
+      // Clear inactivity timeout when client disconnects
+      clearInactivityTimeout();
+      isScreenActive = true;
       notifyStatusChange();
     });
   });
@@ -98,6 +156,7 @@ exports.loadPackage = async function (gridController, persistedData) {
 
 exports.unloadPackage = async function () {
   clearTimeout(messageQueTimeoutId);
+  clearInactivityTimeout();
   while (--actionId >= 0) {
     controller.sendMessageToEditor({
       type: "remove-action",
@@ -153,13 +212,35 @@ exports.addMessagePort = async function (port, senderId) {
           // Apply immediately based on current connection state
           notifyStatusChange();
         }
+        if (inactivityTimeoutMinutes !== e.data.inactivityTimeoutMinutes) {
+          inactivityTimeoutMinutes = e.data.inactivityTimeoutMinutes;
+          // Restart timeout with new duration if client is connected
+          if (clientWs && isScreenActive) {
+            startInactivityTimeout();
+          }
+        }
+        if (screenDimLevel !== e.data.screenDimLevel) {
+          screenDimLevel = e.data.screenDimLevel;
+        }
+        if (screenActiveLevel !== e.data.screenActiveLevel) {
+          screenActiveLevel = e.data.screenActiveLevel;
+          // Apply immediately if screen is active
+          if (clientWs && isScreenActive) {
+            const brightness = Math.round((screenActiveLevel / 100) * 255);
+            setBlackLight(brightness);
+          }
+        }
+        const dataToPerist = {
+          watchForActiveWindow,
+          controlScreenOnConnection,
+          controlLedOnConnection,
+          inactivityTimeoutMinutes,
+          screenDimLevel,
+          screenActiveLevel,
+        };
         controller.sendMessageToEditor({
           type: "persist-data",
-          data: {
-            watchForActiveWindow,
-            controlScreenOnConnection,
-            controlLedOnConnection,
-          },
+          data: dataToPerist,
         });
       }
     });
@@ -174,7 +255,6 @@ exports.sendMessage = async function (args) {
       return;
     }
     if (!clientWs) {
-      console.log("Websocket Client not connected!");
       controller.sendMessageToEditor({
         type: "show-message",
         message:
@@ -230,6 +310,16 @@ function activeWindowRequestNoResponse() {
 function handleWebsocketMessage(message) {
   let data = JSON.parse(message);
   
+  // Re-enable screen if it was turned off due to inactivity
+  if (!isScreenActive) {
+    isScreenActive = true;
+    const brightness = Math.round((screenActiveLevel / 100) * 255);
+    setBlackLight(brightness);
+  }
+  
+  // Restart inactivity timeout on every message
+  startInactivityTimeout();
+  
   // If we receive any WebSocket message and we're not in auto mode, reset to auto
   if (ledState !== "auto") {
     resetLedColorMinOnConnect();
@@ -271,6 +361,16 @@ lcd:ldsw();
   ledState = "red";
 }
 
+function ldsw() {
+  const luaScript = `
+lcd:ldsw();
+`;
+  controller.sendMessageToEditor({
+    type: "execute-lua-script",
+    script: luaScript
+  });
+}
+
 function resetLedColorMinOnConnect() {
   const luaScript = `
 for i = 10, 17 do
@@ -286,16 +386,11 @@ end
 }
 
 function setBlackLight(brightness) {
-  let luaScript = "";
-  if (!brightness) {
-    luaScript = `
-    set_l(0);
-    `;
-  } else {
-    luaScript = `
-    set_l(255);
-    `;
-  }
+  // Accept brightness as 0-255 value, or true/false for backwards compatibility
+  let brightnessValue;
+  brightnessValue = Math.max(0, Math.min(255, brightness)); // Clamp to 0-255
+  
+  const luaScript = `set_l(${brightnessValue});`;
   
   controller.sendMessageToEditor({
     type: "execute-lua-script",
@@ -310,19 +405,23 @@ function notifyStatusChange() {
     watchForActiveWindow,
     controlScreenOnConnection,
     controlLedOnConnection,
+    inactivityTimeoutMinutes,
+    screenDimLevel,
+    screenActiveLevel,
   });
   
   if (!clientWs) {
     // Disconnected state
-    if (controlScreenOnConnection) {
-      setBlackLight(false);
-    }
     if (controlLedOnConnection) {
       executeSetLedForIndices10to17();
     }
+    if (controlScreenOnConnection) {
+      setBlackLight(0);
+    }
   } else {
     // Connected state
-    setBlackLight(true);
+    const brightness = Math.round((screenActiveLevel / 100) * 255);
+    setBlackLight(brightness);
     resetLedColorMinOnConnect();
   }
 }

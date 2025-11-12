@@ -17,6 +17,7 @@
             color: #e0e0e0;
             padding: 20px;
             line-height: 1.6;
+            padding-top: 120px;
         }
         
         .container {
@@ -33,7 +34,7 @@
             text-align: center;
             margin-bottom: 10px;
             font-size: 2.5em;
-            text-shadow: 0 0 20px rgba(143, 163, 255, 0.5);
+            text-shadow: 0 0 20px rgba(74, 144, 226, 0.5);
         }
         
         .subtitle {
@@ -53,11 +54,11 @@
         }
         
         h2 {
-            color: #667eea;
+            color: #4A90E2;
             margin-top: 40px;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid #4A90E2;
             font-size: 1.8em;
         }
         
@@ -78,7 +79,7 @@
         }
         
         th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%);
             color: white;
             padding: 15px;
             text-align: left;
@@ -109,18 +110,18 @@
         .category-row {
             background: #252538 !important;
             font-weight: bold;
-            color: #667eea !important;
+            color: #4A90E2 !important;
         }
         
         .category-row td {
             padding: 10px 15px;
             font-size: 1.1em;
-            border-top: 2px solid #667eea;
+            border-top: 2px solid #4A90E2;
         }
         
         .note {
-            background: rgba(102, 126, 234, 0.1);
-            border-left: 4px solid #667eea;
+            background: rgba(74, 144, 226, 0.1);
+            border-left: 4px solid #4A90E2;
             padding: 15px;
             margin: 20px 0;
             border-radius: 4px;
@@ -161,7 +162,7 @@
         /* Firefox */
         * {
             scrollbar-width: thin;
-            scrollbar-color: #667eea #1a1a2e;
+            scrollbar-color: #4A90E2 #1a1a2e;
         }
         
         /* Webkit browsers (Chrome, Safari, Edge) */
@@ -176,21 +177,108 @@
         }
         
         ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%);
             border-radius: 10px;
             border: 2px solid #1a1a2e;
         }
         
         ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #8fa3ff 0%, #9966cc 100%);
+            background: linear-gradient(135deg, #6BB3FF 0%, #4A90E2 100%);
         }
         
         ::-webkit-scrollbar-corner {
             background: #1a1a2e;
         }
+        
+        /* Search Bar Styling */
+        .search-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 30, 0.98);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            border-bottom: 2px solid #4A90E2;
+        }
+        
+        .search-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        #searchInput {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            font-size: 16px;
+            background: #1a1a2e;
+            border: 2px solid #4A90E2;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        #searchInput:focus {
+            outline: none;
+            border-color: #6BB3FF;
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.3);
+        }
+        
+        #searchInput::placeholder {
+            color: #666;
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4A90E2;
+            font-size: 20px;
+        }
+        
+        .search-stats {
+            position: absolute;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .highlight {
+            background: rgba(74, 144, 226, 0.3);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        tr.hidden {
+            display: none;
+        }
+        
+        h2.hidden {
+            display: none;
+        }
+        
+        table.hidden {
+            display: none;
+        }
     </style>
 </head>
-<body>    
+<body>
+    <!-- Search Bar -->
+    <div class="search-container">
+        <div class="search-wrapper">
+            <input type="text" id="searchInput" placeholder="Search controls, parameters, or shortcuts... (Ctrl/Cmd + F)" autocomplete="off">
+            <span class="search-stats" id="searchStats"></span>
+            <span class="search-icon">🔍</span>
+        </div>
+    </div>
+    
     <div class="container">
         <h1>🎛️ TouchDesigner Par Hover Control</h1>
         <div class="subtitle">
@@ -420,6 +508,11 @@
                     <td>Control StrMenus</td>
                     <td>Allow string-menu parameter control</td>
                     <td>On</td>
+                </tr>
+                <tr>
+                    <td>Multi Adjust Mode</td>
+                    <td>Multi-operator editing: "Off", "Snap", or "Relative"</td>
+                    <td>Off</td>
                 </tr>
                 <tr style="background: #1e1e2e; font-style: italic;">
                     <td>Shortcuts</td>
@@ -864,11 +957,170 @@
             <p>TouchDesigner Par Hover Control for Intech VSN1</p>
             <p>by <strong style="color: #8fa3ff;">Function Store</strong></p>
             <p style="margin-top: 10px;">
-                <a href="https://function-store.github.io/TD_ParHoverMIDI_VSN1/" target="_blank" style="color: #667eea; text-decoration: none;">Documentation</a> | 
-                <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1" target="_blank" style="color: #667eea; text-decoration: none;">GitHub</a>
+                <a href="https://function-store.github.io/TD_ParHoverMIDI_VSN1/" target="_blank" style="color: #4A90E2; text-decoration: none;">Documentation</a> | 
+                <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1" target="_blank" style="color: #4A90E2; text-decoration: none;">GitHub</a>
             </p>
         </div>
     </div>
+    
+    <script>
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchStats = document.getElementById('searchStats');
+        let searchTimeout;
+        
+        // Focus search on Ctrl/Cmd + F
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+        
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => performSearch(e.target.value), 150);
+        });
+        
+        function performSearch(query) {
+            const searchTerm = query.toLowerCase().trim();
+            
+            // Get all tables and their parent sections
+            const sections = document.querySelectorAll('h2');
+            const tables = document.querySelectorAll('table');
+            const allRows = document.querySelectorAll('tbody tr');
+            
+            if (searchTerm === '') {
+                // Reset: show everything including category rows
+                allRows.forEach(row => {
+                    row.classList.remove('hidden', 'highlight');
+                    // Restore original text content
+                    row.querySelectorAll('td').forEach(cell => {
+                        if (cell.hasAttribute('data-original-text')) {
+                            cell.textContent = cell.getAttribute('data-original-text');
+                        }
+                    });
+                });
+                sections.forEach(section => section.classList.remove('hidden'));
+                tables.forEach(table => table.classList.remove('hidden'));
+                searchStats.textContent = '';
+                return;
+            }
+            
+            let visibleCount = 0;
+            let sectionsWithResults = new Set();
+            let categoryRowsWithResults = new Set();
+            let currentCategoryRow = null;
+            
+            // First pass: hide all category rows
+            allRows.forEach(row => {
+                if (row.classList.contains('category-row')) {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            // Search through all rows
+            allRows.forEach(row => {
+                // Track current category
+                if (row.classList.contains('category-row')) {
+                    currentCategoryRow = row;
+                    return;
+                }
+                
+                const text = row.textContent.toLowerCase();
+                const cells = row.querySelectorAll('td');
+                
+                if (text.includes(searchTerm)) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                    
+                    // Track which category this result belongs to
+                    if (currentCategoryRow) {
+                        categoryRowsWithResults.add(currentCategoryRow);
+                    }
+                    
+                    // Track which section this result belongs to
+                    let currentTable = row.closest('table');
+                    let previousH2 = currentTable.previousElementSibling;
+                    while (previousH2 && previousH2.tagName !== 'H2') {
+                        previousH2 = previousH2.previousElementSibling;
+                    }
+                    if (previousH2) {
+                        sectionsWithResults.add(previousH2);
+                    }
+                    
+                    // Highlight matching text in cells
+                    cells.forEach(cell => {
+                        // Store original text if not already stored
+                        if (!cell.hasAttribute('data-original-text')) {
+                            cell.setAttribute('data-original-text', cell.textContent);
+                        }
+                        
+                        // Get original text and reset cell
+                        const originalText = cell.getAttribute('data-original-text');
+                        const lowerOriginalText = originalText.toLowerCase();
+                        const index = lowerOriginalText.indexOf(searchTerm);
+                        
+                        if (index !== -1) {
+                            const before = originalText.substring(0, index);
+                            const match = originalText.substring(index, index + searchTerm.length);
+                            const after = originalText.substring(index + searchTerm.length);
+                            cell.innerHTML = `${escapeHtml(before)}<span class="highlight">${escapeHtml(match)}</span>${escapeHtml(after)}`;
+                        } else {
+                            cell.textContent = originalText;
+                        }
+                    });
+                } else {
+                    row.classList.add('hidden');
+                    
+                    // Remove highlights from hidden rows
+                    cells.forEach(cell => {
+                        if (cell.hasAttribute('data-original-text')) {
+                            cell.textContent = cell.getAttribute('data-original-text');
+                        }
+                    });
+                }
+            });
+            
+            // Show category rows that have results
+            categoryRowsWithResults.forEach(categoryRow => {
+                categoryRow.classList.remove('hidden');
+            });
+            
+            // Hide/show sections based on results
+            sections.forEach(section => {
+                if (sectionsWithResults.has(section)) {
+                    section.classList.remove('hidden');
+                } else {
+                    section.classList.add('hidden');
+                }
+            });
+            
+            // Hide/show tables that have no visible rows
+            tables.forEach(table => {
+                const visibleRows = table.querySelectorAll('tbody tr:not(.hidden):not(.category-row)');
+                if (visibleRows.length === 0) {
+                    table.classList.add('hidden');
+                } else {
+                    table.classList.remove('hidden');
+                }
+            });
+            
+            // Update stats
+            searchStats.textContent = `${visibleCount} result${visibleCount !== 1 ? 's' : ''}`;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Auto-focus search input on page load
+        window.addEventListener('load', () => {
+            searchInput.focus();
+        });
+    </script>
 </body>
 </html>
 

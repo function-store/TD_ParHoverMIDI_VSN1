@@ -136,13 +136,6 @@ class UIManager:
 		self._set_button_color(slot_idx, value)
 		pass
 
-	def set_bank_indicator(self, bank_idx: int):
-		"""Set bank indicator in UI"""
-		if not self.ui_enabled:
-			return
-		# Update UI parameter to show current bank
-		self.ui.par.Currentbank = bank_idx
-	
 	def refresh_all_button_states(self):
 		"""Refresh all button labels and colors for current bank"""
 		if not self.ui_enabled:

@@ -36,6 +36,7 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 
 ### Core Control
 - **Hover-based Control** - Adjust any parameter by simply hovering your mouse over it
+- **Multi-Operator Editing** - Adjust the same parameter on multiple selected operators simultaneously (Snap or Relative modes)
 - **ParGroup Support** - Control entire parameter groups (RGB, XYZ) simultaneously with one knob
 - **Flexible Precision** - Multiple step sizes with Fixed or Adaptive modes for any parameter range
 - **Parameter Pulse** - Trigger pulse, momentary, and toggle parameters with knob push button
@@ -66,7 +67,8 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 ### VSN1 Hardware Integration
 - **LCD Screen Feedback** - Real-time display of parameter values, names, and state
 - **LED Feedback** - Slot buttons show active state, step indicators, and color coding
-- **Grid Editor Package** - Configure LCD/LED behavior on disconnect
+- **Grid Editor Package** - Configure LCD/LED behavior on disconnect, screen brightness, and inactivity timeout
+- **Power Management** - Automatic screen dimming after configurable inactivity period
 - **WebSocket Communication** - Low-latency screen updates via Grid Editor
 
 ---
