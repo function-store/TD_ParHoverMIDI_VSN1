@@ -159,11 +159,11 @@ You can also support my work on [Patreon](patreon.com/function_store) where I ha
 - **[Function Store](https://www.functionstore.xyz/link-in-bio)** - Project creator and lead developer
 
 **Special Thanks:**
+- **[Intech Studio](https://intech.studio/)** - General support and hardware collaboration
 - **[Greg Orca](https://www.instagram.com/greg_orca/)** - Valuable feedback and ongoing support
 - **[Dániel Pásztor](https://github.com/danim1130)** - Queued screen updates and GitHub Actions implementation
-- **[Intech Studio](https://intech.studio/)** - General support and hardware collaboration
 - **[TheTouchLab](https://www.instagram.com/thetouchlab/)** - Network Editor mouse position tracking
-
+- **[CarlosUnch](https://www.instagram.com/verbosemusic/)** - Testing and ideas
 </div>
 
 ---
