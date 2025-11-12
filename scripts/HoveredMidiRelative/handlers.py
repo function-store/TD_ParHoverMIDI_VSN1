@@ -505,79 +505,142 @@ class MidiMessageHandler:
 			# Normal single parameter reset (no multi-operator editing)
 			self.parent.undo_manager.reset_parameter_with_undo(par_or_group)
 	
-	def set_default_parameter(self, par: 'Par'):
-		"""Set default value for parameter, with multi-operator support.
+	def set_default_parameter(self, par_or_group: Union['Par', 'ParGroup']):
+		"""Set default value for parameter or ParGroup, with multi-operator support.
 		
 		Args:
-			par: The parameter to set default for
+			par_or_group: The parameter or ParGroup to set default for
 		"""
-		if not par.isCustom:
-			return
-		
 		# Check if multi-operator editing is active
 		is_multi_op_active = (self.parent.activeSlot is None and 
 		                       self.parent.evalMultiadjustmode != MultiAdjustMode.OFF.value)
 		
-		if is_multi_op_active:
-			matching_pars = ParameterValidator.get_matching_selected_pars(par)
-			if matching_pars:
-				# Filter for custom parameters only
-				custom_matching = [p for p in matching_pars if p.isCustom]
-				if custom_matching:
-					self.parent.undo_manager.set_default_with_multi_undo(par, custom_matching)
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(par_or_group):
+			if is_multi_op_active:
+				# Collect all matching parameters from other operators
+				all_additional_pars = []
+				for par in par_or_group:
+					# Skip unit parameters and invalid parameters
+					if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+						matching_pars = ParameterValidator.get_matching_selected_pars(par)
+						all_additional_pars.extend(matching_pars)
+				
+				if all_additional_pars:
+					# Set defaults for ParGroup + all matching parameters with grouped undo
+					self.parent.undo_manager.set_default_pargroup_with_multi_undo(par_or_group, all_additional_pars)
 					return
-		
-		# Normal single parameter
-		self.parent.undo_manager.set_default_with_undo(par)
+			
+			# Normal ParGroup set default (no multi-operator editing)
+			self.parent.undo_manager.set_default_pargroup_with_undo(par_or_group)
+		else:
+			# Handle single Par
+			if not par_or_group.isCustom:
+				return
+			
+			if is_multi_op_active:
+				# Get matching parameters from other selected operators
+				matching_pars = ParameterValidator.get_matching_selected_pars(par_or_group)
+				if matching_pars:
+					# Filter for custom parameters only
+					custom_matching = [p for p in matching_pars if p.isCustom]
+					if custom_matching:
+						self.parent.undo_manager.set_default_with_multi_undo(par_or_group, custom_matching)
+						return
+			
+			# Normal single parameter set default (no multi-operator editing)
+			self.parent.undo_manager.set_default_with_undo(par_or_group)
 	
-	def set_norm_parameter(self, par: 'Par', is_min: bool):
-		"""Set norm min or max for parameter, with multi-operator support.
+	def set_norm_parameter(self, par_or_group: Union['Par', 'ParGroup'], is_min: bool):
+		"""Set norm min or max for parameter or ParGroup, with multi-operator support.
 		
 		Args:
-			par: The parameter to set norm for
+			par_or_group: The parameter or ParGroup to set norm for
 			is_min: True for normMin, False for normMax
 		"""
-		if not par.isCustom:
-			return
-		
 		# Check if multi-operator editing is active
 		is_multi_op_active = (self.parent.activeSlot is None and 
 		                       self.parent.evalMultiadjustmode != MultiAdjustMode.OFF.value)
 		
-		if is_multi_op_active:
-			matching_pars = ParameterValidator.get_matching_selected_pars(par)
-			if matching_pars:
-				# Filter for custom parameters only
-				custom_matching = [p for p in matching_pars if p.isCustom]
-				if custom_matching:
-					self.parent.undo_manager.set_norm_with_multi_undo(par, custom_matching, is_min)
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(par_or_group):
+			if is_multi_op_active:
+				# Collect all matching parameters from other operators
+				all_additional_pars = []
+				for par in par_or_group:
+					# Skip unit parameters and invalid parameters
+					if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+						matching_pars = ParameterValidator.get_matching_selected_pars(par)
+						all_additional_pars.extend(matching_pars)
+				
+				if all_additional_pars:
+					# Set norm for ParGroup + all matching parameters with grouped undo
+					self.parent.undo_manager.set_norm_pargroup_with_multi_undo(par_or_group, all_additional_pars, is_min)
 					return
-		
-		# Normal single parameter
-		self.parent.undo_manager.set_norm_with_undo(par, is_min)
+			
+			# Normal ParGroup set norm (no multi-operator editing)
+			self.parent.undo_manager.set_norm_pargroup_with_undo(par_or_group, is_min)
+		else:
+			# Handle single Par
+			if not par_or_group.isCustom:
+				return
+			
+			if is_multi_op_active:
+				# Get matching parameters from other selected operators
+				matching_pars = ParameterValidator.get_matching_selected_pars(par_or_group)
+				if matching_pars:
+					# Filter for custom parameters only
+					custom_matching = [p for p in matching_pars if p.isCustom]
+					if custom_matching:
+						self.parent.undo_manager.set_norm_with_multi_undo(par_or_group, custom_matching, is_min)
+						return
+			
+			# Normal single parameter set norm (no multi-operator editing)
+			self.parent.undo_manager.set_norm_with_undo(par_or_group, is_min)
 	
-	def set_clamp_parameter(self, par: 'Par', min_max: str):
-		"""Set clamp for parameter, with multi-operator support.
+	def set_clamp_parameter(self, par_or_group: Union['Par', 'ParGroup'], min_max: str):
+		"""Set clamp for parameter or ParGroup, with multi-operator support.
 		
 		Args:
-			par: The parameter to set clamp for
+			par_or_group: The parameter or ParGroup to set clamp for
 			min_max: 'min', 'max', or 'both'
 		"""
-		if not par.isCustom:
-			return
-		
 		# Check if multi-operator editing is active
 		is_multi_op_active = (self.parent.activeSlot is None and 
 		                       self.parent.evalMultiadjustmode != MultiAdjustMode.OFF.value)
 		
-		if is_multi_op_active:
-			matching_pars = ParameterValidator.get_matching_selected_pars(par)
-			if matching_pars:
-				# Filter for custom parameters only
-				custom_matching = [p for p in matching_pars if p.isCustom]
-				if custom_matching:
-					self.parent.undo_manager.set_clamp_with_multi_undo(par, custom_matching, min_max)
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(par_or_group):
+			if is_multi_op_active:
+				# Collect all matching parameters from other operators
+				all_additional_pars = []
+				for par in par_or_group:
+					# Skip unit parameters and invalid parameters
+					if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+						matching_pars = ParameterValidator.get_matching_selected_pars(par)
+						all_additional_pars.extend(matching_pars)
+				
+				if all_additional_pars:
+					# Toggle clamp for ParGroup + all matching parameters with grouped undo
+					self.parent.undo_manager.set_clamp_pargroup_with_multi_undo(par_or_group, all_additional_pars, min_max)
 					return
-		
-		# Normal single parameter
-		self.parent.undo_manager.set_clamp_with_undo(par, min_max)
+			
+			# Normal ParGroup set clamp (no multi-operator editing)
+			self.parent.undo_manager.set_clamp_pargroup_with_undo(par_or_group, min_max)
+		else:
+			# Handle single Par
+			if not par_or_group.isCustom:
+				return
+			
+			if is_multi_op_active:
+				# Get matching parameters from other selected operators
+				matching_pars = ParameterValidator.get_matching_selected_pars(par_or_group)
+				if matching_pars:
+					# Filter for custom parameters only
+					custom_matching = [p for p in matching_pars if p.isCustom]
+					if custom_matching:
+						self.parent.undo_manager.set_clamp_with_multi_undo(par_or_group, custom_matching, min_max)
+						return
+			
+			# Normal single parameter set clamp (no multi-operator editing)
+			self.parent.undo_manager.set_clamp_with_undo(par_or_group, min_max)

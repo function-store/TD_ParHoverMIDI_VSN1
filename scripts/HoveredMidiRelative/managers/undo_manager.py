@@ -745,6 +745,106 @@ class UndoManager:
 		finally:
 			ui.undo.endBlock()
 	
+	def set_default_pargroup_with_undo(self, par_group: 'ParGroup'):
+		"""Set default for all parameters in a ParGroup and create undo action.
+		
+		Args:
+			par_group: The ParGroup to set defaults for
+		"""
+		# Collect all custom parameters from ParGroup
+		all_pars = []
+		for par in par_group:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+				all_pars.append(par)
+		
+		if not all_pars:
+			return
+		
+		# Capture old values and apply changes
+		undo_info_list = []
+		for p in all_pars:
+			old_default = p.default
+			new_default = p.eval()
+			p.default = new_default
+			
+			if self.parent.evalEnableundo:
+				undo_info_list.append({
+					'par_path': f"{p.owner.path}:{p.name}",
+					'old_default': old_default,
+					'new_default': new_default,
+					'par_name': p.name
+				})
+		
+		if not self.parent.evalEnableundo or not undo_info_list:
+			return
+		
+		# Get group name
+		try:
+			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
+		except:
+			group_name = "ParGroup"
+		
+		# Create grouped undo
+		ui.undo.startBlock(f'Set Default {group_name} ParGroup')
+		try:
+			for undo_info in undo_info_list:
+				ui.undo.addCallback(self._undo_set_default_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def set_default_pargroup_with_multi_undo(self, par_group: 'ParGroup', additional_pars: list):
+		"""Set default for ParGroup + additional parameters and create grouped undo.
+		
+		Args:
+			par_group: The main ParGroup to set defaults for
+			additional_pars: List of additional parameters to set defaults simultaneously
+		"""
+		# Collect all custom parameters from ParGroup
+		all_pars = []
+		for par in par_group:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+				all_pars.append(par)
+		
+		# Add additional custom parameters
+		all_pars.extend([p for p in additional_pars if p is not None and p.isCustom])
+		
+		if not all_pars:
+			return
+		
+		# Capture old values and apply changes
+		undo_info_list = []
+		for p in all_pars:
+			old_default = p.default
+			new_default = p.eval()
+			p.default = new_default
+			
+			if self.parent.evalEnableundo:
+				undo_info_list.append({
+					'par_path': f"{p.owner.path}:{p.name}",
+					'old_default': old_default,
+					'new_default': new_default,
+					'par_name': p.name
+				})
+		
+		if not self.parent.evalEnableundo or not undo_info_list:
+			return
+		
+		# Get group name
+		try:
+			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
+		except:
+			group_name = "ParGroup"
+		
+		# Create single undo block for all parameters
+		ui.undo.startBlock(f'Set Default {group_name} ParGroup (Multi-Op)')
+		try:
+			for undo_info in undo_info_list:
+				ui.undo.addCallback(self._undo_set_default_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
 	def _undo_set_default_callback(self, isUndo, info):
 		"""Callback for undoing parameter default change."""
 		par_path = info['par_path']
@@ -870,6 +970,144 @@ class UndoManager:
 		min_max_str = "Min" if is_min else "Max"
 		block_name = f'Set {min_max_str} {par.name} (Multi-Op)' if len(undo_info_list) > 1 else f'Set {min_max_str} {par.name}'
 		ui.undo.startBlock(block_name)
+		try:
+			for undo_info in undo_info_list:
+				ui.undo.addCallback(self._undo_set_norm_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def set_norm_pargroup_with_undo(self, par_group: 'ParGroup', is_min: bool):
+		"""Set norm min or max for all parameters in a ParGroup and create undo action.
+		
+		Args:
+			par_group: The ParGroup to set norm for
+			is_min: True for normMin, False for normMax
+		"""
+		# Collect all custom parameters from ParGroup
+		all_pars = []
+		for par in par_group:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+				all_pars.append(par)
+		
+		if not all_pars:
+			return
+		
+		# Capture old values and apply changes
+		undo_info_list = []
+		for p in all_pars:
+			_val = p.eval()
+			
+			# Check if valid and apply
+			if is_min:
+				if _val == p.normMax:
+					continue
+				old_norm = p.normMin
+				old_minmax = p.min
+				p.normMin = _val
+				p.min = _val
+			else:
+				if _val == p.normMin:
+					continue
+				old_norm = p.normMax
+				old_minmax = p.max
+				p.normMax = _val
+				p.max = _val
+			
+			if self.parent.evalEnableundo:
+				undo_info_list.append({
+					'par_path': f"{p.owner.path}:{p.name}",
+					'is_min': is_min,
+					'old_norm': old_norm,
+					'new_norm': _val,
+					'old_minmax': old_minmax,
+					'new_minmax': _val,
+					'par_name': p.name
+				})
+		
+		if not self.parent.evalEnableundo or not undo_info_list:
+			return
+		
+		# Get group name
+		try:
+			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
+		except:
+			group_name = "ParGroup"
+		
+		# Create grouped undo
+		min_max_str = "Min" if is_min else "Max"
+		ui.undo.startBlock(f'Set {min_max_str} {group_name} ParGroup')
+		try:
+			for undo_info in undo_info_list:
+				ui.undo.addCallback(self._undo_set_norm_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def set_norm_pargroup_with_multi_undo(self, par_group: 'ParGroup', additional_pars: list, is_min: bool):
+		"""Set norm for ParGroup + additional parameters and create grouped undo.
+		
+		Args:
+			par_group: The main ParGroup to set norm for
+			additional_pars: List of additional parameters to set norm simultaneously
+			is_min: True for normMin, False for normMax
+		"""
+		# Collect all custom parameters from ParGroup
+		all_pars = []
+		for par in par_group:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+				all_pars.append(par)
+		
+		# Add additional custom parameters
+		all_pars.extend([p for p in additional_pars if p is not None and p.isCustom])
+		
+		if not all_pars:
+			return
+		
+		# Capture old values and apply changes
+		undo_info_list = []
+		for p in all_pars:
+			_val = p.eval()
+			
+			# Check if valid and apply
+			if is_min:
+				if _val == p.normMax:
+					continue
+				old_norm = p.normMin
+				old_minmax = p.min
+				p.normMin = _val
+				p.min = _val
+			else:
+				if _val == p.normMin:
+					continue
+				old_norm = p.normMax
+				old_minmax = p.max
+				p.normMax = _val
+				p.max = _val
+			
+			if self.parent.evalEnableundo:
+				undo_info_list.append({
+					'par_path': f"{p.owner.path}:{p.name}",
+					'is_min': is_min,
+					'old_norm': old_norm,
+					'new_norm': _val,
+					'old_minmax': old_minmax,
+					'new_minmax': _val,
+					'par_name': p.name
+				})
+		
+		if not self.parent.evalEnableundo or not undo_info_list:
+			return
+		
+		# Get group name
+		try:
+			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
+		except:
+			group_name = "ParGroup"
+		
+		# Create single undo block for all parameters
+		min_max_str = "Min" if is_min else "Max"
+		ui.undo.startBlock(f'Set {min_max_str} {group_name} ParGroup (Multi-Op)')
 		try:
 			for undo_info in undo_info_list:
 				ui.undo.addCallback(self._undo_set_norm_callback, undo_info)
@@ -1004,6 +1242,134 @@ class UndoManager:
 		# Create grouped undo
 		block_name = f'Toggle Clamp {par.name} (Multi-Op)' if len(undo_info_list) > 1 else f'Toggle Clamp {par.name}'
 		ui.undo.startBlock(block_name)
+		try:
+			for undo_info in undo_info_list:
+				ui.undo.addCallback(self._undo_set_clamp_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def set_clamp_pargroup_with_undo(self, par_group: 'ParGroup', min_max: str):
+		"""Toggle clamp for all parameters in a ParGroup and create undo action.
+		
+		Args:
+			par_group: The ParGroup to toggle clamp for
+			min_max: 'min', 'max', or 'both'
+		"""
+		# Collect all custom parameters from ParGroup
+		all_pars = []
+		for par in par_group:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+				all_pars.append(par)
+		
+		if not all_pars:
+			return
+		
+		# Determine what's changing
+		changed_min = (min_max == 'min' or min_max == 'both')
+		changed_max = (min_max == 'max' or min_max == 'both')
+		
+		# Capture old values and apply changes
+		undo_info_list = []
+		for p in all_pars:
+			old_clamp_min = p.clampMin
+			old_clamp_max = p.clampMax
+			
+			# Apply changes
+			if changed_min:
+				p.clampMin = not p.clampMin
+			if changed_max:
+				p.clampMax = not p.clampMax
+			
+			if self.parent.evalEnableundo:
+				undo_info_list.append({
+					'par_path': f"{p.owner.path}:{p.name}",
+					'changed_min': changed_min,
+					'changed_max': changed_max,
+					'old_clamp_min': old_clamp_min,
+					'old_clamp_max': old_clamp_max,
+					'new_clamp_min': p.clampMin,
+					'new_clamp_max': p.clampMax,
+					'par_name': p.name
+				})
+		
+		if not self.parent.evalEnableundo or not undo_info_list:
+			return
+		
+		# Get group name
+		try:
+			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
+		except:
+			group_name = "ParGroup"
+		
+		# Create grouped undo
+		ui.undo.startBlock(f'Toggle Clamp {group_name} ParGroup')
+		try:
+			for undo_info in undo_info_list:
+				ui.undo.addCallback(self._undo_set_clamp_callback, undo_info)
+		finally:
+			ui.undo.endBlock()
+	
+	def set_clamp_pargroup_with_multi_undo(self, par_group: 'ParGroup', additional_pars: list, min_max: str):
+		"""Toggle clamp for ParGroup + additional parameters and create grouped undo.
+		
+		Args:
+			par_group: The main ParGroup to toggle clamp for
+			additional_pars: List of additional parameters to toggle clamp simultaneously
+			min_max: 'min', 'max', or 'both'
+		"""
+		# Collect all custom parameters from ParGroup
+		all_pars = []
+		for par in par_group:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+				all_pars.append(par)
+		
+		# Add additional custom parameters
+		all_pars.extend([p for p in additional_pars if p is not None and p.isCustom])
+		
+		if not all_pars:
+			return
+		
+		# Determine what's changing
+		changed_min = (min_max == 'min' or min_max == 'both')
+		changed_max = (min_max == 'max' or min_max == 'both')
+		
+		# Capture old values and apply changes
+		undo_info_list = []
+		for p in all_pars:
+			old_clamp_min = p.clampMin
+			old_clamp_max = p.clampMax
+			
+			# Apply changes
+			if changed_min:
+				p.clampMin = not p.clampMin
+			if changed_max:
+				p.clampMax = not p.clampMax
+			
+			if self.parent.evalEnableundo:
+				undo_info_list.append({
+					'par_path': f"{p.owner.path}:{p.name}",
+					'changed_min': changed_min,
+					'changed_max': changed_max,
+					'old_clamp_min': old_clamp_min,
+					'old_clamp_max': old_clamp_max,
+					'new_clamp_min': p.clampMin,
+					'new_clamp_max': p.clampMax,
+					'par_name': p.name
+				})
+		
+		if not self.parent.evalEnableundo or not undo_info_list:
+			return
+		
+		# Get group name
+		try:
+			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
+		except:
+			group_name = "ParGroup"
+		
+		# Create single undo block for all parameters
+		ui.undo.startBlock(f'Toggle Clamp {group_name} ParGroup (Multi-Op)')
 		try:
 			for undo_info in undo_info_list:
 				ui.undo.addCallback(self._undo_set_clamp_callback, undo_info)
