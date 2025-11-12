@@ -54,21 +54,37 @@ class MidiMessageHandler:
 		Args:
 			active_par: The parameter or ParGroup to create undo for
 		"""
-		# Handle ParGroup - create single undo block for all parameters
+		# Check if multi-operator editing is active (hover mode + multi-adjust enabled)
+		is_multi_op_active = (self.parent.activeSlot is None and 
+		                       self.parent.evalMultiadjustmode != MultiAdjustMode.OFF.value)
+		
+		# Handle ParGroup
 		if ParameterValidator.is_pargroup(active_par):
+			if is_multi_op_active:
+				# Get all matching parameters from other operators for this ParGroup
+				all_additional_pars = []
+				for par in active_par:
+					# Skip unit parameters and invalid parameters
+					if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par):
+						matching_pars = ParameterValidator.get_matching_selected_pars(par)
+						all_additional_pars.extend(matching_pars)
+				
+				if all_additional_pars:
+					# Create grouped undo for ParGroup + all matching parameters
+					self.parent.undo_manager.create_pargroup_with_multi_undo(active_par, all_additional_pars)
+					return
+			
+			# Normal ParGroup undo (no multi-operator editing)
 			self.parent.undo_manager.create_pargroup_undo(active_par)
 		else:
 			# Handle single Par
-			# Check if multi-operator editing is active (hover mode + multi-adjust enabled)
-			if self.parent.activeSlot is None:  # hover mode
-				multi_mode = self.parent.evalMultiadjustmode
-				if multi_mode != MultiAdjustMode.OFF.value:
-					# Get matching parameters from other selected operators
-					matching_pars = ParameterValidator.get_matching_selected_pars(active_par)
-					if matching_pars:
-						# Create grouped undo for main + matching parameters
-						self.parent.undo_manager.create_multi_parameter_undo(active_par, matching_pars)
-						return
+			if is_multi_op_active:
+				# Get matching parameters from other selected operators
+				matching_pars = ParameterValidator.get_matching_selected_pars(active_par)
+				if matching_pars:
+					# Create grouped undo for main + matching parameters
+					self.parent.undo_manager.create_multi_parameter_undo(active_par, matching_pars)
+					return
 			
 			# Normal single parameter undo
 			self.parent.undo_manager.create_parameter_undo(active_par)
@@ -447,3 +463,121 @@ class MidiMessageHandler:
 			# we could get the step from the sequence blocks, but this is simpler and faster
 			return step * 10
 		return step
+	
+	def reset_parameter(self, par_or_group: Union['Par', 'ParGroup']):
+		"""Reset a parameter or ParGroup, with multi-operator support.
+		
+		Args:
+			par_or_group: The parameter or ParGroup to reset
+		"""
+		# Check if multi-operator editing is active (hover mode + multi-adjust enabled)
+		is_multi_op_active = (self.parent.activeSlot is None and 
+		                       self.parent.evalMultiadjustmode != MultiAdjustMode.OFF.value)
+		
+		# Handle ParGroup
+		if ParameterValidator.is_pargroup(par_or_group):
+			if is_multi_op_active:
+				# Collect all matching parameters from other operators
+				all_additional_pars = []
+				for par in par_or_group:
+					# Skip unit parameters and invalid parameters
+					if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par):
+						matching_pars = ParameterValidator.get_matching_selected_pars(par)
+						all_additional_pars.extend(matching_pars)
+				
+				if all_additional_pars:
+					# Reset ParGroup + all matching parameters with grouped undo
+					self.parent.undo_manager.reset_pargroup_with_multi_undo(par_or_group, all_additional_pars)
+					return
+			
+			# Normal ParGroup reset (no multi-operator editing)
+			self.parent.undo_manager.reset_pargroup_with_undo(par_or_group)
+		else:
+			# Handle single Par
+			if is_multi_op_active:
+				# Get matching parameters from other selected operators
+				matching_pars = ParameterValidator.get_matching_selected_pars(par_or_group)
+				if matching_pars:
+					# Reset main + matching parameters with grouped undo
+					self.parent.undo_manager.reset_parameter_with_multi_undo(par_or_group, matching_pars)
+					return
+			
+			# Normal single parameter reset (no multi-operator editing)
+			self.parent.undo_manager.reset_parameter_with_undo(par_or_group)
+	
+	def set_default_parameter(self, par: 'Par'):
+		"""Set default value for parameter, with multi-operator support.
+		
+		Args:
+			par: The parameter to set default for
+		"""
+		if not par.isCustom:
+			return
+		
+		# Check if multi-operator editing is active
+		is_multi_op_active = (self.parent.activeSlot is None and 
+		                       self.parent.evalMultiadjustmode != MultiAdjustMode.OFF.value)
+		
+		if is_multi_op_active:
+			matching_pars = ParameterValidator.get_matching_selected_pars(par)
+			if matching_pars:
+				# Filter for custom parameters only
+				custom_matching = [p for p in matching_pars if p.isCustom]
+				if custom_matching:
+					self.parent.undo_manager.set_default_with_multi_undo(par, custom_matching)
+					return
+		
+		# Normal single parameter
+		self.parent.undo_manager.set_default_with_undo(par)
+	
+	def set_norm_parameter(self, par: 'Par', is_min: bool):
+		"""Set norm min or max for parameter, with multi-operator support.
+		
+		Args:
+			par: The parameter to set norm for
+			is_min: True for normMin, False for normMax
+		"""
+		if not par.isCustom:
+			return
+		
+		# Check if multi-operator editing is active
+		is_multi_op_active = (self.parent.activeSlot is None and 
+		                       self.parent.evalMultiadjustmode != MultiAdjustMode.OFF.value)
+		
+		if is_multi_op_active:
+			matching_pars = ParameterValidator.get_matching_selected_pars(par)
+			if matching_pars:
+				# Filter for custom parameters only
+				custom_matching = [p for p in matching_pars if p.isCustom]
+				if custom_matching:
+					self.parent.undo_manager.set_norm_with_multi_undo(par, custom_matching, is_min)
+					return
+		
+		# Normal single parameter
+		self.parent.undo_manager.set_norm_with_undo(par, is_min)
+	
+	def set_clamp_parameter(self, par: 'Par', min_max: str):
+		"""Set clamp for parameter, with multi-operator support.
+		
+		Args:
+			par: The parameter to set clamp for
+			min_max: 'min', 'max', or 'both'
+		"""
+		if not par.isCustom:
+			return
+		
+		# Check if multi-operator editing is active
+		is_multi_op_active = (self.parent.activeSlot is None and 
+		                       self.parent.evalMultiadjustmode != MultiAdjustMode.OFF.value)
+		
+		if is_multi_op_active:
+			matching_pars = ParameterValidator.get_matching_selected_pars(par)
+			if matching_pars:
+				# Filter for custom parameters only
+				custom_matching = [p for p in matching_pars if p.isCustom]
+				if custom_matching:
+					self.parent.undo_manager.set_clamp_with_multi_undo(par, custom_matching, min_max)
+					return
+		
+		# Normal single parameter
+		self.parent.undo_manager.set_clamp_with_undo(par, min_max)

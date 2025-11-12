@@ -770,13 +770,10 @@ class HoveredMidiRelativeExt:
 		if self.activePar is None:
 			return None
 
-		# Handle ParGroup
-		if ParameterValidator.is_pargroup(self.activePar):
-			self.undo_manager.create_reset_undo_for_pargroup(self.activePar)
-		else:
-			# Handle single Par
-			self.undo_manager.create_reset_undo_for_parameter(self.activePar)
+		# Reset parameter using handler (handles multi-operator mode)
+		self.midi_handler.reset_parameter(self.activePar)
 		
+		# Update display
 		self.display_manager.update_parameter_display(self.activePar)
 
 	@require_valid_parameter
@@ -788,17 +785,10 @@ class HoveredMidiRelativeExt:
 		if not self.activePar.isCustom:
 			return None
 		
-		# Capture old value for undo
-		old_default = self.activePar.default
-		new_default = self.activePar.eval()
+		# Set default using handler (handles multi-operator mode)
+		self.midi_handler.set_default_parameter(self.activePar)
 		
-		# Apply the change
-		self.activePar.default = new_default
-		
-		# Create undo action
-		self.undo_manager.create_set_default_undo(self.activePar, old_default, new_default)
-		
-		# update display
+		# Update display
 		self.display_manager.update_parameter_display(self.activePar, bottom_text = '_DEF_')
 
 	@require_valid_parameter
@@ -810,44 +800,11 @@ class HoveredMidiRelativeExt:
 		if not self.activePar.isCustom:
 			return None
 		
-		_val = self.activePar.eval()
+		# Set norm using handler (handles multi-operator mode)
+		is_min = (min_max == 'min')
+		self.midi_handler.set_norm_parameter(self.activePar, is_min)
 		
-		if min_max == 'min':
-			# Check if valid (not equal to max)
-			if _val != self.activePar.normMax:
-				# Capture old values for undo
-				old_norm = self.activePar.normMin
-				old_minmax = self.activePar.min
-				
-				# Apply changes
-				self.activePar.normMin = _val
-				self.activePar.min = _val
-				
-				# Create undo action
-				self.undo_manager.create_set_norm_undo(
-					self.activePar, is_min=True,
-					old_norm=old_norm, new_norm=_val,
-					old_minmax=old_minmax, new_minmax=_val
-				)
-		else:
-			# Check if valid (not equal to min)
-			if _val != self.activePar.normMin:
-				# Capture old values for undo
-				old_norm = self.activePar.normMax
-				old_minmax = self.activePar.max
-				
-				# Apply changes
-				self.activePar.normMax = _val
-				self.activePar.max = _val
-				
-				# Create undo action
-				self.undo_manager.create_set_norm_undo(
-					self.activePar, is_min=False,
-					old_norm=old_norm, new_norm=_val,
-					old_minmax=old_minmax, new_minmax=_val
-				)
-		
-		# update display
+		# Update display
 		self.display_manager.update_parameter_display(self.activePar, bottom_text=f'_{min_max.upper()}_')
 
 	@require_valid_parameter
@@ -859,32 +816,10 @@ class HoveredMidiRelativeExt:
 		if not self.activePar.isCustom:
 			return None
 		
-		# Capture old values for undo
-		old_clamp_min = self.activePar.clampMin
-		old_clamp_max = self.activePar.clampMax
+		# Set clamp using handler (handles multi-operator mode)
+		self.midi_handler.set_clamp_parameter(self.activePar, min_max)
 		
-		# Determine what's changing
-		changed_min = (min_max == 'min' or min_max == 'both')
-		changed_max = (min_max == 'max' or min_max == 'both')
-		
-		# Apply changes
-		if changed_min:
-			self.activePar.clampMin = not self.activePar.clampMin
-		if changed_max:
-			self.activePar.clampMax = not self.activePar.clampMax
-		
-		# Create undo action
-		self.undo_manager.create_set_clamp_undo(
-			self.activePar,
-			changed_min=changed_min,
-			changed_max=changed_max,
-			old_clamp_min=old_clamp_min,
-			new_clamp_min=self.activePar.clampMin,
-			old_clamp_max=old_clamp_max,
-			new_clamp_max=self.activePar.clampMax
-		)
-		
-		# update display
+		# Update display
 		self.display_manager.update_parameter_display(self.activePar, bottom_text='_CLAMP_')
 
 
@@ -1213,7 +1148,7 @@ class HoveredMidiRelativeExt:
 	def onValueChange(self, _par, _val):
 		"""Generic TouchDesigner callback when parameter value changes"""
 		if 'holdlength' in _par.name and 'Slot' not in _par.name:
-			self.ownerComp.par.Bankswitchholdlength.val = max(self.ownerComp.par.Customizeholdlength.eval(), self.ownerComp.par.Resetholdlength.eval(), self.ownerComp.par.Minmaxclampholdlength.eval()) + 0.01
+			self.ownerComp.par.Bankswitchholdlength.val = max(max(self.ownerComp.par.Customizeholdlength.eval(), self.ownerComp.par.Resetholdlength.eval(), self.ownerComp.par.Minmaxclampholdlength.eval()) + 0.01, self.evalBankswitchholdlength)
 			
 # endregion parameter callbacks
 	def onProjectPreSave(self):
