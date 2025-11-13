@@ -14,7 +14,7 @@ let watchForActiveWindow = false;
 let isWindowActive = false;
 let controlScreenOnConnection = false;
 let controlLedOnConnection = true;
-let inactivityTimeoutMinutes = 5; // Default
+let inactivityTimeoutMinutes = 0; // Default disabled
 let screenDimLevel = 0; // 0-100%, 0 = fully off
 let screenActiveLevel = 100; // 0-100%, 100 = full brightness
 
@@ -84,7 +84,7 @@ exports.loadPackage = async function (gridController, persistedData) {
   // Use explicit undefined checks for booleans to ensure false values are preserved
   controlScreenOnConnection = persistedData?.controlScreenOnConnection !== undefined ? persistedData.controlScreenOnConnection : false;
   controlLedOnConnection = persistedData?.controlLedOnConnection !== undefined ? persistedData.controlLedOnConnection : true;
-  inactivityTimeoutMinutes = persistedData?.inactivityTimeoutMinutes ?? 5;
+  inactivityTimeoutMinutes = persistedData?.inactivityTimeoutMinutes ?? 0;
   screenDimLevel = persistedData?.screenDimLevel ?? 0;
   screenActiveLevel = persistedData?.screenActiveLevel ?? 100;
   

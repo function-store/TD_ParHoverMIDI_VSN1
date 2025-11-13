@@ -401,7 +401,7 @@ Both modes use smooth interpolation to prevent sudden camera jumps.
 
 Set `Zoom Interpolation` parameter (0.0 to 1.0, default: 0.015) to control smoothness:
 - **Lower values** (0.05-0.10): Very smooth, gradual movement
-- **Default** (0.15): Balanced smoothness and responsiveness  
+- **Default** (0.015): Balanced smoothness and responsiveness  
 - **Higher values** (0.20-0.30): More responsive, less smoothing
 - **Value of 1.0**: Instant (no interpolation)
 

@@ -137,10 +137,7 @@ class HoveredMidiRelativeExt:
 	def onStart(self):
 		post_update = self.ownerComp.fetch('post_update', False)
 		if post_update:
-			#self.LoadAllFromJSON()
 			self.ownerComp.unstore('post_update')
-			# okay I really fucked this up, so mega-hack below
-			#self.SaveAllToJSON()
 			try:
 				run(
 					"args[0].open_changelog() if args[0] "
@@ -154,7 +151,7 @@ class HoveredMidiRelativeExt:
 
 	def open_changelog(self):
 		try:
-			ret = ui.messageBox(f'{self.ownerComp.name} updated', 'Would you like to see the changelog?', buttons=['No', 'Yes'])
+			ret = ui.messageBox(f'{self.ownerComp.name} updated', 'It is strongly suggested to update the Grid Package and VSN1 config too from the Grid Editor!\n\nWould you like to see the changelog?', buttons=['No', 'Yes'])
 			if ret == 1:
 				ui.viewFile('https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest')
 		except:

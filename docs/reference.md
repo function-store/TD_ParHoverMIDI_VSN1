@@ -41,18 +41,18 @@ Complete reference for all hardware controls and keyboard shortcuts.
 | Twist knob | Adjust hovered/active parameter | Step size affects increment |
 | Push knob | Pulse/toggle parameter | Works with Pulse, Momentary, Toggle types |
 | Press step button | Change step size | Cycles through 0.001, 0.01, 0.1, 1 (default) |
+| **Step Modes** | | |
+| Push knob + twist | Use alternate precision | Hold push button while rotating knob. Behavior depends on **Push Step Mode** (configurable via Push Step Mode custom parameter): **Fixed** = uses Push Step value, **Finer** = current step ÷ 10, **Coarser** (default) = current step × 10 |
+| Push knob + step button | Set alternate push step | Sets the Push Step value (only relevant when **Push Step Mode** is "Fixed") |
+| Leftmost + rightmost step buttons | Toggle Step Mode (Fixed/Adaptive) | Changes step calculation method for value adjustment. **Fixed**: Uses exact step size (e.g., 0.01 = 0.01 increment). **Adaptive**: Step scales with parameter range (larger ranges = larger steps). Also configurable via Step Mode custom parameter |
 | **Slot Operations** | | |
 | Press slot button | Activate slot / Return to hover | Press empty slot to exit slot mode |
-| Long-press slot button (hovering) | Assign parameter to slot | 500ms default hold time |
+| Long-press slot button (hovering) | Assign parameter to slot | 0.33s default hold time |
 | Long-press slot button (no hover) | Clear slot assignment | Removes parameter from slot |
 | Long-press slot button (slot active) | Reassign slot | New parameter overwrites existing |
 | Push knob + slot button | Jump to operator | Opens network at parameter's operator |
 | **Bank Switching** | | |
 | Long-press step button | Switch to that bank | Each bank = independent slots |
-| **Step Modes** | | |
-| Leftmost + rightmost step buttons | Toggle Fixed/Adaptive mode | Changes step calculation method |
-| Push knob + step button | Set alternate push step | Only in "Fixed" push mode |
-| Push knob + twist | Use alternate precision | Behavior depends on Push Step Mode |
 | **Parameter Shortcuts** | | |
 | First + second button | Reset to default | Restores parameter's default value |
 | First + third button | Set current as default | Custom parameters only |
@@ -77,81 +77,83 @@ Complete parameter reference organized by TouchDesigner parameter page.
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | **📄 Custom Page** | | |
-| `Active` | Enable/disable entire component | On |
-| `MIDI Status` | Shows MIDI connection state (read-only) | - |
-| `Connected Status` | Shows websocket connection state (read-only) | - |
-| `Re-Init` | Pulse to reinitialize component | - |
-| `Step Mode` | "Fixed" or "Adaptive" precision | Fixed |
-| `Push Step Mode` | "Fixed", "Finer", or "Coarser" | Coarser |
-| `Push Step` | Current push step value (read-only) | 0.01 |
-| `Loop Menus` | Menu parameters wrap around | On |
-| `Control StrMenus` | Allow string-menu parameter control | On |
-| `Multi Adjust Mode` | Multi-operator editing: "Off", "Snap", or "Relative" | Off |
+| Active | Enable/disable entire component | On |
+| MIDI Status | Shows MIDI connection state (read-only) | - |
+| Connected Status | Shows websocket connection state (read-only) | - |
+| Re-Init | Pulse to reinitialize component | - |
+| Step Mode | "Fixed" or "Adaptive" precision | Fixed |
+| Push Step Mode | "Fixed", "Finer", or "Coarser" | Coarser |
+| Push Step | Current push step value (read-only) | 0.01 |
+| Loop Menus | Menu parameters wrap around | On |
+| Control StrMenus | Allow string-menu parameter control | On |
+| Multi Adjust Mode | Multi-operator editing: "Off", "Snap", or "Relative" | Off |
 | _Shortcuts_ | _(Section header)_ | |
-| `Shortcuts` | Enable button combo shortcuts | On |
-| `Slot Learn Hold Length` | Long-press duration for slot assignment (sec) | 0.33 |
-| `Bank Switch Hold Length` | Long-press duration for bank switching (sec) | 0.34 |
-| `Reset Par Hold Length` | Long-press duration for parameter reset (sec) | 0.01 |
-| `MinMaxClamp Hold Length` | Long-press duration for clamp operations (sec) | 0.01 |
-| `Customize Hold Length` | Long-press for component editor jump (sec) | 0.33 |
+| Shortcuts | Enable button combo shortcuts | On |
+| Slot Learn Hold Length | Long-press duration for slot assignment (sec) | 0.33 |
+| Bank Switch Hold Length | Long-press duration for bank switching (sec) | 0.34 |
+| Reset Par Hold Length | Long-press duration for parameter reset (sec) | 0.01 |
+| MinMaxClamp Hold Length | Long-press duration for clamp operations (sec) | 0.01 |
+| Customize Hold Length | Long-press for component editor jump (sec) | 0.33 |
 | _Misc_ | _(Section header)_ | |
-| `Hover Timeout Length` | Seconds parameter stays active after unhover | 0.33 |
-| `Sticky Par in Timeout` | MIDI adjustments restart timeout countdown | On |
-| `Enable Undo` | Enable undo/redo functionality | On |
-| `Undo Timeout (ValueChange)` | Delay before pushing value changes to stack (sec) | 1 |
-| `Slots Repo` | Reference to external storage table | ./SlotsRepo |
-| `Auto Create Repo` | Automatically create external repo on init | On |
-| `Create` | Pulse to manually create external repo | - |
+| Hover Timeout Length | Seconds parameter stays active after unhover | 0.15 |
+| Sticky Par in Timeout | MIDI adjustments restart timeout countdown | On |
+| Enable Undo | Enable undo/redo functionality | On |
+| Undo Timeout (ValueChange) | Delay before pushing value changes to stack (sec) | 1 |
+| Slots Repo | Reference to external storage table | ./SlotsRepo |
+| Auto Create Repo | Automatically create external repo on init | On |
+| Create | Pulse to manually create external repo | - |
 | **📄 VSN1 / UI Page** | | |
 | _Intech Studio VSN1 Support_ | _(Section header)_ | |
-| `VSN1 Support` | Enable VSN1 screen/LED feedback | On |
-| `Start Grid Editor` | Pulse to launch Grid Editor | - |
-| `Auto-start Grid Editor` | Launch Grid Editor on TD startup | On |
-| `Network Address` | Websocket address | 127.0.0.1 |
-| `Port` | Websocket port | 9642 |
-| `Periodic Reconnect` | Attempt periodic reconnection | On |
-| `Reconnect Period` | Reconnection interval (sec) | 5 |
-| `Reset Comm` | Pulse to reset websocket connection | - |
-| `Knob Led Update` | LED mode: "Off", "Value", or "Step" | Value |
+| VSN1 Support | Enable VSN1 screen/LED feedback | On |
+| Start Grid Editor | Pulse to launch Grid Editor | - |
+| Auto-start Grid Editor | Launch Grid Editor on TD startup | On |
+| Network Address | Websocket address | 127.0.0.1 |
+| Port | Websocket port | 9642 |
+| Periodic Reconnect | Attempt periodic reconnection | On |
+| Reconnect Period | Reconnection interval (sec) | 5 |
+| Reset Comm | Pulse to reset websocket connection | - |
+| Knob Led Update | LED mode: "Off", "Value", or "Step" | Value |
 | _TD UI_ | _(Section header)_ | |
-| `Enable UI` | Enable internal UI display | On |
-| `Hide Author Label` | Hide author name from UI | Off |
-| `UI Post FX` | Enable bloom effect on UI | Off |
-| `Color Hovered UI` | Apply color to hovered UI elements | On |
-| `Activate Slot on Jump` | Activate parameter when jumping to operator | On |
-| `Use Current Zoom for Jump` | Maintain current zoom level on jump | Off |
-| `Enable Knob Zoom (if no Par)` | Enable network editor zoom navigation | On |
-| `Zoom Mode` | "Seek" (follow cursor) or "Target" (lock) | Seek |
-| `Zoom Network` | Zoom speed per knob increment | 0.015 |
-| `Zoom Interpolation` | Camera movement smoothness (0.0-1.0) | 0.015 |
+| Enable UI | Enable internal UI display | On |
+| Hide Author Label | Hide author name from UI | Off |
+| UI Post FX | Enable bloom effect on UI | Off |
+| Color Hovered UI | Apply color to hovered UI elements | On |
+| Activate Slot on Jump | Activate parameter when jumping to operator | On |
+| Use Current Zoom for Jump | Maintain current zoom level on jump | Off |
+| Enable Knob Zoom (if no Par) | Enable network editor zoom navigation | On |
+| Zoom Mode | "Seek" (follow cursor) or "Target" (lock) | Seek |
+| Zoom Network | Zoom speed per knob increment | 0.015 |
+| Zoom Interpolation | Camera movement smoothness (0.0-1.0) | 0.015 |
 | _General UI Settings_ | _(Section header)_ | |
-| `Color Index` | Color palette index for UI | 1 |
-| `Label Display Mode` | "Compressed" or "Truncated" | Compressed |
+| Color Index | Color palette index for UI | 1 |
+| Label Display Mode | "Compressed" or "Truncated" | Compressed |
 | **📄 Mapping Page** | | |
-| `Device Id` | MIDI device identifier | 1 |
-| `Channel` | MIDI channel | 16 |
-| `Learn` | Enter MIDI learn mode | - |
-| `Clear` | Clear learned MIDI mappings | - |
-| `Use Defaults for VSN1` | Load default VSN1 MIDI mappings | - |
-| `Knob Index` | MIDI CC index for main knob | 9 |
-| `Push Index` | MIDI CC index for knob push button | 9 |
+| Device Id | MIDI device identifier | 1 |
+| Channel | MIDI channel | 16 |
+| Learn | Enter MIDI learn mode | - |
+| Clear | Clear learned MIDI mappings | - |
+| Use Defaults for VSN1 | Load default VSN1 MIDI mappings | - |
+| Knob Index | MIDI CC index for main knob | 9 |
+| Push Index | MIDI CC index for knob push button | 9 |
 | _Steps_ | _(Section header)_ | |
-| `Index` | MIDI index for step buttons | 13 |
-| `Step` | Step size value | 1.0 |
+| Index | MIDI index for step buttons | 13 |
+| Step | Step size value | 1.0 |
 | _Slots_ | _(Section header)_ | |
-| `Index` | MIDI index for slot buttons | 8 |
+| Index | MIDI index for slot buttons | 8 |
 | _Banks_ | _(Section header)_ | |
-| `Index` | MIDI index for bank buttons | 13 |
+| Index | MIDI index for bank buttons | 13 |
 | **📄 About Page** | | |
-| `Author` | Component author (read-only) | Function Store |
-| `Author Links` | Open author website | - |
-| `README` | Open documentation site | - |
-| `CHEATSHEET` | Open HTML cheatsheet in browser | - |
-| `Version` | Current version (read-only) | - |
-| `Check` | Check for updates | - |
-| `Update` | Download and install update | - |
-| `Externalize Component` | Save to palette and externalize repo | - |
-| `Show Builtin Params` | Show built-in TD parameter pages | Off |
+| Author | Component author (read-only) | Function Store |
+| Author Links | Open author website | - |
+| README | Open documentation site | - |
+| CHEATSHEET | Open HTML cheatsheet in browser | - |
+| Version | Current version (read-only) | - |
+| Check | Check for updates | - |
+| Update | Download and install update | - |
+| Is External | Shows if component is externalized or not (read-only) | - |
+| Externalize Component | Save to palette and externalize repo | - |
+| Reload External | Reloads external component | - |
+| Show Builtin Params | Show built-in TD parameter pages | Off |
 
 > **💡 Parameter Help**: Hover over any custom parameter in the component while holding **Alt** (or **Option** on Mac) to see detailed help text.
 

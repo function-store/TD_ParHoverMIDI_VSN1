@@ -327,6 +327,25 @@
                 </tr>
                 
                 <tr class="category-row">
+                    <td colspan="3">Step Modes</td>
+                </tr>
+                <tr>
+                    <td>Push knob + twist</td>
+                    <td>Use alternate precision</td>
+                    <td>Hold push button while rotating knob. Behavior depends on <strong>Push Step Mode</strong> (configurable via Push Step Mode custom parameter): <strong>Fixed</strong> = uses Push Step value, <strong>Finer</strong> = current step ÷ 10, <strong>Coarser</strong> (default) = current step × 10</td>
+                </tr>
+                <tr>
+                    <td>Push knob + step button</td>
+                    <td>Set alternate push step</td>
+                    <td>Sets the Push Step value (only relevant when <strong>Push Step Mode</strong> is "Fixed")</td>
+                </tr>
+                <tr>
+                    <td>Leftmost + rightmost step buttons</td>
+                    <td>Toggle Step Mode (Fixed/Adaptive)</td>
+                    <td>Changes step calculation method for value adjustment. <strong>Fixed</strong>: Uses exact step size (e.g., 0.01 = 0.01 increment). <strong>Adaptive</strong>: Step scales with parameter range (larger ranges = larger steps). Also configurable via Step Mode custom parameter</td>
+                </tr>
+                
+                <tr class="category-row">
                     <td colspan="3">Slot Operations</td>
                 </tr>
                 <tr>
@@ -337,7 +356,7 @@
                 <tr>
                     <td>Long-press slot button (hovering)</td>
                     <td>Assign parameter to slot</td>
-                    <td>500ms default hold time</td>
+                    <td>0.33s default hold time</td>
                 </tr>
                 <tr>
                     <td>Long-press slot button (no hover)</td>
@@ -352,7 +371,7 @@
                 <tr>
                     <td>Push knob + slot button</td>
                     <td>Jump to operator</td>
-                    <td>Opens network at parameter's operator</td>
+                    <td>Navigates to the operator and page of the assigned parameter</td>
                 </tr>
                 
                 <tr class="category-row">
@@ -362,25 +381,6 @@
                     <td>Long-press step button</td>
                     <td>Switch to that bank</td>
                     <td>Each bank = independent slots</td>
-                </tr>
-                
-                <tr class="category-row">
-                    <td colspan="3">Step Modes</td>
-                </tr>
-                <tr>
-                    <td>Leftmost + rightmost step buttons</td>
-                    <td>Toggle Fixed/Adaptive mode</td>
-                    <td>Changes step calculation method</td>
-                </tr>
-                <tr>
-                    <td>Push knob + step button</td>
-                    <td>Set alternate push step</td>
-                    <td>Only in "Fixed" push mode</td>
-                </tr>
-                <tr>
-                    <td>Push knob + twist</td>
-                    <td>Use alternate precision</td>
-                    <td>Behavior depends on Push Step Mode</td>
                 </tr>
                 
                 <tr class="category-row">
@@ -555,7 +555,7 @@
                 <tr>
                     <td>Hover Timeout Length</td>
                     <td>Seconds parameter stays active after unhover</td>
-                    <td>0.33</td>
+                    <td>0.15</td>
                 </tr>
                 <tr>
                     <td>Sticky Par in Timeout</td>
@@ -800,7 +800,7 @@
                 </tr>
                 <tr>
                     <td>CHEATSHEET</td>
-                    <td>Open HTML cheatsheet in browser</td>
+                    <td>Open HTML cheatsheet in internal browser</td>
                     <td>-</td>
                 </tr>
                 <tr>
@@ -819,8 +819,18 @@
                     <td>-</td>
                 </tr>
                 <tr>
+                    <td>Is External</td>
+                    <td>Shows if component is externalized or not (read-only)</td>
+                    <td>-</td>
+                </tr>
+                <tr>
                     <td>Externalize Component</td>
                     <td>Save to palette and externalize repo</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Reload External</td>
+                    <td>Reloads external component</td>
                     <td>-</td>
                 </tr>
                 <tr>
