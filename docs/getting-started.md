@@ -144,7 +144,7 @@ You've got the basics working - but there's so much more! This component has pow
 - **[Multiple Banks](user-guide.md#multiple-banks)** - Organize slots into banks (e.g., Bank 0 = lighting, Bank 1 = audio)
 - **[Parameter Shortcuts](user-guide.md#parameter-shortcuts)** - Quick button combos: reset, set default, clamp, and more
 - **[Step Sizes & Modes](user-guide.md#step-modes)** - Adjust precision with Fixed or Adaptive step modes
-- **[ParGroup Control](user-guide.md#parameter-slots-system)** - Control entire parameter groups (RGB, XYZ) simultaneously
+- **[ParGroup Control](user-guide.md#parameter-slots-system)** - Control entire parameter groups (RGB, XYZ) simultaneously (requires TouchDesigner 2025.X or later)
 - **[UI Highlighting](user-guide.md#ui-parameter-highlighting)** - Visual feedback in TouchDesigner interface
 - **[Full Customization](user-guide.md#customization-parameters)** - Extensive options to tailor behavior to your workflow
 - **[Parameter Recovery](advanced.md#parameter-recovery-system)** - Automatic recovery when operators are moved/renamed

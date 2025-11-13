@@ -64,7 +64,7 @@ Or browse the docs directly:
 - Turn off `VSN1 Support` parameter for non-VSN1 controllers
 
 **Requirements:**
-- TouchDesigner 2023.12120+
+- TouchDesigner 2023.12120+ *(or 2025.+ for controlling ParGroups)*
 - USB connection to MIDI controller
 - For VSN1: Grid Editor open with exclusive access to port `9642`
 

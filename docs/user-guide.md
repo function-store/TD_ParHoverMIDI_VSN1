@@ -18,7 +18,7 @@ This component transforms how you control TouchDesigner parameters by combining 
 - **Slots & Banks**: Save parameters to buttons for instant recall across multiple banks
 - **Shortcuts**: Quick button combos for reset, default, clamp operations
 - **Multi-Operator Editing**: Adjust the same parameter on multiple selected operators simultaneously
-- **ParGroups**: Control entire parameter groups (RGB, XYZ) simultaneously  
+- **ParGroups**: Control entire parameter groups (RGB, XYZ) simultaneously (requires TouchDesigner 2025.X or later)  
 - **Undo/Redo**: Full undo support for all operations
 - **Auto-Recovery**: Automatic fixing when operators are moved/renamed
 - **Network Zoom**: Smooth zoom and pan navigation when no parameter is active
@@ -135,6 +135,8 @@ Save parameters to MIDI buttons for instant recall without hovering. Slots work 
 ### ParGroup Support
 
 Assign entire parameter groups (like RGB, XYZ) to slots for simultaneous control:
+
+> **💡 Note**: ParGroup hover detection requires TouchDesigner 2025.X or later.
 
 - **Hover over parameter groups** (RGB, XYZ, etc.) to assign the entire group
 - **Groups display with `>` prefix** (e.g., `>Color`) to distinguish from single parameters

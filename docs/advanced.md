@@ -401,6 +401,7 @@ scripts/HoveredMidiRelative/
 
 - Mouse hover detection with automatic ParGroup detection
 - Full ParGroup support (control RGB, XYZ, etc. simultaneously)
+  > **💡 Note**: ParGroup hover detection requires TouchDesigner 2025.X or later.
 - Permissive slot assignment (allows expressions/exports, skips during manipulation)
 - Smart ParGroup handling:
   - Single-parameter groups treated as individuals

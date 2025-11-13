@@ -37,7 +37,7 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 ### Core Control
 - **Hover-based Control** - Adjust any parameter by simply hovering your mouse over it
 - **Multi-Operator Editing** - Adjust the same parameter on multiple selected operators simultaneously (Snap or Relative modes)
-- **ParGroup Support** - Control entire parameter groups (RGB, XYZ) simultaneously with one knob
+- **ParGroup Support** - Control entire parameter groups (RGB, XYZ) simultaneously with one knob (requires TouchDesigner 2025.X or later)
 - **Flexible Precision** - Multiple step sizes with Fixed or Adaptive modes for any parameter range
 - **Parameter Pulse** - Trigger pulse, momentary, and toggle parameters with knob push button
 
@@ -109,7 +109,7 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 - **Intech Studio VSN1** - Full support with screen updates and LED feedback
 
 **Requirements:**
-- TouchDesigner 2023.12120+
+- TouchDesigner 2023.12120+ *(or 2025.+ for controlling ParGroups)*
 - USB connection to MIDI controller
 - For VSN1: Grid Editor open with exclusive access to port `9642`
 
