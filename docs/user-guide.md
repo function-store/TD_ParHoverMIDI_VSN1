@@ -23,6 +23,8 @@ This component transforms how you control TouchDesigner parameters by combining 
 - **Auto-Recovery**: Automatic fixing when operators are moved/renamed
 - **Network Zoom**: Smooth zoom and pan navigation when no parameter is active
 
+> **💡 Note**: You cannot hover on the component's own parameters. The component will ignore hover attempts on its own custom parameters. Hover over parameters on other operators in your network instead.
+
 ## Table of Contents
 
 - [Step Modes](#step-modes)

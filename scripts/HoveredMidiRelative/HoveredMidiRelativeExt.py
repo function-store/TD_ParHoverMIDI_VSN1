@@ -151,7 +151,7 @@ class HoveredMidiRelativeExt:
 
 	def open_changelog(self):
 		try:
-			ret = ui.messageBox(f'{self.ownerComp.name} updated', 'It is strongly suggested to update the Grid Package and VSN1 config too from the Grid Editor!\n\nWould you like to see the changelog?', buttons=['No', 'Yes'])
+			ret = ui.messageBox(f'{self.ownerComp.name} updated', 'Successfully updated to the latest version!\n\nIt is strongly suggested to update the Grid Package and VSN1 config too from the Grid Editor!\n\nWould you like to see the changelog?', buttons=['No', 'Yes'])
 			if ret == 1:
 				ui.viewFile('https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest')
 		except:

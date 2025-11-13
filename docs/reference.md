@@ -35,6 +35,8 @@ Complete reference for all hardware controls and keyboard shortcuts.
 > - **Bank Button** - Any step button when long-pressed (switches banks)
 > - **Main Knob** - The rotary encoder (twist to adjust, push to pulse/toggle)
 
+> **💡 Note**: You cannot hover on the component's own parameters. The component will ignore hover attempts on its own custom parameters. Hover over parameters on other operators in your network instead.
+
 | Control | Action | Notes |
 |---------|--------|-------|
 | **Basic Controls** | | |
