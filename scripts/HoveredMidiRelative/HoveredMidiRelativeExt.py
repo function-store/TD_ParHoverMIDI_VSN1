@@ -680,13 +680,6 @@ class HoveredMidiRelativeExt:
 
 		# Process different message types using helper class
 		if message == MidiConstants.NOTE_ON:
-			# Handle step change messages
-			if self.midi_handler.handle_step_message(index, value):
-				# Don't restart timeout for component's own parameters
-				if not self._is_component_parameter():
-					self._start_hover_timeout(restart_if_sticky=True)
-				return
-				
 			# Handle pulse messages
 			if self.midi_handler.handle_push_message(index, value, active_par):
 				# Don't restart timeout for component's own parameters
@@ -706,7 +699,31 @@ class HoveredMidiRelativeExt:
 				if not self._is_component_parameter():
 					self._start_hover_timeout(restart_if_sticky=True)
 				return
-
+	
+	def onReceiveStep(self, channel_name: str, value: int):
+		if not self.evalActive:
+			return
+		# extract channel index and cc index from channel_name of ch"channel_index"n"index"
+		# where " are placeholders only and not part of the string so should not be used in the split
+		try:
+			channel_index = int(channel_name.split('n')[0].split('ch')[1])
+		except (IndexError, ValueError):
+			channel_index = -1  # Safeguard: set to invalid channel to avoid mistaken handling
+		if channel_index != self.evalChannel:
+			return
+		try:
+			index = int(channel_name.split('n')[1])
+		except (IndexError, ValueError):
+			index = -1  # Safeguard: set to invalid index to avoid mistaken handling
+		if index == -1:
+			return
+		# Handle step change messages
+		if self.midi_handler.handle_step_message(index, value):				
+			# Don't restart timeout for component's own parameters
+			if not self._is_component_parameter():
+				self._start_hover_timeout(restart_if_sticky=True)
+			return
+				
 
 	@block_during_invalidation
 	def onReceiveMidiLearn(self, dat, rowIndex, message, channel, index, value, input, byteData):
@@ -1106,6 +1123,7 @@ class HoveredMidiRelativeExt:
 	def _force_cook_midi_operators(self):
 		"""Force cook all MIDI-related operators"""		
 		activeMidi = self.ownerComp.op('midiin_active')
+		stepsMidi = self.ownerComp.op('midiin_steps')
 		pushMidi = self.ownerComp.op('midiin_push')
 		slotsLearnMidi = self.ownerComp.op('midiin_slots')
 		bankMidi = self.ownerComp.op('midiin_bank')
@@ -1116,6 +1134,7 @@ class HoveredMidiRelativeExt:
 		setnormMaxMidi = self.ownerComp.op('midiin_normmax')
 		setclampMidi = self.ownerComp.op('midiin_setclamp')
 		activeMidi.cook(force=True)
+		stepsMidi.cook(force=True)
 		pushMidi.cook(force=True)
 		slotsLearnMidi.cook(force=True)
 		bankMidi.cook(force=True)

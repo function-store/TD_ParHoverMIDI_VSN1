@@ -300,7 +300,7 @@ Visual feedback in TouchDesigner interface.
 - **Slot Mode**: UI colors reset to normal (slot controlling parameter)
 - **Mode Transitions**: Instant color changes when switching modes
 
-> **Note**: Can cause performance impact when switching modes. Toggle via `Enable UI Color` parameter.
+> **Note**: Can cause performance impact when switching modes. Disabled by default for best performance. Toggle via `Color Hovered UI` parameter or middle-click the top-right UI button.
 
 ### Parameter Color Coding
 
@@ -313,7 +313,7 @@ Convenient button in top-right corner of TD's UI:
 
 - **Left Click**: Opens component parameters dialog
 - **Right Click**: Opens component UI view
-- **Middle Click**: Toggles UI coloring on/off
+- **Middle Click**: Toggles UI hover coloring on/off (same as `Color Hovered UI` parameter)
 
 ---
 

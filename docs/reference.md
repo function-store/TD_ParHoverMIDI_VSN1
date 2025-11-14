@@ -116,10 +116,10 @@ Complete parameter reference organized by TouchDesigner parameter page.
 | Reset Comm | Pulse to reset websocket connection | - |
 | Knob Led Update | LED mode: "Off", "Value", or "Step" | Value |
 | _TD UI_ | _(Section header)_ | |
-| Enable UI | Enable internal UI display | On |
+| Enable UI | Enable internal UI display | Off |
 | Hide Author Label | Hide author name from UI | Off |
 | UI Post FX | Enable bloom effect on UI | Off |
-| Color Hovered UI | Apply color to hovered UI elements | On |
+| Color Hovered UI | Apply color to hovered UI elements | Off |
 | Activate Slot on Jump | Activate parameter when jumping to operator | On |
 | Use Current Zoom for Jump | Maintain current zoom level on jump | Off |
 | Enable Knob Zoom (if no Par) | Enable network editor zoom navigation | On |
