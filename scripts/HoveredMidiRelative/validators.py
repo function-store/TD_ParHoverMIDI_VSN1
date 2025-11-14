@@ -68,8 +68,13 @@ class ParameterValidator:
 			return False
 		
 		# Handle ParGroup - returns True if at least ONE parameter is valid
+		# Exclude unit parameters (e.g., tunit, runit, sunit) - they're metadata, not control parameters
 		if ParameterValidator.is_pargroup(par_or_group):
-			return any(ParameterValidator.is_valid_parameter(p) for p in par_or_group if p is not None)
+			return any(
+				ParameterValidator.is_valid_parameter(p) 
+				for p in par_or_group 
+				if p is not None and not (p.name.endswith('unit') and len(p.name) > 4)
+			)
 		
 		# Handle single Par
 		return ParameterValidator.is_valid_parameter(par_or_group)
@@ -79,10 +84,17 @@ class ParameterValidator:
 		"""Check if parameter (or ParGroup) is learnable ie valid and empty
 		For ParGroups, all parameters must be learnable"""
 		# Handle ParGroup
+		# Exclude unit parameters (e.g., tunit, runit, sunit) - they're metadata, not control parameters
 		if ParameterValidator.is_pargroup(par_or_group):
+			non_unit_pars = [
+				p for p in par_or_group 
+				if p is not None and not (p.name.endswith('unit') and len(p.name) > 4)
+			]
+			if not non_unit_pars:
+				return False  # Only unit parameters, not learnable
 			return all(
 				ParameterValidator.is_valid_parameter(p) and not p.eval()
-				for p in par_or_group if p is not None
+				for p in non_unit_pars
 			)
 		
 		# Handle single Par
@@ -105,9 +117,13 @@ class ParameterValidator:
 		# Handle ParGroup
 		if ParameterValidator.is_pargroup(par_or_group):
 			# Get all parameters from the group (regardless of validity)
-			all_pars = [p for p in par_or_group if p is not None]
+			# Exclude unit parameters (e.g., tunit, runit, sunit) - they're metadata, not control parameters
+			all_pars = [
+				p for p in par_or_group 
+				if p is not None and not (p.name.endswith('unit') and len(p.name) > 4)
+			]
 			
-			if not all_pars:  # No parameters
+			if not all_pars:  # No parameters (or only unit parameters)
 				return False
 			
 			# Check all parameters are of supported types

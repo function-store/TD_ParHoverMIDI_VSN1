@@ -27,7 +27,8 @@ class MidiMessageHandler:
 			'null_resetpar',
 			'null_setnormmin',
 			'null_setnormmax',
-			'null_setclamp'
+			'null_setclamp',
+			'null_customopen'
 		]
 		return any(self.parent.ownerComp.op(button)[0].eval() for button in mode_buttons)
 	

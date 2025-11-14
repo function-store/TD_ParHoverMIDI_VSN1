@@ -763,11 +763,17 @@ class SlotManager:
 			self.parent.ui_manager._set_button_label(slot_idx, ScreenMessages.HOVER)
 		
 		# Update display to hover mode
-		if self.parent.hoveredPar is not None and self.parent.hoveredPar.valid:
-			# Show the hovered parameter if one exists
-			self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
-		else:
-			# Show empty hover message
+		# Check hoveredPar safely - expression parameters might throw exceptions
+		try:
+			if self.parent.hoveredPar is not None and self.parent.hoveredPar.valid:
+				# Show the hovered parameter if one exists
+				self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
+			else:
+				# Show empty hover message
+				self.parent.display_manager.update_all_display(
+					0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
+		except Exception:
+			# If accessing hoveredPar fails (e.g., expression parameter issues), show empty hover
 			self.parent.display_manager.update_all_display(
 				0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False)
 		
@@ -777,13 +783,19 @@ class SlotManager:
 		self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.COLOR.value)
 		
 		# Add undo support if enabled
-		self.parent.undo_manager.create_clear_slot_undo(
-			slot_idx=slot_idx,
-			bank_idx=currBank,
-			previous_parameter=previous_parameter,
-			previous_active_slot=previous_active_slot,
-			previous_bank_active_slot=previous_bank_active_slot
-		)
+		# Wrap in try/except to handle expression parameters or other edge cases gracefully
+		try:
+			self.parent.undo_manager.create_clear_slot_undo(
+				slot_idx=slot_idx,
+				bank_idx=currBank,
+				previous_parameter=previous_parameter,
+				previous_active_slot=previous_active_slot,
+				previous_bank_active_slot=previous_bank_active_slot
+			)
+		except Exception:
+			# If undo creation fails (e.g., expression parameter issues), continue anyway
+			# The slot is already cleared, undo is just a convenience feature
+			pass
 	
 	def activate_slot(self, slot_idx: int) -> bool:
 		"""Activate an existing slot. Returns True if successful."""

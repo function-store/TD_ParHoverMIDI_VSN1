@@ -548,6 +548,24 @@ class HoveredMidiRelativeExt:
 		par_group_obj = getattr(_op.parGroup, _parGroup, None) if _parGroup else None
 		single_par = getattr(_op.par, _par, None) if _par else None
 		
+		# Check if parameter is disabled (enable == False) or readOnly - ignore it completely
+		if single_par is not None:
+			try:
+				if not single_par.enable or single_par.readOnly:
+					# Parameter is disabled or read-only - treat as if unhovering
+					if self.activeSlot is None:
+						self._start_hover_timeout(restart_if_sticky=False)
+					else:
+						# In slot mode - clear hoveredPar immediately
+						if self.hoveredPar is not None and self.evalEnableundo:
+							self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+						self.hoveredPar = None
+						self._cancel_hover_timeout()
+					return
+			except (AttributeError, tdError):
+				# Parameter doesn't have enable/readOnly property or access failed - continue normally
+				pass
+		
 		# ParGroup detected: parGroup exists AND par doesn't (or is None)
 		if par_group_obj is not None and single_par is None:
 			# Edge case: if ParGroup has only 1 parameter, treat it as a single Par
@@ -557,11 +575,53 @@ class HoveredMidiRelativeExt:
 					# Single parameter in group - treat as individual Par
 					single_par = par_list[0]
 					par_group_obj = None  # Clear group reference
+					
+					# Check if this single parameter is disabled or read-only
+					try:
+						if single_par is not None and (not single_par.enable or single_par.readOnly):
+							# Parameter is disabled or read-only - treat as if unhovering
+							if self.activeSlot is None:
+								self._start_hover_timeout(restart_if_sticky=False)
+							else:
+								# In slot mode - clear hoveredPar immediately
+								if self.hoveredPar is not None and self.evalEnableundo:
+									self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+								self.hoveredPar = None
+								self._cancel_hover_timeout()
+							return
+					except (AttributeError, tdError):
+						# Parameter doesn't have enable/readOnly property or access failed - continue normally
+						pass
 			except (TypeError, AttributeError):
 				pass  # Can't convert to list, continue with group
 			
 			# Store as ParGroup if it has multiple parameters
 			if par_group_obj is not None:
+				# Check if all parameters in the ParGroup are disabled or read-only
+				try:
+					par_list = list(par_group_obj)
+					if par_list:
+						# Check if all parameters are disabled or read-only
+						all_disabled_or_readonly = all(
+							not p.enable or p.readOnly 
+							for p in par_list 
+							if p is not None
+						)
+						if all_disabled_or_readonly:
+							# All parameters disabled or read-only - treat as if unhovering
+							if self.activeSlot is None:
+								self._start_hover_timeout(restart_if_sticky=False)
+							else:
+								# In slot mode - clear hoveredPar immediately
+								if self.hoveredPar is not None and self.evalEnableundo:
+									self.undo_manager.on_parameter_unhovered(self.hoveredPar)
+								self.hoveredPar = None
+								self._cancel_hover_timeout()
+							return
+				except (TypeError, AttributeError, tdError):
+					# Can't check enable/readOnly property - continue normally
+					pass
+				
 				# Skip if this ParGroup belongs to the component itself
 				if self._is_component_parameter(par_group_obj):
 					# Treat as if unhovering - start timeout to clear
@@ -769,6 +829,22 @@ class HoveredMidiRelativeExt:
 		block_idx = block.index
 		
 		if hovered_par is not None:
+			# Check if this parameter is already in this slot
+			try:
+				currBank = self.currBank
+				slot_par = self.slotPars[currBank][block_idx]
+				
+				# If hovering over the same parameter that's already in the slot
+				if slot_par is hovered_par:
+					# Only clear (unlearn) if the slot is NOT currently active
+					# If slot is active, do nothing (don't unlearn an active slot)
+					if self.activeSlot != block_idx:
+						self.slot_manager.clear_slot(block_idx)
+					return
+			except Exception:
+				# If accessing slot_par fails (e.g., expression parameter issues), continue to assignment
+				pass
+			
 			# Try to assign parameter to slot
 			success = self.slot_manager.assign_slot(block_idx, hovered_par)
 			if not success:
@@ -1013,7 +1089,10 @@ class HoveredMidiRelativeExt:
 
 		# Now load from the new repo's tables
 		self.repo_manager.load_from_tables()
-		self.postInit()
+
+		# # Initialize screen
+		# self._initialize_VSN1()
+		run("args[0]._initialize_VSN1()", self, delayRef=op.TDResources, delayFrames=30)
 
 	def onParStartgrideditor(self):
 		self._start_grid_editor()
