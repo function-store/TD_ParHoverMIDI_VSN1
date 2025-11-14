@@ -346,12 +346,13 @@ function handleWebsocketMessage(message) {
 function executeSetLedForIndices10to17() {
   const luaScript = `
 for i = 10, 17 do
-  set_ledcolmin(i-10,33,0,0,1);
+  set_ledcolmin(i-10,20,0,0,1);
   set_led(i, 1, 0);
 end
 lcd:ldaf(0,0,319,239,c[1]);
 lcd:ldrr(3,3,317,237,10,c[2]);
 lcd:ldsw();
+clearl();
 `;
   
   controller.sendMessageToEditor({
