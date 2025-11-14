@@ -35,8 +35,13 @@ class SlotManager:
 		"""Check if invalidation/recovery is active (dialog open OR queue being processed)"""
 		return self.is_dialog_open() or self._processing_invalidation
 	
-	def queue_invalidation_check(self):
-		"""Queue a check for invalid parameters and process them sequentially with dialogs"""
+	def queue_invalidation_check(self, exclude_slot_idx: Optional[int] = None, exclude_bank_idx: Optional[int] = None):
+		"""Queue a check for invalid parameters and process them sequentially with dialogs
+		
+		Args:
+			exclude_slot_idx: Optional slot index to exclude from the check
+			exclude_bank_idx: Optional bank index to exclude from the check (required if exclude_slot_idx is provided)
+		"""
 		# Don't queue if already processing
 		if self._processing_invalidation:
 			return
@@ -45,6 +50,11 @@ class SlotManager:
 		invalid_params = []
 		for bank_idx in range(self.parent.numBanks):
 			for slot_idx in range(self.parent.numSlots):
+				# Skip excluded slot
+				if exclude_slot_idx is not None and exclude_bank_idx is not None:
+					if slot_idx == exclude_slot_idx and bank_idx == exclude_bank_idx:
+						continue
+				
 				par = self.parent.slotPars[bank_idx][slot_idx]
 				if par is None:
 					continue
@@ -249,10 +259,11 @@ class SlotManager:
 		slot_idx, bank_idx = self._invalidation_queue.pop(0)
 		
 		# Check if this slot is now valid (might have been fixed during batch update)
+		# This also protects the currently active slot if it's valid
 		try:
 			par = self.parent.slotPars[bank_idx][slot_idx]
 			if par is not None and par.valid:
-				# This slot was fixed! Skip it and process the next one
+				# This slot is valid! Skip it and process the next one
 				# Defer to next frame to ensure proper timing
 				run("args[0]._process_next_invalidation()", self, delayFrames=1)
 				return
@@ -776,6 +787,10 @@ class SlotManager:
 	
 	def activate_slot(self, slot_idx: int) -> bool:
 		"""Activate an existing slot. Returns True if successful."""
+		# Block activation if invalidation is currently active (prevents interference)
+		if self.is_invalidation_active():
+			return False
+		
 		currBank = self.parent.currBank
 		slot_par = self.parent.slotPars[currBank][slot_idx]
 		
@@ -843,8 +858,10 @@ class SlotManager:
 			self.parent.display_manager.update_slot_leds(current_slot=slot_idx, previous_slot=old_active_slot)
 			self.parent.display_manager.update_outline_color_index(VSN1ColorIndex.WHITE.value)
 			
-			# Check for any invalid parameters in this bank after successful activation
-			self.queue_invalidation_check()
+			# Check for invalidations after activation, but defer by a frame to let things stabilize
+			# and exclude the newly activated slot to prevent interference
+			run("args[0].queue_invalidation_check(exclude_slot_idx=args[1], exclude_bank_idx=args[2])", 
+			    self, slot_idx, currBank, delayFrames=2)
 			
 			return True
 		
@@ -942,12 +959,20 @@ class SlotManager:
 				# Let hover events naturally handle state
 			
 			# Refresh display and UI for new bank
-			self._refresh_bank_display()
+			# Wrap in try/except to handle any invalid parameter errors gracefully
+			try:
+				self._refresh_bank_display()
+			except Exception as display_error:
+				# Display refresh failed - likely due to invalid parameters
+				# Don't let this block the invalidation check
+				pass
 			
 			# Always check for invalid parameters after bank switch
 			# This ensures all invalid parameters in ALL banks are handled sequentially with dialogs
 			# (queue_invalidation_check only shows dialogs if it finds invalid params)
-			self.queue_invalidation_check()
+			# Defer by 2 frames to ensure bank switch, display refresh, and any table saves complete first
+			# This MUST run even if display refresh failed
+			run("args[0].queue_invalidation_check()", self, delayFrames=2)
 			
 			return True
 			

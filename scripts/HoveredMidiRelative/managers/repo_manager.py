@@ -177,11 +177,15 @@ class RepoManager:
 					is_active = (self.parent.bankActiveSlots[bank_idx] == slot_idx)
 					bank_table[row_idx, 3] = '1' if is_active else '0'
 				except:
-					# If we can't access the parameter, clear the slot
-					bank_table[row_idx, 0] = ''
-					bank_table[row_idx, 1] = ''
-					bank_table[row_idx, 2] = ''
-					bank_table[row_idx, 3] = '0'
+					# If we can't access the parameter, it's invalid
+					# Preserve existing table data so recovery dialog can still show it
+					# Only update the active state if needed
+					is_active = (self.parent.bankActiveSlots[bank_idx] == slot_idx)
+					current_active = bank_table[row_idx, 3].val if row_idx < bank_table.numRows else '0'
+					# Only update if active state changed
+					if (is_active and current_active != '1') or (not is_active and current_active != '0'):
+						bank_table[row_idx, 3] = '1' if is_active else '0'
+					# Don't clear path/name/type - preserve for recovery dialog
 	
 	def save_to_tables(self):
 		"""Save FROM slotPars TO tables (export all banks)"""
@@ -225,51 +229,26 @@ class RepoManager:
 						is_active = (self.parent.bankActiveSlots[bank_idx] == slot_idx)
 						bank_table[row_idx, 3] = '1' if is_active else '0'
 					except:
-						# If we can't access the parameter, clear the slot
-						bank_table[row_idx, 0] = ''
-						bank_table[row_idx, 1] = ''
-						bank_table[row_idx, 2] = ''
-						bank_table[row_idx, 3] = '0'
+						# If we can't access the parameter, it's invalid
+						# Preserve existing table data so recovery dialog can still show it
+						# Only update the active state if needed
+						is_active = (self.parent.bankActiveSlots[bank_idx] == slot_idx)
+						current_active = bank_table[row_idx, 3].val if row_idx < bank_table.numRows else '0'
+						# Only update if active state changed
+						if (is_active and current_active != '1') or (not is_active and current_active != '0'):
+							bank_table[row_idx, 3] = '1' if is_active else '0'
+						# Don't clear path/name/type - preserve for recovery dialog
 	
 	def validate_and_clean_all_banks(self):
-		"""Validate all parameters in slotPars and clear invalid ones
+		"""Validate storage structure - does NOT clear invalid parameters
 		
-		Since tables are source of truth, also persists clearing to tables.
+		Invalid parameters are handled by the invalidation system (queue_invalidation_check)
+		which shows recovery dialogs. This method only ensures storage structure is correct.
 		"""
-		num_banks = self.parent.numBanks
-		banks_modified = []  # Track which banks need table updates
-		
-		for bank_idx in range(num_banks):
-			bank_modified = False
-			
-			for slot_idx in range(len(self.parent.slotPars[bank_idx])):
-				par = self.parent.slotPars[bank_idx][slot_idx]
-				
-				if par is not None:
-					# Check if parameter is still valid
-					is_valid = False
-					
-					try:
-						# Handle ParGroup
-						if hasattr(par, '__iter__') and not isinstance(par, str):
-							is_valid = any(p.valid for p in par if p is not None)
-						# Handle single Par
-						elif hasattr(par, 'valid'):
-							is_valid = par.valid
-					except:
-						is_valid = False
-					
-					if not is_valid:
-						# Clear invalid parameter from memory
-						self.parent.slotPars[bank_idx][slot_idx] = None
-						bank_modified = True
-			
-			if bank_modified:
-				banks_modified.append(bank_idx)
-		
-		# Persist changes to tables (only banks that were modified)
-		for bank_idx in banks_modified:
-			self.save_bank_to_table(bank_idx)
+		# This method now only validates structure, not parameter validity
+		# Invalid parameters are detected and handled by queue_invalidation_check()
+		# which shows recovery dialogs instead of silently clearing them
+		pass
 	
 	def _ensure_bank_tables(self):
 		"""Ensure all bank tables exist with proper structure

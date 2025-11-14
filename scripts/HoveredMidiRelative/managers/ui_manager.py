@@ -146,11 +146,22 @@ class UIManager:
 			# Update label
 			slot_par = self.parent.repo_manager.get_slot_parameter(i, currBank)
 			if slot_par is not None:
-				label = LabelFormatter.get_label_for_parameter(
-					slot_par, 
-					self.parent.labelDisplayMode
-				)
-				self._set_button_label(i, label)
+				try:
+					# Check if parameter is valid before trying to get label
+					# Invalid parameters will throw exceptions when accessing properties
+					if slot_par.valid:
+						label = LabelFormatter.get_label_for_parameter(
+							slot_par, 
+							self.parent.labelDisplayMode
+						)
+						self._set_button_label(i, label)
+					else:
+						# Invalid parameter - use INVALID label
+						self._set_button_label(i, ScreenMessages.INVALID)
+				except:
+					# Parameter is invalid or accessing properties failed
+					# Use INVALID label - don't throw exception that could trigger clearing
+					self._set_button_label(i, ScreenMessages.INVALID)
 			else:
 				self._set_button_label(i, ScreenMessages.HOVER)
 			
