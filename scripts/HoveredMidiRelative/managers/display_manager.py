@@ -21,6 +21,13 @@ class DisplayManager:
 		# VSN1 hardware communication
 		self.grid_comm : IntechGridCommExt = self.parent.ownerComp.op('IntechGridComm').ext.IntechGridCommExt
 		self.knob_led_dampen = 0.4
+		
+		# Throttled display update system (for VSN1's ~20fps refresh rate)
+		self._display_update_run = None
+		self._pending_display_data = None
+		fps = 30
+		self._display_update_interval_ms = int((1.0 / fps) * 1000)
+		self._display_timer_running = False
 	
 	def is_vsn1_enabled(self) -> bool:
 		"""Check if VSN1 hardware support is enabled"""
@@ -126,9 +133,17 @@ class DisplayManager:
 		
 		self.ui_renderer.render_display(val, norm_min, norm_max, processed_label, bottom_text, percentage, step_indicator=step_indicator, norm_default=norm_default, clamps=clamps)
     
-	def update_parameter_display(self, par_or_group: Union[Par, ParGroup], bottom_text: str = None, force_knob_leds: bool = False):
+	def update_parameter_display(self, par_or_group: Union[Par, ParGroup], bottom_text: str = None, force_knob_leds: bool = False, is_routine: bool = True):
 		"""Update displays for a specific parameter (or ParGroup) - handles ALL logic here
-		For ParGroups, displays the first valid parameter's value"""
+		For ParGroups, displays the first valid parameter's value
+		
+		Args:
+			par_or_group: Parameter or ParGroup to display
+			bottom_text: Optional override text for bottom display
+			force_knob_leds: Whether to force knob LED updates
+			is_routine: If True, uses throttled updates (batches rapid updates, shows latest state).
+			            If False, updates immediately without throttling.
+		"""
 		if getattr(self, 'step_updated', False) and self.parent.knobLedUpdateMode not in [KnobLedUpdateMode.STEPS]:
 			self.update_knob_leds_steps(-1)
 			self.step_updated = False
@@ -163,12 +178,91 @@ class DisplayManager:
 		# Get label (handles both Par and ParGroup)
 		label = self._get_parameter_label(par_or_group, display_par)
 		
-		# Update all displays
-		self.update_all_display(val, min_val, max_val, label, display_text, compress=True, norm_default=norm_default, clamps=clamps)
+		# If not routine (immediate update), render directly
+		if not is_routine:
+			self.update_all_display(
+				val,
+				min_val,
+				max_val,
+				label,
+				display_text,
+				compress=True,
+				norm_default=norm_default,
+				clamps=clamps
+			)
+			
+			# Handle knob LED updates if forced
+			if force_knob_leds:
+				self._update_knob_leds(val, min_val, max_val)
+			return
 		
-		# Handle knob LED updates if forced
-		if force_knob_leds:
-			self._update_knob_leds(val, min_val, max_val)
+		# Routine update: Store pending display data (will be rendered when timer fires)
+		self._pending_display_data = {
+			'val': val,
+			'min_val': min_val,
+			'max_val': max_val,
+			'label': label,
+			'display_text': display_text,
+			'norm_default': norm_default,
+			'clamps': clamps,
+			'force_knob_leds': force_knob_leds
+		}
+		
+		# Ensure the continuous timer is running (don't restart, just ensure it exists)
+		self._ensure_display_update_timer()
+	
+	def _ensure_display_update_timer(self):
+		"""Ensure the continuous display update timer is running. Starts it if not already running."""
+		if self._display_timer_running:
+			return  # Timer already running, just update pending data
+		
+		# Start continuous timer that fires every 50ms
+		self._display_timer_running = True
+		self._display_update_run = run(
+			"args[0]._display_timer_tick()",
+			self,
+			delayMilliSeconds=self._display_update_interval_ms,
+			delayRef=op.TDResources
+		)
+	
+	def _display_timer_tick(self):
+		"""Called every 50ms by the continuous timer. Flushes pending display and schedules next tick."""
+		# Flush pending display if available
+		if self._pending_display_data is not None:
+			data = self._pending_display_data
+			self._pending_display_data = None
+			
+			# Update all displays with the latest data
+			self.update_all_display(
+				data['val'],
+				data['min_val'],
+				data['max_val'],
+				data['label'],
+				data['display_text'],
+				compress=True,
+				norm_default=data['norm_default'],
+				clamps=data['clamps']
+			)
+			
+			# Handle knob LED updates if forced
+			if data['force_knob_leds']:
+				self._update_knob_leds(data['val'], data['min_val'], data['max_val'])
+		
+		# Check if timer should continue running
+		# If there's no pending data and no active parameter, stop the timer
+		if self._pending_display_data is None:
+			# Check if we should keep timer running (if there's an active parameter, keep it running)
+			if self.parent.activePar is None and self.parent.hoveredPar is None:
+				self._display_timer_running = False
+				return
+		
+		# Schedule next tick (continuous loop)
+		self._display_update_run = run(
+			"args[0]._display_timer_tick()",
+			self,
+			delayMilliSeconds=self._display_update_interval_ms,
+			delayRef=op.TDResources
+		)
 
 	def _get_display_parameter(self, par_or_group: Union[Par, ParGroup]) -> Optional[Par]:
 		"""Extract the parameter to display from either a single Par or ParGroup
