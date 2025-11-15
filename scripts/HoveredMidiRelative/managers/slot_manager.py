@@ -831,7 +831,15 @@ class SlotManager:
 		self.parent._activeSlotPar = slot_par  # Store directly for ultra-fast access
 		self.parent.bankActiveSlots[currBank] = slot_idx
 		
-		# Don't clear hoveredPar - user might still be hovering for another learn
+		# Check if a jump occurred before activation (user navigated away from hovered parameter)
+		# If so, clear hoveredPar as it's likely stale
+		if hasattr(self.parent.midi_handler, 'pushed_for_jump') and self.parent.midi_handler.pushed_for_jump:
+			# Jump occurred - clear hoveredPar as user navigated away
+			if self.parent.hoveredPar is not None and self.parent.evalEnableundo:
+				self.parent.undo_manager.on_parameter_unhovered(self.parent.hoveredPar)
+			self.parent.hoveredPar = None
+			self.parent.midi_handler.pushed_for_jump = False
+		# Otherwise, don't clear hoveredPar - user might still be hovering for another learn
 		# It will be cleared when they unhover or when deactivating the slot
 		
 		# Cancel hover timeout when switching to slot mode
@@ -1090,9 +1098,36 @@ class SlotManager:
 		self.parent._activeSlotPar = None  # Clear cached active slot parameter
 		self.parent.bankActiveSlots[currBank] = None
 		
-		# Don't clear hoveredPar here! It might be needed for learning.
-		# The learn handler runs AFTER this, so clearing hoveredPar breaks learning.
-		# hoveredPar will be cleared by unhover events naturally.
+		# Validate hoveredPar - it might be stale if user navigated away (e.g., jumped to operator)
+		# Check if hoveredPar is still valid and activate it if user is hovering
+		hovered_par_valid = False
+		if self.parent.hoveredPar is not None:
+			try:
+				# Check if parameter is still valid and accessible
+				if not self.parent.hoveredPar.valid:
+					# Parameter is invalid - clear it
+					if self.parent.evalEnableundo:
+						self.parent.undo_manager.on_parameter_unhovered(self.parent.hoveredPar)
+					self.parent.hoveredPar = None
+				else:
+					# Parameter is valid - check if we can still access its owner (might have been deleted/moved)
+					try:
+						_ = self.parent.hoveredPar.owner
+						hovered_par_valid = True  # Parameter is valid and accessible
+					except:
+						# Can't access owner - parameter is stale, clear it
+						if self.parent.evalEnableundo:
+							self.parent.undo_manager.on_parameter_unhovered(self.parent.hoveredPar)
+						self.parent.hoveredPar = None
+			except:
+				# Any error accessing hoveredPar means it's stale - clear it
+				if self.parent.evalEnableundo and self.parent.hoveredPar is not None:
+					try:
+						self.parent.undo_manager.on_parameter_unhovered(self.parent.hoveredPar)
+					except:
+						pass
+				self.parent.hoveredPar = None
+		
 		self.parent._set_parexec_pars(None)
 		
 		# Update table for persistence (only current bank for performance)
@@ -1104,11 +1139,31 @@ class SlotManager:
 		else:
 			self.parent.ui_manager.set_hovered_ui_color(-1)
 		
-		# Show HOVER message since we're now in empty hover mode
-		# If user is actively hovering, onHoveredParChange will immediately update the display
-		self.parent.display_manager.update_all_display(
-			0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
-		)
+		# If hoveredPar is valid, activate it immediately (user is hovering over it)
+		# This ensures the parameter becomes active/controllable when returning to hover mode
+		if hovered_par_valid and self.parent.hoveredPar is not None:
+			# Activate the hovered parameter (set parexec, capture undo, update display)
+			if ParameterValidator.is_pargroup(self.parent.hoveredPar):
+				# Find first valid parameter in the group for parexec
+				for p in self.parent.hoveredPar:
+					if p is not None and ParameterValidator.is_valid_parameter(p):
+						self.parent._set_parexec_pars(p)
+						break
+				else:
+					self.parent._set_parexec_pars(None)
+			else:
+				self.parent._set_parexec_pars(self.parent.hoveredPar)
+			
+			# Capture initial values for undo when hovering
+			self.parent.undo_manager.on_parameter_hovered(self.parent.hoveredPar)
+			
+			# Update display with hovered parameter
+			self.parent.display_manager.update_parameter_display(self.parent.hoveredPar)
+		else:
+			# No valid hovered parameter - show HOVER message
+			self.parent.display_manager.update_all_display(
+				0, 0, 1, ScreenMessages.HOVER, ScreenMessages.HOVER, compress=False
+			)
 
 		# Update LEDs and outline color
 		self.parent.display_manager.update_slot_leds(previous_slot=old_active_slot)
