@@ -163,7 +163,7 @@ Built-in updater in the **About** parameter page:
 
 **Update Safety:**
 - Automatic backup of current version
-- Preserves all slot data (thanks to external repo)
+- Preserves all slot data (thanks to [RepoMaker](https://olib.amb-service.net/component/repo-maker) by [AlphaMoonbase](https://www.plusplus.one/))
 - Preserves all parameter settings
 - Works seamlessly with external `.tox` setup
 

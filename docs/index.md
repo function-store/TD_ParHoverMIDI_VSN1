@@ -164,6 +164,7 @@ You can also support my work on [Patreon](patreon.com/function_store) where I ha
 - **[Dániel Pásztor](https://github.com/danim1130)** - Queued screen updates and GitHub Actions implementation
 - **[TheTouchLab](https://www.instagram.com/thetouchlab/)** - Network Editor mouse position tracking
 - **[CarlosUnch](https://www.instagram.com/verbosemusic/)** - Testing and ideas
+- **[AlphaMoonbase](https://www.plusplus.one/)** - [RepoMaker](https://olib.amb-service.net/component/repo-maker) component for external repository functionality
 </div>
 
 ---
