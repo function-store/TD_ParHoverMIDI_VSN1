@@ -148,27 +148,33 @@ class UndoManager:
 		
 		# Collect all valid parameters that need undo
 		pars_to_undo = []
+		
+		# First pass: capture initial values for all parameters (if not already captured)
+		# This ensures all parameters have initial values before creating undo
 		for par in par_group:
 			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
 			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
 				par_path = f"{par.owner.path}:{par.name}"
-				# Check if we have captured initial value and haven't created undo yet
+				# Capture initial value if not already captured (consistent with multi-undo)
+				if par_path not in self.parameterInitialValues:
+					self.capture_initial_parameter_value(par)
+		
+		# Second pass: collect parameters that need undo (have initial values and undo not created yet)
+		for par in par_group:
+			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
+				par_path = f"{par.owner.path}:{par.name}"
+				# Add to undo list if we have initial value and haven't created undo yet
 				if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
 					pars_to_undo.append(par)
 		
-		# If no parameters need undo, check if we need to capture initial values
+		# If no parameters need undo, return (initial values captured for next adjustment)
 		if not pars_to_undo:
-			for par in par_group:
-				# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-				if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
-					par_path = f"{par.owner.path}:{par.name}"
-					if par_path not in self.parameterInitialValues:
-						self.capture_initial_parameter_value(par)
 			return
 		
 		# Get group name safely
 		try:
-			group_name = next((p.owner.name for p in pars_to_undo if p is not None), "ParGroup")
+			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
 		except:
 			group_name = "ParGroup"
 		
@@ -416,8 +422,23 @@ class UndoManager:
 				par.val = target_value
 			
 			# Update display if this parameter is currently active
-			if self.parent.activePar == par:
-				self.parent.display_manager.update_parameter_display(par)
+			# Check if the parameter is part of the active parameter (single Par or ParGroup)
+			active_par = self.parent.activePar
+			if active_par is not None:
+				if active_par == par:
+					# Direct match (single parameter)
+					self.parent.display_manager.update_parameter_display(par)
+				elif ParameterValidator.is_pargroup(active_par):
+					# Check if this parameter is part of the active ParGroup
+					# Iterate through ParGroup to check membership (same logic as onActiveValueChange)
+					try:
+						for par_in_group in active_par:
+							if par_in_group.owner == par.owner and par_in_group.name == par.name:
+								# Update display with the entire ParGroup (same as normal operation)
+								self.parent.display_manager.update_parameter_display(active_par)
+								break
+					except:
+						pass
 			
 		except Exception as e:
 			pass
@@ -670,8 +691,23 @@ class UndoManager:
 					par.val = target_value
 			
 			# Update display if this is the active parameter
-			if self.parent.activePar == par:
-				self.parent.display_manager.update_parameter_display(par)
+			# Check if the parameter is part of the active parameter (single Par or ParGroup)
+			active_par = self.parent.activePar
+			if active_par is not None:
+				if active_par == par:
+					# Direct match (single parameter)
+					self.parent.display_manager.update_parameter_display(par)
+				elif ParameterValidator.is_pargroup(active_par):
+					# Check if this parameter is part of the active ParGroup
+					# Iterate through ParGroup to check membership (same logic as onActiveValueChange)
+					try:
+						for par_in_group in active_par:
+							if par_in_group.owner == par.owner and par_in_group.name == par.name:
+								# Update display with the entire ParGroup (same as normal operation)
+								self.parent.display_manager.update_parameter_display(active_par)
+								break
+					except:
+						pass
 			
 		except Exception as e:
 			pass
@@ -867,8 +903,23 @@ class UndoManager:
 				par.default = info['new_default']
 			
 			# Update display if this is the active parameter
-			if self.parent.activePar == par:
-				self.parent.display_manager.update_parameter_display(par)
+			# Check if the parameter is part of the active parameter (single Par or ParGroup)
+			active_par = self.parent.activePar
+			if active_par is not None:
+				if active_par == par:
+					# Direct match (single parameter)
+					self.parent.display_manager.update_parameter_display(par)
+				elif ParameterValidator.is_pargroup(active_par):
+					# Check if this parameter is part of the active ParGroup
+					# Iterate through ParGroup to check membership (same logic as onActiveValueChange)
+					try:
+						for par_in_group in active_par:
+							if par_in_group.owner == par.owner and par_in_group.name == par.name:
+								# Update display with the entire ParGroup (same as normal operation)
+								self.parent.display_manager.update_parameter_display(active_par)
+								break
+					except:
+						pass
 			
 		except Exception as e:
 			pass
@@ -1147,8 +1198,23 @@ class UndoManager:
 					par.max = info['new_minmax']
 			
 			# Update display if this is the active parameter
-			if self.parent.activePar == par:
-				self.parent.display_manager.update_parameter_display(par)
+			# Check if the parameter is part of the active parameter (single Par or ParGroup)
+			active_par = self.parent.activePar
+			if active_par is not None:
+				if active_par == par:
+					# Direct match (single parameter)
+					self.parent.display_manager.update_parameter_display(par)
+				elif ParameterValidator.is_pargroup(active_par):
+					# Check if this parameter is part of the active ParGroup
+					# Iterate through ParGroup to check membership (same logic as onActiveValueChange)
+					try:
+						for par_in_group in active_par:
+							if par_in_group.owner == par.owner and par_in_group.name == par.name:
+								# Update display with the entire ParGroup (same as normal operation)
+								self.parent.display_manager.update_parameter_display(active_par)
+								break
+					except:
+						pass
 			
 		except Exception as e:
 			pass
@@ -1404,8 +1470,23 @@ class UndoManager:
 					par.clampMax = info['new_clamp_max']
 			
 			# Update display if this is the active parameter
-			if self.parent.activePar == par:
-				self.parent.display_manager.update_parameter_display(par)
+			# Check if the parameter is part of the active parameter (single Par or ParGroup)
+			active_par = self.parent.activePar
+			if active_par is not None:
+				if active_par == par:
+					# Direct match (single parameter)
+					self.parent.display_manager.update_parameter_display(par)
+				elif ParameterValidator.is_pargroup(active_par):
+					# Check if this parameter is part of the active ParGroup
+					# Iterate through ParGroup to check membership (same logic as onActiveValueChange)
+					try:
+						for par_in_group in active_par:
+							if par_in_group.owner == par.owner and par_in_group.name == par.name:
+								# Update display with the entire ParGroup (same as normal operation)
+								self.parent.display_manager.update_parameter_display(active_par)
+								break
+					except:
+						pass
 			
 		except Exception as e:
 			pass
