@@ -100,19 +100,19 @@ class HoveredMidiRelativeExt:
 
 
 		self.stored = StorageManager(self, ownerComp, storedItems)
-		
-		if self.evalAutocreaterepo:
-			if self.parSlotsreporepo.val == './SlotsRepo' or self.parSlotsreporepo.val == '':
-				self.parSlotsreporepocreate.pulse()
-
-		# Load from tables on first run 
-		self.repo_manager.load_from_tables_if_needed()
 
 		run("args[0].postInit()", self, delayRef=op.TDResources, delayFrames=120)
 
 	def postInit(self):
 		if not self.evalActive:
 			return
+
+		if self.evalAutocreaterepo:
+			if self.parSlotsreporepo.val == './SlotsRepo' or self.parSlotsreporepo.val == '':
+				self.parSlotsreporepocreate.pulse()
+
+		# Load from tables on first run 
+		self.repo_manager.load_from_tables_if_needed()
 
 		self.ownerComp.par.Resetcomm.pulse()
 

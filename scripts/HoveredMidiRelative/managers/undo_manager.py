@@ -714,6 +714,9 @@ class UndoManager:
 	
 	def set_default_with_undo(self, par: 'Par'):
 		"""Set parameter default to current value and create undo action.
+		If parameter is in EXPRESSION mode, sets defaultMode and defaultExpr.
+		If parameter is in BIND mode, sets defaultMode and defaultBindExpr.
+		If parameter is in EXPORT mode, sets default value and defaultMode to CONSTANT.
 		
 		Args:
 			par: The parameter to set default for
@@ -721,12 +724,44 @@ class UndoManager:
 		if not par.isCustom:
 			return
 		
-		# Capture old value
+		# Check parameter mode
+		is_expression_mode = par.mode == ParMode.EXPRESSION
+		is_bind_mode = par.mode == ParMode.BIND
+		is_export_mode = par.mode == ParMode.EXPORT
+		
+		# Capture old values
 		old_default = par.default
-		new_default = par.eval()
+		old_default_mode = par.defaultMode if hasattr(par, 'defaultMode') else None
+		old_default_expr = par.defaultExpr if hasattr(par, 'defaultExpr') else None
+		old_default_bind_expr = par.defaultBindExpr if hasattr(par, 'defaultBindExpr') else None
+		
+		# Capture new values before applying changes
+		if is_expression_mode:
+			new_default_expr = par.expr
+		elif is_bind_mode:
+			new_default_bind_expr = par.bindExpr
+		elif is_export_mode:
+			new_default = par.eval()  # For EXPORT, capture the evaluated value
+		else:
+			new_default = par.eval()
 		
 		# Apply the change
-		par.default = new_default
+		if is_expression_mode:
+			# Set defaultMode and defaultExpr for expression parameters
+			par.defaultMode = ParMode.EXPRESSION
+			par.defaultExpr = new_default_expr
+		elif is_bind_mode:
+			# Set defaultMode and defaultBindExpr for bind parameters
+			par.defaultMode = ParMode.BIND
+			par.defaultBindExpr = new_default_bind_expr
+		elif is_export_mode:
+			# For EXPORT mode, set default value and defaultMode to CONSTANT
+			# (EXPORT cannot be set as default mode)
+			par.default = new_default
+			par.defaultMode = ParMode.CONSTANT
+		else:
+			# Set default value for constant parameters
+			par.default = new_default
 		
 		if not self.parent.evalEnableundo:
 			return
@@ -735,18 +770,78 @@ class UndoManager:
 		par_path = f"{par.owner.path}:{par.name}"
 		ui.undo.startBlock(f'Set Default {par.name}')
 		try:
-			undo_info = {
-				'par_path': par_path,
-				'old_default': old_default,
-				'new_default': new_default,
-				'par_name': par.name
-			}
+			if is_expression_mode:
+				undo_info = {
+					'par_path': par_path,
+					'old_default': old_default,
+					'new_default': old_default,  # Not used for expression mode
+					'old_default_mode': old_default_mode,
+					'new_default_mode': ParMode.EXPRESSION,
+					'old_default_expr': old_default_expr,
+					'new_default_expr': new_default_expr,
+					'old_default_bind_expr': old_default_bind_expr,
+					'new_default_bind_expr': None,
+					'par_name': par.name,
+					'is_expression_mode': True,
+					'is_bind_mode': False
+				}
+			elif is_bind_mode:
+				undo_info = {
+					'par_path': par_path,
+					'old_default': old_default,
+					'new_default': old_default,  # Not used for bind mode
+					'old_default_mode': old_default_mode,
+					'new_default_mode': ParMode.BIND,
+					'old_default_expr': old_default_expr,
+					'new_default_expr': None,
+					'old_default_bind_expr': old_default_bind_expr,
+					'new_default_bind_expr': new_default_bind_expr,
+					'par_name': par.name,
+					'is_expression_mode': False,
+					'is_bind_mode': True,
+					'is_export_mode': False
+				}
+			elif is_export_mode:
+				undo_info = {
+					'par_path': par_path,
+					'old_default': old_default,
+					'new_default': new_default,
+					'old_default_mode': old_default_mode,
+					'new_default_mode': ParMode.CONSTANT,
+					'old_default_expr': old_default_expr,
+					'new_default_expr': None,
+					'old_default_bind_expr': old_default_bind_expr,
+					'new_default_bind_expr': None,
+					'par_name': par.name,
+					'is_expression_mode': False,
+					'is_bind_mode': False,
+					'is_export_mode': True
+				}
+			else:
+				undo_info = {
+					'par_path': par_path,
+					'old_default': old_default,
+					'new_default': new_default,
+					'old_default_mode': old_default_mode,
+					'new_default_mode': None,
+					'old_default_expr': old_default_expr,
+					'new_default_expr': None,
+					'old_default_bind_expr': old_default_bind_expr,
+					'new_default_bind_expr': None,
+					'par_name': par.name,
+					'is_expression_mode': False,
+					'is_bind_mode': False,
+					'is_export_mode': False
+				}
 			ui.undo.addCallback(self._undo_set_default_callback, undo_info)
 		finally:
 			ui.undo.endBlock()
 	
 	def set_default_with_multi_undo(self, par: 'Par', additional_pars: list):
 		"""Set default for parameter + additional parameters with grouped undo.
+		If parameters are in EXPRESSION mode, sets defaultMode and defaultExpr.
+		If parameters are in BIND mode, sets defaultMode and defaultBindExpr.
+		If parameters are in EXPORT mode, sets default value and defaultMode to CONSTANT.
 		
 		Args:
 			par: The main parameter
@@ -757,17 +852,109 @@ class UndoManager:
 		# Capture old values and apply changes
 		undo_info_list = []
 		for p in all_pars:
+			# Check parameter mode
+			is_expression_mode = p.mode == ParMode.EXPRESSION
+			is_bind_mode = p.mode == ParMode.BIND
+			is_export_mode = p.mode == ParMode.EXPORT
+			
+			# Capture old values
 			old_default = p.default
-			new_default = p.eval()
-			p.default = new_default
+			old_default_mode = p.defaultMode if hasattr(p, 'defaultMode') else None
+			old_default_expr = p.defaultExpr if hasattr(p, 'defaultExpr') else None
+			old_default_bind_expr = p.defaultBindExpr if hasattr(p, 'defaultBindExpr') else None
+			
+			# Capture new values before applying changes
+			if is_expression_mode:
+				new_default_expr = p.expr
+			elif is_bind_mode:
+				new_default_bind_expr = p.bindExpr
+			elif is_export_mode:
+				new_default = p.eval()  # For EXPORT, capture the evaluated value
+			else:
+				new_default = p.eval()
+			
+			# Apply the change
+			if is_expression_mode:
+				# Set defaultMode and defaultExpr for expression parameters
+				p.defaultMode = ParMode.EXPRESSION
+				p.defaultExpr = new_default_expr
+			elif is_bind_mode:
+				# Set defaultMode and defaultBindExpr for bind parameters
+				p.defaultMode = ParMode.BIND
+				p.defaultBindExpr = new_default_bind_expr
+			elif is_export_mode:
+				# For EXPORT mode, set default value and defaultMode to CONSTANT
+				# (EXPORT cannot be set as default mode)
+				p.default = new_default
+				p.defaultMode = ParMode.CONSTANT
+			else:
+				# Set default value for constant parameters
+				p.default = new_default
 			
 			if self.parent.evalEnableundo:
-				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
-					'old_default': old_default,
-					'new_default': new_default,
-					'par_name': p.name
-				})
+				if is_expression_mode:
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': old_default,  # Not used for expression mode
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.EXPRESSION,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': new_default_expr,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': True,
+						'is_bind_mode': False
+					})
+				elif is_bind_mode:
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': old_default,  # Not used for bind mode
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.BIND,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': new_default_bind_expr,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': True,
+						'is_export_mode': False
+					})
+				elif is_export_mode:
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': new_default,
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.CONSTANT,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': False,
+						'is_export_mode': True
+					})
+				else:
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': new_default,
+						'old_default_mode': old_default_mode,
+						'new_default_mode': None,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': False,
+						'is_export_mode': False
+					})
 		
 		if not self.parent.evalEnableundo or not undo_info_list:
 			return
@@ -783,34 +970,128 @@ class UndoManager:
 	
 	def set_default_pargroup_with_undo(self, par_group: 'ParGroup'):
 		"""Set default for all parameters in a ParGroup and create undo action.
+		If parameters are in EXPRESSION mode, sets defaultMode and defaultExpr.
+		If parameters are in BIND mode, sets defaultMode and defaultBindExpr.
+		If parameters are in EXPORT mode, sets default value and defaultMode to CONSTANT.
 		
 		Args:
 			par_group: The ParGroup to set defaults for
 		"""
 		# Collect all custom parameters from ParGroup
+		# Include ALL modes (CONSTANT, EXPRESSION, BIND, EXPORT) since we want to capture defaults for all
 		all_pars = []
 		for par in par_group:
 			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
+			# Don't use is_valid_parameter() here as it excludes EXPRESSION/EXPORT modes
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and par.isCustom:
 				all_pars.append(par)
 		
 		if not all_pars:
 			return
 		
-		# Capture old values and apply changes
+		# Set individual parameter defaults (each parameter can have its own defaultMode/defaultExpr/defaultBindExpr)
+		# Treat each parameter separately - do NOT set ParGroup-level tuples as that would overwrite other parameters
 		undo_info_list = []
+		debug(f'all pars: {all_pars}')
 		for p in all_pars:
+			# Check parameter mode
+			is_expression_mode = p.mode == ParMode.EXPRESSION
+			is_bind_mode = p.mode == ParMode.BIND
+			is_export_mode = p.mode == ParMode.EXPORT
+			debug(f'checking mode for {p.name}: expression mode: {is_expression_mode}, bind mode: {is_bind_mode}, export mode: {is_export_mode}')
+			# Capture old values for individual parameter undo
 			old_default = p.default
-			new_default = p.eval()
-			p.default = new_default
+			old_default_mode = p.defaultMode if hasattr(p, 'defaultMode') else None
+			old_default_expr = p.defaultExpr if hasattr(p, 'defaultExpr') and is_expression_mode else None
+			old_default_bind_expr = p.defaultBindExpr if hasattr(p, 'defaultBindExpr') and is_bind_mode else None
+			
+			# Set individual parameter defaults based on mode
+			if is_expression_mode:
+				# Set defaultMode and defaultExpr for expression parameters
+				p.defaultMode = ParMode.EXPRESSION
+				p.defaultExpr = p.expr
+				debug(f'setting default mode and expr for {p.name}')
+			elif is_bind_mode:
+				# Set defaultMode and defaultBindExpr for bind/export parameters
+				p.defaultMode = p.mode  # Keep the current mode (BIND or EXPORT)
+				p.defaultBindExpr = p.bindExpr
+				debug(f'setting default mode and bind expr for {p.name}')
+			else:
+				# Set default value for constant parameters
+				p.default = p.eval()
 			
 			if self.parent.evalEnableundo:
-				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
-					'old_default': old_default,
-					'new_default': new_default,
-					'par_name': p.name
-				})
+				if is_expression_mode:
+					new_default_expr = p.expr
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': old_default,  # Not used for expression mode
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.EXPRESSION,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': new_default_expr,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': True,
+						'is_bind_mode': False,
+						'is_pargroup': True
+					})
+				elif is_bind_mode:
+					new_default_bind_expr = p.bindExpr
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': old_default,  # Not used for bind mode
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.BIND,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': new_default_bind_expr,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': True,
+						'is_export_mode': False,
+						'is_pargroup': True
+					})
+				elif is_export_mode:
+					new_default = p.eval()
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': new_default,
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.CONSTANT,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': False,
+						'is_export_mode': True,
+						'is_pargroup': True
+					})
+				else:
+					new_default = p.eval()
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': new_default,
+						'old_default_mode': old_default_mode,
+						'new_default_mode': None,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': False,
+						'is_export_mode': False,
+						'is_pargroup': True
+					})
 		
 		if not self.parent.evalEnableundo or not undo_info_list:
 			return
@@ -831,38 +1112,152 @@ class UndoManager:
 	
 	def set_default_pargroup_with_multi_undo(self, par_group: 'ParGroup', additional_pars: list):
 		"""Set default for ParGroup + additional parameters and create grouped undo.
+		If parameters are in EXPRESSION mode, sets defaultMode and defaultExpr.
+		If parameters are in BIND mode, sets defaultMode and defaultBindExpr.
+		If parameters are in EXPORT mode, sets default value and defaultMode to CONSTANT.
 		
 		Args:
 			par_group: The main ParGroup to set defaults for
 			additional_pars: List of additional parameters to set defaults simultaneously
 		"""
 		# Collect all custom parameters from ParGroup
-		all_pars = []
+		# Include ALL modes (CONSTANT, EXPRESSION, BIND, EXPORT) since we want to capture defaults for all
+		pargroup_pars = []
 		for par in par_group:
 			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
-				all_pars.append(par)
+			# Don't use is_valid_parameter() here as it excludes EXPRESSION/EXPORT modes
+			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and par.isCustom:
+				pargroup_pars.append(par)
 		
 		# Add additional custom parameters
-		all_pars.extend([p for p in additional_pars if p is not None and p.isCustom])
+		all_additional_pars = [p for p in additional_pars if p is not None and p.isCustom]
+		
+		# Handle ParGroup defaults - set individual parameter defaults only
+		# Do NOT set ParGroup-level tuples as that would overwrite other parameters in the group
+		if pargroup_pars:
+			for p in pargroup_pars:
+				is_expression_mode = p.mode == ParMode.EXPRESSION
+				is_bind_mode = p.mode == ParMode.BIND or p.mode == ParMode.EXPORT or p.mode == ParMode.EXPORT
+				
+				if is_expression_mode:
+					# Set defaultMode and defaultExpr for expression parameters
+					p.defaultMode = ParMode.EXPRESSION
+					p.defaultExpr = p.expr
+				elif is_bind_mode:
+					# Set defaultMode and defaultBindExpr for bind/export parameters
+					p.defaultMode = p.mode  # Keep the current mode (BIND or EXPORT)
+					p.defaultBindExpr = p.bindExpr
+				else:
+					# Set default value for constant parameters
+					p.default = p.eval()
+		
+		# Handle additional parameters (individual Pars, not part of ParGroup)
+		all_pars = pargroup_pars + all_additional_pars
 		
 		if not all_pars:
 			return
 		
-		# Capture old values and apply changes
+		# Capture old values and create undo info for all parameters
 		undo_info_list = []
 		for p in all_pars:
+			# Check parameter mode
+			is_expression_mode = p.mode == ParMode.EXPRESSION
+			is_bind_mode = p.mode == ParMode.BIND or p.mode == ParMode.EXPORT or p.mode == ParMode.EXPORT
+			
+			# Capture old values
 			old_default = p.default
-			new_default = p.eval()
-			p.default = new_default
+			old_default_mode = p.defaultMode if hasattr(p, 'defaultMode') else None
+			old_default_expr = p.defaultExpr if hasattr(p, 'defaultExpr') else None
+			old_default_bind_expr = p.defaultBindExpr if hasattr(p, 'defaultBindExpr') else None
+			
+			# For ParGroup parameters, we already set defaults above
+			# For additional parameters, set defaults now
+			if p not in pargroup_pars:
+				if is_expression_mode:
+					p.defaultMode = ParMode.EXPRESSION
+					p.defaultExpr = p.expr
+				elif is_bind_mode:
+					p.defaultMode = ParMode.BIND
+					p.defaultBindExpr = p.bindExpr
+				elif is_export_mode:
+					# For EXPORT mode, set default value and defaultMode to CONSTANT
+					# (EXPORT cannot be set as default mode)
+					p.default = p.eval()
+					p.defaultMode = ParMode.CONSTANT
+				else:
+					p.default = p.eval()
 			
 			if self.parent.evalEnableundo:
-				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
-					'old_default': old_default,
-					'new_default': new_default,
-					'par_name': p.name
-				})
+				if is_expression_mode:
+					new_default_expr = p.expr
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': old_default,  # Not used for expression mode
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.EXPRESSION,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': new_default_expr,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': True,
+						'is_bind_mode': False,
+						'is_pargroup': p in pargroup_pars
+					})
+				elif is_bind_mode:
+					new_default_bind_expr = p.bindExpr
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': old_default,  # Not used for bind mode
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.BIND,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': new_default_bind_expr,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': True,
+						'is_export_mode': False,
+						'is_pargroup': p in pargroup_pars
+					})
+				elif is_export_mode:
+					new_default = p.eval()
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': new_default,
+						'old_default_mode': old_default_mode,
+						'new_default_mode': ParMode.CONSTANT,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': False,
+						'is_export_mode': True,
+						'is_pargroup': p in pargroup_pars
+					})
+				else:
+					new_default = p.eval()
+					undo_info_list.append({
+						'par_path': f"{p.owner.path}:{p.name}",
+						'old_default': old_default,
+						'new_default': new_default,
+						'old_default_mode': old_default_mode,
+						'new_default_mode': None,
+						'old_default_expr': old_default_expr,
+						'new_default_expr': None,
+						'old_default_bind_expr': old_default_bind_expr,
+						'new_default_bind_expr': None,
+						'par_name': p.name,
+						'is_expression_mode': False,
+						'is_bind_mode': False,
+						'is_pargroup': p in pargroup_pars
+					})
 		
 		if not self.parent.evalEnableundo or not undo_info_list:
 			return
@@ -882,7 +1277,10 @@ class UndoManager:
 			ui.undo.endBlock()
 	
 	def _undo_set_default_callback(self, isUndo, info):
-		"""Callback for undoing parameter default change."""
+		"""Callback for undoing parameter default change.
+		Handles regular defaults, expression mode defaults (defaultMode/defaultExpr),
+		and bind mode defaults (defaultMode/defaultBindExpr).
+		Also handles ParGroup defaults when applicable."""
 		par_path = info['par_path']
 		
 		try:
@@ -896,11 +1294,67 @@ class UndoManager:
 			if par is None or not par.isCustom:
 				return
 			
-			# Set value based on undo/redo
-			if isUndo:
-				par.default = info['old_default']
+			# Check if this is part of a ParGroup
+			is_pargroup = info.get('is_pargroup', False)
+			
+			# Note: For ParGroup parameters, we only restore individual parameter defaults
+			# We do NOT restore ParGroup-level tuples to avoid overwriting other parameters
+			
+			# Check parameter mode
+			is_expression_mode = info.get('is_expression_mode', False)
+			is_bind_mode = info.get('is_bind_mode', False)
+			is_export_mode = info.get('is_export_mode', False)
+			
+			# Set value based on undo/redo (for individual parameter)
+			if is_expression_mode:
+				# Handle expression mode defaults
+				if isUndo:
+					# Restore old defaultMode and defaultExpr
+					if 'old_default_mode' in info:
+						if info['old_default_mode'] is not None:
+							par.defaultMode = info['old_default_mode']
+					if 'old_default_expr' in info:
+						if info['old_default_expr'] is not None:
+							par.defaultExpr = info['old_default_expr']
+				else:
+					# Restore new defaultMode and defaultExpr
+					if 'new_default_mode' in info and info['new_default_mode'] is not None:
+						par.defaultMode = info['new_default_mode']
+					if 'new_default_expr' in info and info['new_default_expr'] is not None:
+						par.defaultExpr = info['new_default_expr']
+			elif is_bind_mode:
+				# Handle bind mode defaults
+				if isUndo:
+					# Restore old defaultMode and defaultBindExpr
+					if 'old_default_mode' in info:
+						if info['old_default_mode'] is not None:
+							par.defaultMode = info['old_default_mode']
+					if 'old_default_bind_expr' in info:
+						if info['old_default_bind_expr'] is not None:
+							par.defaultBindExpr = info['old_default_bind_expr']
+				else:
+					# Restore new defaultMode and defaultBindExpr
+					if 'new_default_mode' in info and info['new_default_mode'] is not None:
+						par.defaultMode = info['new_default_mode']
+					if 'new_default_bind_expr' in info and info['new_default_bind_expr'] is not None:
+						par.defaultBindExpr = info['new_default_bind_expr']
+			elif is_export_mode:
+				# Handle export mode defaults (stored as CONSTANT mode)
+				if isUndo:
+					par.default = info['old_default']
+					if 'old_default_mode' in info:
+						if info['old_default_mode'] is not None:
+							par.defaultMode = info['old_default_mode']
+				else:
+					par.default = info['new_default']
+					if 'new_default_mode' in info and info['new_default_mode'] is not None:
+						par.defaultMode = info['new_default_mode']
 			else:
-				par.default = info['new_default']
+				# Handle regular defaults
+				if isUndo:
+					par.default = info['old_default']
+				else:
+					par.default = info['new_default']
 			
 			# Update display if this is the active parameter
 			# Check if the parameter is part of the active parameter (single Par or ParGroup)
