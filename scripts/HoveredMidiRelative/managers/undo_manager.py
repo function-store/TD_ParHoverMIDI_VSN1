@@ -21,20 +21,101 @@ class UndoManager:
 		self.parameterInitialValues = {}  # Maps parameter path to initial value
 		self.parameterUndoCreated = {}  # Maps parameter path to True if undo was created
 		self.undo_timeout_run_obj = None  # Run object for undo timeout
+
+	@staticmethod
+	def _par_path(par: 'Par') -> str:
+		return f"{par.owner.path}:{par.name}"
+
+	@staticmethod
+	def _is_unit_parameter(par: 'Par') -> bool:
+		return par.name.endswith('unit') and len(par.name) > 4
+
+	def _iter_par_inputs(self, par_input):
+		if par_input is None:
+			return
+		if ParameterValidator.is_pargroup(par_input):
+			for par in par_input:
+				yield par
+			return
+		if isinstance(par_input, (list, tuple, set)):
+			for item in par_input:
+				yield from self._iter_par_inputs(item)
+			return
+		yield par_input
+
+	def _iter_filtered_pars(self, *par_inputs, skip_units=False, skip_pulse=True, require_custom=False, validator=None):
+		for par_input in par_inputs:
+			for par in self._iter_par_inputs(par_input):
+				if par is None:
+					continue
+				if skip_units and self._is_unit_parameter(par):
+					continue
+				if skip_pulse and getattr(par, 'isPulse', False):
+					continue
+				if validator and not validator(par):
+					continue
+				if require_custom and not getattr(par, 'isCustom', False):
+					continue
+				yield par
+
+	def _collect_pars_for_undo(self, pars_iterable):
+		pars_to_undo = []
+		for par in pars_iterable:
+			par_path = self._par_path(par)
+			if par_path not in self.parameterInitialValues:
+				self.capture_initial_parameter_value(par)
+			if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
+				pars_to_undo.append(par)
+		return pars_to_undo
+
+	def _create_grouped_parameter_undo(self, pars, block_name: str):
+		if not pars:
+			return
+		if len(pars) == 1:
+			self.create_parameter_undo(pars[0], skip_block=False)
+			return
+		ui.undo.startBlock(block_name)
+		try:
+			for par in pars:
+				self.create_parameter_undo(par, skip_block=True)
+		finally:
+			ui.undo.endBlock()
+
+	@staticmethod
+	def _safe_group_name(par_group, default_name="ParGroup"):
+		try:
+			return next((p.owner.name for p in par_group if p is not None), default_name)
+		except Exception:
+			return default_name
+
+	def _is_resettable_parameter(self, par: 'Par'):
+		if par is None:
+			return False
+		# Skip readOnly or disabled parameters
+		try:
+			if par.readOnly or not par.enable:
+				return False
+		except Exception:
+			pass
+		try:
+			if ParameterValidator.is_valid_parameter(par):
+				return True
+		except Exception:
+			pass
+		try:
+			return par.mode in (ParMode.CONSTANT, ParMode.EXPRESSION, ParMode.EXPORT, ParMode.BIND)
+		except Exception:
+			return False
 	
 	def clear_unused_captured_values(self, par_or_group: Union['Par', 'ParGroup']):
 		"""Clear captured initial values that never resulted in undo actions.
 		Also clears matching parameters from multi-operator editing."""
-		if ParameterValidator.is_pargroup(par_or_group):
-			for par in par_or_group:
-				if par is not None:
-					self._clear_parameter_and_matching(par)
-		else:
-			self._clear_parameter_and_matching(par_or_group)
+		for par in self._iter_filtered_pars(par_or_group, skip_pulse=False):
+			self._clear_parameter_and_matching(par)
 	
 	def _clear_parameter_and_matching(self, par: 'Par'):
 		"""Clear a parameter and all its matching parameters (for multi-operator editing)."""
-		par_path = f"{par.owner.path}:{par.name}"
+		par_path = self._par_path(par)
 		
 		# Clear main parameter
 		if par_path in self.parameterInitialValues:
@@ -50,7 +131,7 @@ class UndoManager:
 				if matching_pars:
 					for matching_par in matching_pars:
 						if matching_par is not None:
-							matching_path = f"{matching_par.owner.path}:{matching_par.name}"
+							matching_path = self._par_path(matching_par)
 							if matching_path in self.parameterInitialValues:
 								del self.parameterInitialValues[matching_path]
 							if matching_path in self.parameterUndoCreated:
@@ -73,7 +154,7 @@ class UndoManager:
 			return
 		
 		# Use parameter path as unique key
-		par_path = f"{par.owner.path}:{par.name}"
+		par_path = self._par_path(par)
 		
 		# Only capture if we don't already have one for this parameter
 		if par_path in self.parameterInitialValues:
@@ -105,7 +186,7 @@ class UndoManager:
 			return False
 		
 		# Use parameter path as unique key
-		par_path = f"{par.owner.path}:{par.name}"
+		par_path = self._par_path(par)
 		
 		# If no initial value captured (e.g., after timeout), capture current value as new checkpoint
 		if par_path not in self.parameterInitialValues:
@@ -146,45 +227,18 @@ class UndoManager:
 		if not self.parent.evalEnableundo:
 			return
 		
-		# Collect all valid parameters that need undo
-		pars_to_undo = []
-		
-		# First pass: capture initial values for all parameters (if not already captured)
-		# This ensures all parameters have initial values before creating undo
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
-				par_path = f"{par.owner.path}:{par.name}"
-				# Capture initial value if not already captured (consistent with multi-undo)
-				if par_path not in self.parameterInitialValues:
-					self.capture_initial_parameter_value(par)
-		
-		# Second pass: collect parameters that need undo (have initial values and undo not created yet)
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
-				par_path = f"{par.owner.path}:{par.name}"
-				# Add to undo list if we have initial value and haven't created undo yet
-				if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
-					pars_to_undo.append(par)
-		
-		# If no parameters need undo, return (initial values captured for next adjustment)
+		pars_to_undo = self._collect_pars_for_undo(
+			self._iter_filtered_pars(
+				par_group,
+				skip_units=True,
+				validator=ParameterValidator.is_valid_parameter
+			)
+		)
 		if not pars_to_undo:
 			return
 		
-		# Get group name safely
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
-		
-		# Create single undo block for all parameters in the group
-		ui.undo.startBlock(f'Change {group_name} ParGroup')
-		try:
-			for par in pars_to_undo:
-				self.create_parameter_undo(par, skip_block=True)
-		finally:
-			ui.undo.endBlock()
+		group_name = self._safe_group_name(par_group)
+		self._create_grouped_parameter_undo(pars_to_undo, f'Change {group_name} ParGroup')
 	
 	def create_multi_parameter_undo(self, main_par: 'Par', additional_pars: list):
 		"""Create a single undo action for multiple parameters (main + multi-operator editing).
@@ -196,47 +250,17 @@ class UndoManager:
 		if not self.parent.evalEnableundo:
 			return
 		
-		# Collect all parameters that need undo (main + additionals)
-		pars_to_undo = []
-		
-		# Check main parameter (ensure consistent logic with additional parameters)
-		if not main_par.isPulse:
-			par_path = f"{main_par.owner.path}:{main_par.name}"
-			# Capture initial value if not already captured (consistency with additional pars)
-			if par_path not in self.parameterInitialValues:
-				current_val = main_par.menuIndex if main_par.isMenu else main_par.eval()
-				self.capture_initial_parameter_value(main_par)
-			# Add to undo list if we have initial value and haven't created undo yet
-			if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
-				pars_to_undo.append(main_par)
-
-		# Check additional parameters
-		for par in additional_pars:
-			if par is not None and not par.isPulse:
-				par_path = f"{par.owner.path}:{par.name}"
-				# Capture initial value if not already captured
-				if par_path not in self.parameterInitialValues:
-					self.capture_initial_parameter_value(par)
-				# Add to undo list if we have initial value and haven't created undo yet
-				if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
-					pars_to_undo.append(par)
-		
-		# If no parameters need undo, return
+		pars_to_undo = self._collect_pars_for_undo(
+			self._iter_filtered_pars(
+				main_par,
+				additional_pars,
+				validator=ParameterValidator.is_valid_parameter
+			)
+		)
 		if not pars_to_undo:
 			return
 		
-		# Create single undo block for all parameters
-		if len(pars_to_undo) == 1:
-			# Only one parameter needs undo - use simple block name
-			self.create_parameter_undo(pars_to_undo[0], skip_block=False)
-		else:
-			# Multiple parameters - create grouped undo
-			ui.undo.startBlock(f'Change {main_par.name} (Multi-Op)')
-			try:
-				for par in pars_to_undo:
-					self.create_parameter_undo(par, skip_block=True)
-			finally:
-				ui.undo.endBlock()
+		self._create_grouped_parameter_undo(pars_to_undo, f'Change {main_par.name} (Multi-Op)')
 	
 	def create_pargroup_with_multi_undo(self, par_group: 'ParGroup', additional_pars: list):
 		"""Create a single undo action for a ParGroup + multi-operator editing parameters.
@@ -248,49 +272,18 @@ class UndoManager:
 		if not self.parent.evalEnableundo:
 			return
 		
-		# Collect all parameters that need undo (ParGroup + additionals)
-		pars_to_undo = []
-		
-		# Check parameters in the ParGroup (ensure consistent logic)
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and not par.isPulse:
-				par_path = f"{par.owner.path}:{par.name}"
-				# Capture initial value if not already captured (consistency with additional pars)
-				if par_path not in self.parameterInitialValues:
-					self.capture_initial_parameter_value(par)
-				# Add to undo list if we have initial value and haven't created undo yet
-				if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
-					pars_to_undo.append(par)
-		
-		# Check additional parameters from other operators
-		for par in additional_pars:
-			if par is not None and not par.isPulse:
-				par_path = f"{par.owner.path}:{par.name}"
-				# Capture initial value if not already captured
-				if par_path not in self.parameterInitialValues:
-					self.capture_initial_parameter_value(par)
-				# Add to undo list if we have initial value and haven't created undo yet
-				if par_path in self.parameterInitialValues and par_path not in self.parameterUndoCreated:
-					pars_to_undo.append(par)
-		
-		# If no parameters need undo, return
+		pargroup_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			validator=ParameterValidator.is_valid_parameter
+		))
+		additional = list(self._iter_filtered_pars(additional_pars))
+		pars_to_undo = self._collect_pars_for_undo(pargroup_pars + additional)
 		if not pars_to_undo:
 			return
 		
-		# Get group name safely
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
-		
-		# Create single undo block for all parameters
-		ui.undo.startBlock(f'Change {group_name} ParGroup (Multi-Op)')
-		try:
-			for par in pars_to_undo:
-				self.create_parameter_undo(par, skip_block=True)
-		finally:
-			ui.undo.endBlock()
+		group_name = self._safe_group_name(par_group)
+		self._create_grouped_parameter_undo(pars_to_undo, f'Change {group_name} ParGroup (Multi-Op)')
 	
 	def start_undo_timeout(self, timeout_ms: float = None):
 		"""Start/restart timeout to clear captured parameter values after inactivity.
@@ -339,12 +332,8 @@ class UndoManager:
 		"""
 		
 		# Capture initial values for undo when slot is activated
-		if ParameterValidator.is_pargroup(slot_par):
-			for par in slot_par:
-				if par is not None and ParameterValidator.is_valid_parameter(par):
-					self.capture_initial_parameter_value(par)
-		else:
-			self.capture_initial_parameter_value(slot_par)
+		for par in self._iter_filtered_pars(slot_par, validator=ParameterValidator.is_valid_parameter, skip_pulse=False):
+			self.capture_initial_parameter_value(par)
 	
 	def on_slot_deactivated(self, slot_par: Union['Par', 'ParGroup']):
 		"""Handle undo operations when a slot is deactivated.
@@ -363,12 +352,8 @@ class UndoManager:
 		"""
 		
 		# Capture initial values for undo when hovering
-		if ParameterValidator.is_pargroup(par_or_group):
-			for par in par_or_group:
-				if par is not None and ParameterValidator.is_valid_parameter(par):
-					self.capture_initial_parameter_value(par)
-		else:
-			self.capture_initial_parameter_value(par_or_group)
+		for par in self._iter_filtered_pars(par_or_group, validator=ParameterValidator.is_valid_parameter, skip_pulse=False):
+			self.capture_initial_parameter_value(par)
 	
 	def on_parameter_unhovered(self, par_or_group: Union['Par', 'ParGroup']):
 		"""Handle undo operations when a parameter is no longer hovered.
@@ -456,11 +441,18 @@ class UndoManager:
 			par.reset()
 			return None
 		
+		# Skip readOnly or disabled parameters
+		try:
+			if par.readOnly or not par.enable:
+				return None
+		except Exception:
+			pass
+		
 		# Capture current state before reset
-		par_path = f"{par.owner.path}:{par.name}"
+		par_path = self._par_path(par)
 		old_mode = par.mode
 		old_expr = par.expr if par.mode == ParMode.EXPRESSION else None
-		old_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+		old_bind_expr = par.bindExpr if par.mode == ParMode.BIND else None
 		
 		if par.isMenu:
 			current_value = par.menuIndex
@@ -473,7 +465,7 @@ class UndoManager:
 		# Get reset state
 		new_mode = par.mode
 		new_expr = par.expr if par.mode == ParMode.EXPRESSION else None
-		new_bind_expr = par.bindExpr if par.mode == ParMode.EXPORT else None
+		new_bind_expr = par.bindExpr if par.mode == ParMode.BIND else None
 		
 		if par.isMenu:
 			reset_value = par.menuIndex
@@ -501,7 +493,11 @@ class UndoManager:
 			par: The parameter to reset
 		"""
 		if not self.parent.evalEnableundo:
-			par.reset()
+			try:
+				if not (par.readOnly or not par.enable):
+					par.reset()
+			except Exception:
+				pass
 			return
 		
 		# Capture state, reset, and get info
@@ -523,12 +519,16 @@ class UndoManager:
 			par: The main parameter to reset
 			additional_pars: List of additional parameters to reset simultaneously
 		"""
-		all_pars = [par] + [p for p in additional_pars if p is not None]
+		all_pars = list(self._iter_filtered_pars(par, additional_pars, skip_pulse=False))
 		
 		if not self.parent.evalEnableundo:
 			# Reset all without undo
 			for p in all_pars:
-				p.reset()
+				try:
+					if not (p.readOnly or not p.enable):
+						p.reset()
+				except Exception:
+					pass
 			return
 		
 		# Capture state and reset all parameters
@@ -562,17 +562,23 @@ class UndoManager:
 			additional_pars: List of additional parameters to reset simultaneously
 		"""
 		# Collect all parameters to reset (ParGroup + additionals)
-		all_pars = []
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par):
-				all_pars.append(par)
-		all_pars.extend([p for p in additional_pars if p is not None])
+		pargroup_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			validator=self._is_resettable_parameter,
+			skip_pulse=False
+		))
+		additional = list(self._iter_filtered_pars(additional_pars, skip_pulse=False))
+		all_pars = pargroup_pars + additional
 		
 		if not self.parent.evalEnableundo:
 			# Reset all without undo
 			for p in all_pars:
-				p.reset()
+				try:
+					if not (p.readOnly or not p.enable):
+						p.reset()
+				except Exception:
+					pass
 			return
 		
 		# Capture state and reset all parameters
@@ -586,10 +592,7 @@ class UndoManager:
 			return
 		
 		# Get group name
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
+		group_name = self._safe_group_name(par_group)
 		
 		# Create single undo block for all parameters
 		ui.undo.startBlock(f'Reset {group_name} ParGroup (Multi-Op)')
@@ -605,31 +608,33 @@ class UndoManager:
 		Args:
 			par_group: The ParGroup to reset
 		"""
+		valid_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			validator=self._is_resettable_parameter,
+			skip_pulse=False
+		))
+		
 		if not self.parent.evalEnableundo:
-			# Reset without undo
-			for par in par_group:
-				# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-				if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par):
-					par.reset()
+			for par in valid_pars:
+				try:
+					if not (par.readOnly or not par.enable):
+						par.reset()
+				except Exception:
+					pass
 			return
 		
 		# Capture state and reset all valid parameters
 		reset_info_list = []
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par):
-				reset_info = self._capture_and_reset_parameter(par)
-				if reset_info:
-					reset_info_list.append(reset_info)
+		for par in valid_pars:
+			reset_info = self._capture_and_reset_parameter(par)
+			if reset_info:
+				reset_info_list.append(reset_info)
 		
 		if not reset_info_list:
 			return
 		
-		# Get group name
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
+		group_name = self._safe_group_name(par_group)
 		
 		# Create single undo block for all parameters
 		ui.undo.startBlock(f'Reset {group_name} ParGroup')
@@ -847,7 +852,7 @@ class UndoManager:
 			par: The main parameter
 			additional_pars: List of additional parameters
 		"""
-		all_pars = [par] + [p for p in additional_pars if p is not None and p.isCustom]
+		all_pars = list(self._iter_filtered_pars(par, additional_pars, require_custom=True, skip_pulse=False))
 		
 		# Capture old values and apply changes
 		undo_info_list = []
@@ -894,7 +899,7 @@ class UndoManager:
 			if self.parent.evalEnableundo:
 				if is_expression_mode:
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': old_default,  # Not used for expression mode
 						'old_default_mode': old_default_mode,
@@ -909,7 +914,7 @@ class UndoManager:
 					})
 				elif is_bind_mode:
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': old_default,  # Not used for bind mode
 						'old_default_mode': old_default_mode,
@@ -925,7 +930,7 @@ class UndoManager:
 					})
 				elif is_export_mode:
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': new_default,
 						'old_default_mode': old_default_mode,
@@ -941,7 +946,7 @@ class UndoManager:
 					})
 				else:
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': new_default,
 						'old_default_mode': old_default_mode,
@@ -979,12 +984,12 @@ class UndoManager:
 		"""
 		# Collect all custom parameters from ParGroup
 		# Include ALL modes (CONSTANT, EXPRESSION, BIND, EXPORT) since we want to capture defaults for all
-		all_pars = []
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			# Don't use is_valid_parameter() here as it excludes EXPRESSION/EXPORT modes
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and par.isCustom:
-				all_pars.append(par)
+		all_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			require_custom=True,
+			skip_pulse=False
+		))
 		
 		if not all_pars:
 			return
@@ -1024,7 +1029,7 @@ class UndoManager:
 				if is_expression_mode:
 					new_default_expr = p.expr
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': old_default,  # Not used for expression mode
 						'old_default_mode': old_default_mode,
@@ -1041,7 +1046,7 @@ class UndoManager:
 				elif is_bind_mode:
 					new_default_bind_expr = p.bindExpr
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': old_default,  # Not used for bind mode
 						'old_default_mode': old_default_mode,
@@ -1059,7 +1064,7 @@ class UndoManager:
 				elif is_export_mode:
 					new_default = p.eval()
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': new_default,
 						'old_default_mode': old_default_mode,
@@ -1077,7 +1082,7 @@ class UndoManager:
 				else:
 					new_default = p.eval()
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': new_default,
 						'old_default_mode': old_default_mode,
@@ -1097,10 +1102,7 @@ class UndoManager:
 			return
 		
 		# Get group name
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
+		group_name = self._safe_group_name(par_group)
 		
 		# Create grouped undo
 		ui.undo.startBlock(f'Set Default {group_name} ParGroup')
@@ -1122,22 +1124,23 @@ class UndoManager:
 		"""
 		# Collect all custom parameters from ParGroup
 		# Include ALL modes (CONSTANT, EXPRESSION, BIND, EXPORT) since we want to capture defaults for all
-		pargroup_pars = []
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			# Don't use is_valid_parameter() here as it excludes EXPRESSION/EXPORT modes
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and par.isCustom:
-				pargroup_pars.append(par)
+		pargroup_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			require_custom=True,
+			skip_pulse=False
+		))
 		
 		# Add additional custom parameters
-		all_additional_pars = [p for p in additional_pars if p is not None and p.isCustom]
+		all_additional_pars = list(self._iter_filtered_pars(additional_pars, require_custom=True, skip_pulse=False))
 		
 		# Handle ParGroup defaults - set individual parameter defaults only
 		# Do NOT set ParGroup-level tuples as that would overwrite other parameters in the group
 		if pargroup_pars:
 			for p in pargroup_pars:
 				is_expression_mode = p.mode == ParMode.EXPRESSION
-				is_bind_mode = p.mode == ParMode.BIND or p.mode == ParMode.EXPORT or p.mode == ParMode.EXPORT
+				is_export_mode = p.mode == ParMode.EXPORT
+				is_bind_mode = p.mode == ParMode.BIND or is_export_mode
 				
 				if is_expression_mode:
 					# Set defaultMode and defaultExpr for expression parameters
@@ -1162,7 +1165,8 @@ class UndoManager:
 		for p in all_pars:
 			# Check parameter mode
 			is_expression_mode = p.mode == ParMode.EXPRESSION
-			is_bind_mode = p.mode == ParMode.BIND or p.mode == ParMode.EXPORT or p.mode == ParMode.EXPORT
+			is_export_mode = p.mode == ParMode.EXPORT
+			is_bind_mode = p.mode == ParMode.BIND or is_export_mode
 			
 			# Capture old values
 			old_default = p.default
@@ -1191,7 +1195,7 @@ class UndoManager:
 				if is_expression_mode:
 					new_default_expr = p.expr
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': old_default,  # Not used for expression mode
 						'old_default_mode': old_default_mode,
@@ -1208,7 +1212,7 @@ class UndoManager:
 				elif is_bind_mode:
 					new_default_bind_expr = p.bindExpr
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': old_default,  # Not used for bind mode
 						'old_default_mode': old_default_mode,
@@ -1226,7 +1230,7 @@ class UndoManager:
 				elif is_export_mode:
 					new_default = p.eval()
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': new_default,
 						'old_default_mode': old_default_mode,
@@ -1244,7 +1248,7 @@ class UndoManager:
 				else:
 					new_default = p.eval()
 					undo_info_list.append({
-						'par_path': f"{p.owner.path}:{p.name}",
+						'par_path': self._par_path(p),
 						'old_default': old_default,
 						'new_default': new_default,
 						'old_default_mode': old_default_mode,
@@ -1262,11 +1266,7 @@ class UndoManager:
 		if not self.parent.evalEnableundo or not undo_info_list:
 			return
 		
-		# Get group name
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
+		group_name = self._safe_group_name(par_group)
 		
 		# Create single undo block for all parameters
 		ui.undo.startBlock(f'Set Default {group_name} ParGroup (Multi-Op)')
@@ -1434,7 +1434,7 @@ class UndoManager:
 			additional_pars: List of additional parameters
 			is_min: True for normMin, False for normMax
 		"""
-		all_pars = [par] + [p for p in additional_pars if p is not None and p.isCustom]
+		all_pars = list(self._iter_filtered_pars(par, additional_pars, require_custom=True, skip_pulse=False))
 		
 		# Capture old values and apply changes
 		undo_info_list = []
@@ -1459,7 +1459,7 @@ class UndoManager:
 			
 			if self.parent.evalEnableundo:
 				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
+					'par_path': self._par_path(p),
 					'is_min': is_min,
 					'old_norm': old_norm,
 					'new_norm': _val,
@@ -1489,11 +1489,13 @@ class UndoManager:
 			is_min: True for normMin, False for normMax
 		"""
 		# Collect all custom parameters from ParGroup
-		all_pars = []
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
-				all_pars.append(par)
+		all_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			require_custom=True,
+			validator=ParameterValidator.is_valid_parameter,
+			skip_pulse=False
+		))
 		
 		if not all_pars:
 			return
@@ -1521,7 +1523,7 @@ class UndoManager:
 			
 			if self.parent.evalEnableundo:
 				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
+					'par_path': self._par_path(p),
 					'is_min': is_min,
 					'old_norm': old_norm,
 					'new_norm': _val,
@@ -1534,10 +1536,7 @@ class UndoManager:
 			return
 		
 		# Get group name
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
+		group_name = self._safe_group_name(par_group)
 		
 		# Create grouped undo
 		min_max_str = "Min" if is_min else "Max"
@@ -1557,14 +1556,15 @@ class UndoManager:
 			is_min: True for normMin, False for normMax
 		"""
 		# Collect all custom parameters from ParGroup
-		all_pars = []
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
-				all_pars.append(par)
-		
-		# Add additional custom parameters
-		all_pars.extend([p for p in additional_pars if p is not None and p.isCustom])
+		pargroup_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			require_custom=True,
+			validator=ParameterValidator.is_valid_parameter,
+			skip_pulse=False
+		))
+		additional = list(self._iter_filtered_pars(additional_pars, require_custom=True, skip_pulse=False))
+		all_pars = pargroup_pars + additional
 		
 		if not all_pars:
 			return
@@ -1592,7 +1592,7 @@ class UndoManager:
 			
 			if self.parent.evalEnableundo:
 				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
+					'par_path': self._par_path(p),
 					'is_min': is_min,
 					'old_norm': old_norm,
 					'new_norm': _val,
@@ -1605,10 +1605,7 @@ class UndoManager:
 			return
 		
 		# Get group name
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
+		group_name = self._safe_group_name(par_group)
 		
 		# Create single undo block for all parameters
 		min_max_str = "Min" if is_min else "Max"
@@ -1726,7 +1723,7 @@ class UndoManager:
 			additional_pars: List of additional parameters
 			min_max: 'min', 'max', or 'both'
 		"""
-		all_pars = [par] + [p for p in additional_pars if p is not None and p.isCustom]
+		all_pars = list(self._iter_filtered_pars(par, additional_pars, require_custom=True, skip_pulse=False))
 		
 		# Determine what's changing
 		changed_min = (min_max == 'min' or min_max == 'both')
@@ -1746,7 +1743,7 @@ class UndoManager:
 			
 			if self.parent.evalEnableundo:
 				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
+					'par_path': self._par_path(p),
 					'changed_min': changed_min,
 					'changed_max': changed_max,
 					'old_clamp_min': old_clamp_min,
@@ -1776,11 +1773,13 @@ class UndoManager:
 			min_max: 'min', 'max', or 'both'
 		"""
 		# Collect all custom parameters from ParGroup
-		all_pars = []
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
-				all_pars.append(par)
+		all_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			require_custom=True,
+			validator=ParameterValidator.is_valid_parameter,
+			skip_pulse=False
+		))
 		
 		if not all_pars:
 			return
@@ -1803,7 +1802,7 @@ class UndoManager:
 			
 			if self.parent.evalEnableundo:
 				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
+					'par_path': self._par_path(p),
 					'changed_min': changed_min,
 					'changed_max': changed_max,
 					'old_clamp_min': old_clamp_min,
@@ -1817,10 +1816,7 @@ class UndoManager:
 			return
 		
 		# Get group name
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
+		group_name = self._safe_group_name(par_group)
 		
 		# Create grouped undo
 		ui.undo.startBlock(f'Toggle Clamp {group_name} ParGroup')
@@ -1839,14 +1835,15 @@ class UndoManager:
 			min_max: 'min', 'max', or 'both'
 		"""
 		# Collect all custom parameters from ParGroup
-		all_pars = []
-		for par in par_group:
-			# Skip unit parameters (e.g., tunit, runit, sunit) but not "unit" itself
-			if par is not None and not (par.name.endswith('unit') and len(par.name) > 4) and ParameterValidator.is_valid_parameter(par) and par.isCustom:
-				all_pars.append(par)
-		
-		# Add additional custom parameters
-		all_pars.extend([p for p in additional_pars if p is not None and p.isCustom])
+		pargroup_pars = list(self._iter_filtered_pars(
+			par_group,
+			skip_units=True,
+			require_custom=True,
+			validator=ParameterValidator.is_valid_parameter,
+			skip_pulse=False
+		))
+		additional = list(self._iter_filtered_pars(additional_pars, require_custom=True, skip_pulse=False))
+		all_pars = pargroup_pars + additional
 		
 		if not all_pars:
 			return
@@ -1869,7 +1866,7 @@ class UndoManager:
 			
 			if self.parent.evalEnableundo:
 				undo_info_list.append({
-					'par_path': f"{p.owner.path}:{p.name}",
+					'par_path': self._par_path(p),
 					'changed_min': changed_min,
 					'changed_max': changed_max,
 					'old_clamp_min': old_clamp_min,
@@ -1883,10 +1880,7 @@ class UndoManager:
 			return
 		
 		# Get group name
-		try:
-			group_name = next((p.owner.name for p in par_group if p is not None), "ParGroup")
-		except:
-			group_name = "ParGroup"
+		group_name = self._safe_group_name(par_group)
 		
 		# Create single undo block for all parameters
 		ui.undo.startBlock(f'Toggle Clamp {group_name} ParGroup (Multi-Op)')
