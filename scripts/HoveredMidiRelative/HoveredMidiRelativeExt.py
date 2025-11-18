@@ -110,6 +110,9 @@ class HoveredMidiRelativeExt:
 		if self.evalAutocreaterepo:
 			if self.parSlotsreporepo.val == './SlotsRepo' or self.parSlotsreporepo.val == '':
 				self.parSlotsreporepocreate.pulse()
+				if _currPane := self.jumpToOp.ext.JumpToOpExt.currPane:
+					if _currPane.owner == self.ownerComp.parent():
+						run("args[0].current = True", self.ownerComp, delayFrames=1)
 
 		# Load from tables on first run 
 		self.repo_manager.load_from_tables_if_needed()
@@ -1093,6 +1096,11 @@ class HoveredMidiRelativeExt:
 		# # Initialize screen
 		# self._initialize_VSN1()
 		run("args[0]._initialize_VSN1()", self, delayRef=op.TDResources, delayFrames=30)
+
+	def onParSlotsreporepocreate(self):
+		if _currPane := self.jumpToOp.ext.JumpToOpExt.currPane:
+			if _currPane.owner == self.ownerComp.parent():
+				run("args[0].current = True", self.ownerComp, delayFrames=1)
 
 	def onParStartgrideditor(self):
 		self._start_grid_editor()
