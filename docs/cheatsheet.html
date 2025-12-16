@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -19,7 +20,7 @@
             line-height: 1.6;
             padding-top: 120px;
         }
-        
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -28,7 +29,7 @@
             padding: 40px;
             box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
         }
-        
+
         h1 {
             color: #8fa3ff;
             text-align: center;
@@ -36,23 +37,23 @@
             font-size: 2.5em;
             text-shadow: 0 0 20px rgba(74, 144, 226, 0.5);
         }
-        
+
         .subtitle {
             text-align: center;
             color: #aaa;
             margin-bottom: 40px;
             font-size: 1.1em;
         }
-        
+
         .subtitle a {
             color: #8fa3ff;
             text-decoration: none;
         }
-        
+
         .subtitle a:hover {
             text-decoration: underline;
         }
-        
+
         h2 {
             color: #4A90E2;
             margin-top: 40px;
@@ -61,14 +62,14 @@
             border-bottom: 2px solid #4A90E2;
             font-size: 1.8em;
         }
-        
+
         h3 {
             color: #8fa3ff;
             margin-top: 30px;
             margin-bottom: 15px;
             font-size: 1.3em;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -77,7 +78,7 @@
             border-radius: 8px;
             overflow: hidden;
         }
-        
+
         th {
             background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%);
             color: white;
@@ -88,37 +89,37 @@
             font-size: 0.9em;
             letter-spacing: 0.5px;
         }
-        
+
         td {
             padding: 12px 15px;
             border-bottom: 1px solid #2a2a3e;
         }
-        
+
         tr:last-child td {
             border-bottom: none;
         }
-        
+
         tr:hover {
             background: #252538;
         }
-        
+
         tr td:first-child {
             font-weight: 600;
             color: #8fa3ff;
         }
-        
+
         .category-row {
             background: #252538 !important;
             font-weight: bold;
             color: #4A90E2 !important;
         }
-        
+
         .category-row td {
             padding: 10px 15px;
             font-size: 1.1em;
             border-top: 2px solid #4A90E2;
         }
-        
+
         .note {
             background: rgba(74, 144, 226, 0.1);
             border-left: 4px solid #4A90E2;
@@ -126,11 +127,11 @@
             margin: 20px 0;
             border-radius: 4px;
         }
-        
+
         .note strong {
             color: #8fa3ff;
         }
-        
+
         code {
             background: #2a2a3e;
             padding: 2px 6px;
@@ -139,57 +140,58 @@
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
         }
-        
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
             }
-            
+
             h1 {
                 font-size: 1.8em;
             }
-            
+
             table {
                 font-size: 0.9em;
             }
-            
-            th, td {
+
+            th,
+            td {
                 padding: 10px;
             }
         }
-        
+
         /* Custom Scrollbar Styling */
         /* Firefox */
         * {
             scrollbar-width: thin;
             scrollbar-color: #4A90E2 #1a1a2e;
         }
-        
+
         /* Webkit browsers (Chrome, Safari, Edge) */
         ::-webkit-scrollbar {
             width: 12px;
             height: 12px;
         }
-        
+
         ::-webkit-scrollbar-track {
             background: #1a1a2e;
             border-radius: 10px;
         }
-        
+
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%);
             border-radius: 10px;
             border: 2px solid #1a1a2e;
         }
-        
+
         ::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #6BB3FF 0%, #4A90E2 100%);
         }
-        
+
         ::-webkit-scrollbar-corner {
             background: #1a1a2e;
         }
-        
+
         /* Search Bar Styling */
         .search-container {
             position: fixed;
@@ -203,13 +205,13 @@
             z-index: 1000;
             border-bottom: 2px solid #4A90E2;
         }
-        
+
         .search-wrapper {
             max-width: 1400px;
             margin: 0 auto;
             position: relative;
         }
-        
+
         #searchInput {
             width: 100%;
             padding: 15px 50px 15px 20px;
@@ -221,17 +223,17 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             transition: all 0.3s ease;
         }
-        
+
         #searchInput:focus {
             outline: none;
             border-color: #6BB3FF;
             box-shadow: 0 0 15px rgba(74, 144, 226, 0.3);
         }
-        
+
         #searchInput::placeholder {
             color: #666;
         }
-        
+
         .search-icon {
             position: absolute;
             right: 20px;
@@ -240,7 +242,7 @@
             color: #4A90E2;
             font-size: 20px;
         }
-        
+
         .search-stats {
             position: absolute;
             right: 50px;
@@ -249,42 +251,44 @@
             color: #666;
             font-size: 14px;
         }
-        
+
         .highlight {
             background: rgba(74, 144, 226, 0.3);
             padding: 2px 4px;
             border-radius: 3px;
         }
-        
+
         tr.hidden {
             display: none;
         }
-        
+
         h2.hidden {
             display: none;
         }
-        
+
         table.hidden {
             display: none;
         }
     </style>
 </head>
+
 <body>
     <!-- Search Bar -->
     <div class="search-container">
         <div class="search-wrapper">
-            <input type="text" id="searchInput" placeholder="Search controls, parameters, or shortcuts... (Ctrl/Cmd + F)" autocomplete="off">
+            <input type="text" id="searchInput"
+                placeholder="Search controls, parameters, or shortcuts... (Ctrl/Cmd + F)" autocomplete="off">
             <span class="search-stats" id="searchStats"></span>
             <span class="search-icon">🔍</span>
         </div>
     </div>
-    
+
     <div class="container">
         <h1>🎛️ TouchDesigner Par Hover Control</h1>
         <div class="subtitle">
             Quick Reference Cheatsheet for Intech VSN1
         </div>
-        
+
         <div class="note" style="margin-bottom: 40px;">
             <strong>📖 Hardware Glossary (VSN1):</strong>
             <ul style="margin: 10px 0 0 20px; color: #ddd;">
@@ -294,14 +298,15 @@
                 <li><strong>Main Knob</strong> - The rotary encoder (twist to adjust, push to pulse/toggle)</li>
             </ul>
         </div>
-        
+
         <div style="margin: -20px 0 10px 0; font-size: 0.85em; opacity: 0.75; color: #bbb;">
-            💡 You cannot hover on the component's own parameters. Hover over parameters on other operators instead. ParGroup hover requires TouchDesigner 2025.X or later.
+            💡 You cannot hover on the component's own parameters. Hover over parameters on other operators instead.
+            ParGroup hover requires TouchDesigner 2025.X or later.
         </div>
 
         <!-- Controls & Shortcuts -->
         <h2>🎮 Controls & Shortcuts</h2>
-        
+
         <table>
             <thead>
                 <tr>
@@ -329,14 +334,17 @@
                     <td>Change step size</td>
                     <td>Cycles through 0.001, 0.01, 0.1, 1 (default)</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="3">Step Modes</td>
                 </tr>
                 <tr>
                     <td>Push knob + twist</td>
                     <td>Use alternate precision</td>
-                    <td>Hold push button while rotating knob. Behavior depends on <strong>Push Step Mode</strong> (configurable via Push Step Mode custom parameter): <strong>Fixed</strong> = uses Push Step value, <strong>Finer</strong> = current step ÷ 10, <strong>Coarser</strong> (default) = current step × 10</td>
+                    <td>Hold push button while rotating knob. Behavior depends on <strong>Push Step Mode</strong>
+                        (configurable via Push Step Mode custom parameter): <strong>Fixed</strong> = uses Push Step
+                        value, <strong>Finer</strong> = current step ÷ 10, <strong>Coarser</strong> (default) = current
+                        step × 10</td>
                 </tr>
                 <tr>
                     <td>Push knob + step button</td>
@@ -346,9 +354,11 @@
                 <tr>
                     <td>Leftmost + rightmost step buttons</td>
                     <td>Toggle Step Mode (Fixed/Adaptive)</td>
-                    <td>Changes step calculation method for value adjustment. <strong>Fixed</strong>: Uses exact step size (e.g., 0.01 = 0.01 increment). <strong>Adaptive</strong>: Step scales with parameter range (larger ranges = larger steps). Also configurable via Step Mode custom parameter</td>
+                    <td>Changes step calculation method for value adjustment. <strong>Fixed</strong>: Uses exact step
+                        size (e.g., 0.01 = 0.01 increment). <strong>Adaptive</strong>: Step scales with parameter range
+                        (larger ranges = larger steps). Also configurable via Step Mode custom parameter</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="3">Slot Operations</td>
                 </tr>
@@ -377,7 +387,7 @@
                     <td>Jump to operator</td>
                     <td>Navigates to the operator and page of the assigned parameter</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="3">Bank Switching</td>
                 </tr>
@@ -386,7 +396,7 @@
                     <td>Switch to that bank</td>
                     <td>Each bank = independent slots</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="3">Parameter Shortcuts</td>
                 </tr>
@@ -420,7 +430,7 @@
                     <td>Open component editor</td>
                     <td>Opens active parameter's operator, or selected COMP if none</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="3">Network Zoom (when enabled & no active parameter)</td>
                 </tr>
@@ -446,16 +456,18 @@
                 </tr>
             </tbody>
         </table>
-        
+
         <div class="note">
-            <strong>Button References:</strong> "First" = leftmost, "Second" = second from left, etc. On VSN1: step buttons are under LCD, slot buttons are the 8 clicky keyboard buttons.
+            <strong>Button References:</strong> "First" = leftmost, "Second" = second from left, etc. On VSN1: step
+            buttons are under LCD, slot buttons are the 8 clicky keyboard buttons.
         </div>
 
         <!-- All Parameters -->
         <h2>⚙️ All Parameters</h2>
-        
-        <p style="color: #aaa; margin-bottom: 30px;">Complete parameter reference organized by TouchDesigner parameter page.</p>
-        
+
+        <p style="color: #aaa; margin-bottom: 30px;">Complete parameter reference organized by TouchDesigner parameter
+            page.</p>
+
         <table>
             <thead>
                 <tr>
@@ -591,7 +603,7 @@
                     <td>Pulse to manually create external repo</td>
                     <td>-</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="3">📄 VSN1 / UI Page</td>
                 </tr>
@@ -666,7 +678,8 @@
                 <tr>
                     <td>Color Hovered UI</td>
                     <td>Apply color to hovered UI elements</td>
-                    <td>Off <span style="font-size: 0.85em; opacity: 0.7;">(middle-click top-right UI button to toggle)</span></td>
+                    <td>Off <span style="font-size: 0.85em; opacity: 0.7;">(middle-click top-right UI button to
+                            toggle)</span></td>
                 </tr>
                 <tr>
                     <td>Activate Slot on Jump</td>
@@ -698,6 +711,11 @@
                     <td>Camera movement smoothness (0.0-1.0)</td>
                     <td>0.015</td>
                 </tr>
+                <tr>
+                    <td>Disable ScriptChange Popup</td>
+                    <td>Disable the default TD popup showing which script changed the parameter</td>
+                    <td>On</td>
+                </tr>
                 <tr style="background: #1e1e2e; font-style: italic;">
                     <td>General UI Settings</td>
                     <td colspan="2"><em>Section header</em></td>
@@ -712,7 +730,7 @@
                     <td>"Compressed" or "Truncated"</td>
                     <td>Compressed</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="3">📄 Mapping Page</td>
                 </tr>
@@ -783,7 +801,7 @@
                     <td>MIDI index for bank buttons</td>
                     <td>13</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="3">📄 About Page</td>
                 </tr>
@@ -844,14 +862,17 @@
                 </tr>
             </tbody>
         </table>
-        
+
         <div class="note">
-            <strong>💡 Tip:</strong> Hover over any custom parameter in the component while holding <strong>Alt</strong> (or <strong>Option</strong> on Mac) to see detailed help text. For complete parameter list, see the <a href="https://function-store.github.io/TD_ParHoverMIDI_VSN1/reference.html" target="_blank" style="color: #8fa3ff;">full reference page</a>.
+            <strong>💡 Tip:</strong> Hover over any custom parameter in the component while holding <strong>Alt</strong>
+            (or <strong>Option</strong> on Mac) to see detailed help text. For complete parameter list, see the <a
+                href="https://function-store.github.io/TD_ParHoverMIDI_VSN1/reference.html" target="_blank"
+                style="color: #8fa3ff;">full reference page</a>.
         </div>
 
         <!-- VSN1 MIDI Mappings -->
         <h2>🎹 VSN1 MIDI Mappings</h2>
-        
+
         <table>
             <thead>
                 <tr>
@@ -877,7 +898,7 @@
                     <td>Momentary</td>
                     <td>Button press on knob</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="4">Step Buttons (under LCD)</td>
                 </tr>
@@ -905,7 +926,7 @@
                     <td>Toggle</td>
                     <td>Also used for bank 3 switching (long-press)</td>
                 </tr>
-                
+
                 <tr class="category-row">
                     <td colspan="4">Slot Buttons (clicky keyboard)</td>
                 </tr>
@@ -959,51 +980,58 @@
                 </tr>
             </tbody>
         </table>
-        
+
         <div class="note">
-            <strong>MIDI Configuration:</strong> Device ID default is 1. Channel default is 16. Knob uses relative/endless encoding (CC 9 for both twist and push). LED feedback via MIDI, screen updates via websocket (port 9642).
+            <strong>MIDI Configuration:</strong> Device ID default is 1. Channel default is 16. Knob uses
+            relative/endless encoding (CC 9 for both twist and push). LED feedback via MIDI, screen updates via
+            websocket (port 9642).
             <br><br>
-            <strong>⚠️ Indexing Note:</strong> TouchDesigner uses 1-based indexing for Channel and MIDI CC, while Grid Editor uses 0-based indexing. For example, Channel 16 in TD = Channel 15 in Grid Editor. This is important for custom/manual mappings.
+            <strong>⚠️ Indexing Note:</strong> TouchDesigner uses 1-based indexing for Channel and MIDI CC, while Grid
+            Editor uses 0-based indexing. For example, Channel 16 in TD = Channel 15 in Grid Editor. This is important
+            for custom/manual mappings.
         </div>
 
         <!-- Footer -->
-        <div style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 1px solid #2a2a3e; color: #666;">
+        <div
+            style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 1px solid #2a2a3e; color: #666;">
             <p>TouchDesigner Par Hover Control for Intech VSN1</p>
             <p>by <strong style="color: #8fa3ff;">Function Store</strong></p>
             <p style="margin-top: 10px;">
-                <a href="https://function-store.github.io/TD_ParHoverMIDI_VSN1/" target="_blank" style="color: #4A90E2; text-decoration: none;">Documentation</a> | 
-                <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1" target="_blank" style="color: #4A90E2; text-decoration: none;">GitHub</a>
+                <a href="https://function-store.github.io/TD_ParHoverMIDI_VSN1/" target="_blank"
+                    style="color: #4A90E2; text-decoration: none;">Documentation</a> |
+                <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1" target="_blank"
+                    style="color: #4A90E2; text-decoration: none;">GitHub</a>
             </p>
         </div>
     </div>
-    
+
     <script>
         // Search functionality
         const searchInput = document.getElementById('searchInput');
         const searchStats = document.getElementById('searchStats');
         let searchTimeout;
-        
+
         // Focus search on Ctrl/Cmd + F
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
                 e.preventDefault();
                 searchInput.focus();
             }
         });
-        
-        searchInput.addEventListener('input', function(e) {
+
+        searchInput.addEventListener('input', function (e) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => performSearch(e.target.value), 150);
         });
-        
+
         function performSearch(query) {
             const searchTerm = query.toLowerCase().trim();
-            
+
             // Get all tables and their parent sections
             const sections = document.querySelectorAll('h2');
             const tables = document.querySelectorAll('table');
             const allRows = document.querySelectorAll('tbody tr');
-            
+
             if (searchTerm === '') {
                 // Reset: show everything including category rows
                 allRows.forEach(row => {
@@ -1020,19 +1048,19 @@
                 searchStats.textContent = '';
                 return;
             }
-            
+
             let visibleCount = 0;
             let sectionsWithResults = new Set();
             let categoryRowsWithResults = new Set();
             let currentCategoryRow = null;
-            
+
             // First pass: hide all category rows
             allRows.forEach(row => {
                 if (row.classList.contains('category-row')) {
                     row.classList.add('hidden');
                 }
             });
-            
+
             // Search through all rows
             allRows.forEach(row => {
                 // Track current category
@@ -1040,19 +1068,19 @@
                     currentCategoryRow = row;
                     return;
                 }
-                
+
                 const text = row.textContent.toLowerCase();
                 const cells = row.querySelectorAll('td');
-                
+
                 if (text.includes(searchTerm)) {
                     row.classList.remove('hidden');
                     visibleCount++;
-                    
+
                     // Track which category this result belongs to
                     if (currentCategoryRow) {
                         categoryRowsWithResults.add(currentCategoryRow);
                     }
-                    
+
                     // Track which section this result belongs to
                     let currentTable = row.closest('table');
                     let previousH2 = currentTable.previousElementSibling;
@@ -1062,19 +1090,19 @@
                     if (previousH2) {
                         sectionsWithResults.add(previousH2);
                     }
-                    
+
                     // Highlight matching text in cells
                     cells.forEach(cell => {
                         // Store original text if not already stored
                         if (!cell.hasAttribute('data-original-text')) {
                             cell.setAttribute('data-original-text', cell.textContent);
                         }
-                        
+
                         // Get original text and reset cell
                         const originalText = cell.getAttribute('data-original-text');
                         const lowerOriginalText = originalText.toLowerCase();
                         const index = lowerOriginalText.indexOf(searchTerm);
-                        
+
                         if (index !== -1) {
                             const before = originalText.substring(0, index);
                             const match = originalText.substring(index, index + searchTerm.length);
@@ -1086,7 +1114,7 @@
                     });
                 } else {
                     row.classList.add('hidden');
-                    
+
                     // Remove highlights from hidden rows
                     cells.forEach(cell => {
                         if (cell.hasAttribute('data-original-text')) {
@@ -1095,12 +1123,12 @@
                     });
                 }
             });
-            
+
             // Show category rows that have results
             categoryRowsWithResults.forEach(categoryRow => {
                 categoryRow.classList.remove('hidden');
             });
-            
+
             // Hide/show sections based on results
             sections.forEach(section => {
                 if (sectionsWithResults.has(section)) {
@@ -1109,7 +1137,7 @@
                     section.classList.add('hidden');
                 }
             });
-            
+
             // Hide/show tables that have no visible rows
             tables.forEach(table => {
                 const visibleRows = table.querySelectorAll('tbody tr:not(.hidden):not(.category-row)');
@@ -1119,22 +1147,22 @@
                     table.classList.remove('hidden');
                 }
             });
-            
+
             // Update stats
             searchStats.textContent = `${visibleCount} result${visibleCount !== 1 ? 's' : ''}`;
         }
-        
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
+
         // Auto-focus search input on page load
         window.addEventListener('load', () => {
             searchInput.focus();
         });
     </script>
 </body>
-</html>
 
+</html>

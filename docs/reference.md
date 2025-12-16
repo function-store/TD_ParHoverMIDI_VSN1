@@ -126,6 +126,7 @@ Complete parameter reference organized by TouchDesigner parameter page.
 | Zoom Mode | "Seek" (follow cursor) or "Target" (lock) | Seek |
 | Zoom Network | Zoom speed per knob increment | 0.015 |
 | Zoom Interpolation | Camera movement smoothness (0.0-1.0) | 0.015 |
+| Disable ScriptChange Popup | Disable the popup showing which script changed the parameter | On |
 | _General UI Settings_ | _(Section header)_ | |
 | Color Index | Color palette index for UI | 1 |
 | Label Display Mode | "Compressed" or "Truncated" | Compressed |

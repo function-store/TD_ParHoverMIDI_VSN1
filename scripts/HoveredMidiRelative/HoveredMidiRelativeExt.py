@@ -135,6 +135,9 @@ class HoveredMidiRelativeExt:
 		step_indicator = next((i for i, s in enumerate(self.seqSteps) if s.par.Step.eval() == self._currStep), None)
 		# set UI stuff based on current evalStepmode
 		self.ui_manager.set_stepmode_indicator(self.stepMode, step_indicator)
+
+		self._set_last_script_change(not self.evalDisablehoverscriptchangepopup)
+
 		run("args[0].onMidiError(args[1])", self, self.midiError, delayRef=op.TDResources, delayFrames=5)
 
 	def onStart(self):
@@ -1207,6 +1210,13 @@ class HoveredMidiRelativeExt:
 		else:
 			self.ui_manager.set_hovered_ui_color(-1)
 
+	def onParDisablehoverscriptchangepopup(self, _val):
+		self._set_last_script_change(not _val)
+
+	def _set_last_script_change(self, _val):
+		debug(f'setting last script change to {_val}')
+		ui.preferences['general.lastscriptchange'] = int(_val)#
+		
 	def _force_cook_midi_operators(self):
 		"""Force cook all MIDI-related operators"""		
 		activeMidi = self.ownerComp.op('midiin_active')
