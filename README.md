@@ -4,6 +4,12 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 
 ![VSN1 Hardware](https://github.com/function-store/TD_ParHoverMIDI_VSN1/blob/main/docs/images/hoveredvsn1.jpg)
 
+### 🎥 Watch the Demo Video
+[![Watch the Demo](https://img.youtube.com/vi/XDQxaWc3piQ/0.jpg)](https://www.youtube.com/watch?v=XDQxaWc3piQ)
+
+> **💡 Tip**: Use code **`FUNCTIONSTR5`** at checkout for **5% off** your VSN1 order! [shop.intech.studio](https://intech.studio/shop/vsn1?sku=grid3-vsn1-r)
+
+
 ## ✨ Key Features
 
 - **Hover-based Control** - Adjust any parameter by simply hovering your mouse over it
@@ -21,7 +27,7 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
 ### For VSN1 Users
 
 1. **Install Grid Package** (one-time setup):
-   - Newer Grid Editor versions: Install `TouchDesigner Par Hover Control` directly from Package Manager
+   - Newer Grid Editor versions: Install `TouchDesigner Par Hover Control` directly from Package Manager. It will also be updatable from there.
    - Older versions: Clone repo, build, and add manually (see [Getting Started](docs/getting-started.md))
    - Search for, and import the `TouchDesigner Par Hover Control` configuration from Grid Editor to your VSN1 device
 
@@ -77,6 +83,10 @@ The component includes a built-in updater accessible from the **About** page:
 3. View changelog before updating
 
 **Best Practice:** Use the **`Externalize Component`** button in the About page before updating. This one-click setup preserves your slot data across all future updates. See [Best Practices for Update Compatibility](docs/getting-started.md#best-practices-for-update-compatibility) for details.
+
+### Grid Package
+
+The Grid package can also be updated from within the Grid Editor. There will be an `Update` button in the package manager when there is one.
 
 ## 🤝 Contributing
 

@@ -14,7 +14,7 @@ Complete installation and setup guide for TouchDesigner Par Hover Control for VS
 
 **1. Install the Grid Package:**
 
-**Option A - From Package Manager (Recommended for newer Grid Editor versions):**
+**Option A - From Grid Editor Package Manager:**
 
 1. Open Grid Editor
 2. Go to the Package Manager panel

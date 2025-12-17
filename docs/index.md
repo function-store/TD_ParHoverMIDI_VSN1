@@ -18,6 +18,13 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
   </p>
 </div>
 
+<div style="text-align: center; margin: 40px 0;">
+  <h3>🎥 See it in Action</h3>
+  <iframe width="100%" height="450" src="https://www.youtube.com/embed/XDQxaWc3piQ" title="TouchDesigner Par Hover Control Demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="max-width: 800px; border-radius: 10px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);"></iframe>
+</div>
+
+> **💡 Tip**: Use code **`FUNCTIONSTR5`** at checkout for **5% off** your VSN1 order! [shop.intech.studio](https://intech.studio/shop/vsn1?sku=grid3-vsn1-r)
+
 <div style="text-align: center; margin: 50px 0;">
   <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox" 
      style="display: inline-block; padding: 20px 50px; background: linear-gradient(135deg, #4A90E2 0%, #2E5C8A 100%); 

@@ -111,9 +111,9 @@
             click={() => window.open('https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox', '_blank')} 
           />
           <MoltenPushButton 
-            text="Video Demo (placeholder)" 
+            text="Video Demo" 
             style="outlined" 
-            click={() => window.open('https://youtube.com/c/FunctionStore', '_blank')} 
+            click={() => window.open('https://www.youtube.com/watch?v=XDQxaWc3piQ', '_blank')} 
           />
         </div>
     </Block>
