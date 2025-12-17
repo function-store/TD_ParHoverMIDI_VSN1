@@ -1,7 +1,7 @@
 
 '''Info Header Start
 Name : undo_manager
-Author : Dan@DAN-4090
+Author : root
 Saveorigin : HoveredMidiRelative.187.toe
 Saveversion : 2023.12120
 Info Header End'''
@@ -161,7 +161,7 @@ class UndoManager:
 			return
 		
 		# Store initial value based on parameter type (just capture, don't create undo yet)
-		if par.isMenu:
+		if par.isMenu and not par.isString:
 			initial_value = par.menuIndex
 		else:
 			initial_value = par.eval()
@@ -206,7 +206,7 @@ class UndoManager:
 			undo_info = {
 				'par_path': par_path,
 				'initial_value': initial_value,
-				'is_menu': par.isMenu,
+				'is_menu': par.isMenu and not par.isString,
 				'par_name': par.name
 			}
 			ui.undo.addCallback(self._undo_parameter_change_callback, undo_info)
@@ -454,7 +454,7 @@ class UndoManager:
 		old_expr = par.expr if par.mode == ParMode.EXPRESSION else None
 		old_bind_expr = par.bindExpr if par.mode == ParMode.BIND else None
 		
-		if par.isMenu:
+		if par.isMenu and not par.isString:
 			current_value = par.menuIndex
 		else:
 			current_value = par.eval()
@@ -467,7 +467,7 @@ class UndoManager:
 		new_expr = par.expr if par.mode == ParMode.EXPRESSION else None
 		new_bind_expr = par.bindExpr if par.mode == ParMode.BIND else None
 		
-		if par.isMenu:
+		if par.isMenu and not par.isString:
 			reset_value = par.menuIndex
 		else:
 			reset_value = par.eval()
@@ -482,7 +482,7 @@ class UndoManager:
 			'new_expr': new_expr,
 			'old_bind_expr': old_bind_expr,
 			'new_bind_expr': new_bind_expr,
-			'is_menu': par.isMenu,
+			'is_menu': par.isMenu and not par.isString,
 			'par_name': par.name
 		}
 	
