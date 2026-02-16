@@ -9,7 +9,9 @@ title: Home
   by <strong><a href="https://github.com/function-store" style="color: #8fa3ff; text-decoration: none;">Function Store</a></strong>
 </p>
 
-A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions.
+A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r&affiliatePartnerCode=functionstore)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions.
+
+> **💡 Tip**: Use code **`FUNCTIONSTR5`** at checkout for **5% off** your VSN1 order! [shop.intech.studio](https://intech.studio/shop/vsn1?sku=grid3-vsn1-r&affiliatePartnerCode=functionstore)
 
 <div style="text-align: center; margin: 40px 0;">
   <img src="images/hoveredvsn1.jpg" alt="VSN1 Hardware" style="max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);">
@@ -22,8 +24,6 @@ A [TouchDesigner](https://derivative.ca) component designed for the **[Intech St
   <h3>🎥 See it in Action</h3>
   <iframe width="100%" height="450" src="https://www.youtube.com/embed/XDQxaWc3piQ" title="TouchDesigner Par Hover Control Demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="max-width: 800px; border-radius: 10px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);"></iframe>
 </div>
-
-> **💡 Tip**: Use code **`FUNCTIONSTR5`** at checkout for **5% off** your VSN1 order! [shop.intech.studio](https://intech.studio/shop/vsn1?sku=grid3-vsn1-r)
 
 <div style="text-align: center; margin: 50px 0;">
   <a href="https://github.com/function-store/TD_ParHoverMIDI_VSN1/releases/latest/download/ParHoverMIDI_VSN1.tox" 
@@ -166,7 +166,7 @@ You can also support my work on [Patreon](patreon.com/function_store) where I ha
 - **[Function Store](https://www.functionstore.xyz/link-in-bio)** - Project creator and lead developer
 
 **Special Thanks:**
-- **[Intech Studio](https://intech.studio/)** - General support and hardware collaboration
+- **[Intech Studio](https://intech.studio/?affiliatePartnerCode=functionstore)** - General support and hardware collaboration
 - **[Greg Orca](https://www.instagram.com/greg_orca/)** - Valuable feedback and ongoing support
 - **[Dániel Pásztor](https://github.com/danim1130)** - Queued screen updates and GitHub Actions implementation
 - **[TheTouchLab](https://www.instagram.com/thetouchlab/)** - Network Editor mouse position tracking

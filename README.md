@@ -1,13 +1,13 @@
 # TouchDesigner Par Hover Control for VSN1
 
-A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. While optimized for VSN1, it can be made compatible with other endless relative MIDI controllers.
+A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r&affiliatePartnerCode=functionstore)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. While optimized for VSN1, it can be made compatible with other endless relative MIDI controllers.
 
 ![VSN1 Hardware](https://github.com/function-store/TD_ParHoverMIDI_VSN1/blob/main/docs/images/hoveredvsn1.jpg)
 
 ### 🎥 Watch the Demo Video
 [![Watch the Demo](https://img.youtube.com/vi/XDQxaWc3piQ/0.jpg)](https://www.youtube.com/watch?v=XDQxaWc3piQ)
 
-> **💡 Tip**: Use code **`FUNCTIONSTR5`** at checkout for **5% off** your VSN1 order! [shop.intech.studio](https://intech.studio/shop/vsn1?sku=grid3-vsn1-r)
+> **💡 Tip**: Use code **`FUNCTIONSTR5`** at checkout for **5% off** your VSN1 order! [shop.intech.studio](https://intech.studio/shop/vsn1?sku=grid3-vsn1-r&affiliatePartnerCode=functionstore)
 
 
 ## ✨ Key Features
@@ -103,7 +103,7 @@ See [Development](docs/advanced.md#development) for project structure details.
 - **[Function Store](https://www.functionstore.xyz/link-in-bio)** - Project creator and lead developer
 
 **Special Thanks:**
-- **[Intech Studio](https://intech.studio/)** - General support and hardware collaboration
+- **[Intech Studio](https://intech.studio/?affiliatePartnerCode=functionstore)** - General support and hardware collaboration
 - **[Greg Orca](https://www.instagram.com/greg_orca/)** - Valuable feedback and ongoing support
 - **[Dániel Pásztor](https://github.com/danim1130)** - Queued screen updates and GitHub Actions implementation
 - **[TheTouchLab](https://www.instagram.com/thetouchlab/)** - Network Editor mouse position tracking
