@@ -52,6 +52,7 @@ class HoveredMidiRelativeExt:
 		# Initialize state - can be either a single Par or a ParGroup
 		self.hoveredPar: Optional[Union[Par, ParGroup]] = None
 		self._activeSlotPar: Optional[Union[Par, ParGroup]] = None  # Direct storage of active slot parameter
+		self._externalParOverride: Optional[Union[Par, ParGroup]] = None  # Set by TDMap; takes priority over active slot for function buttons
 		
 		# Initialize helper classes
 		self.repo_manager = RepoManager(self)  # Initialize first as others may depend on it
@@ -347,13 +348,17 @@ class HoveredMidiRelativeExt:
 		For performance, active slot parameter is stored directly in _activeSlotPar
 		when a slot is activated, avoiding list lookups during MIDI handling.
 		"""
+		# TDMap knob override takes top priority (cleared on hover or slot CC)
+		if self._externalParOverride is not None:
+			return self._externalParOverride
+
 		# Prioritize active slot parameter (stored directly for fast access)
 		if self._activeSlotPar is not None:
 			return self._activeSlotPar
-			
+
 		if self.hoveredPar is not None:
 			return self.hoveredPar
-			
+
 		return None
 	
 	def _is_component_parameter(self, par_to_check: Union[Par, ParGroup] = None) -> bool:
@@ -527,6 +532,7 @@ class HoveredMidiRelativeExt:
 	@block_during_invalidation
 	def onHoveredParChange(self, _op, _parGroup, _par, _expr, _bindExpr):
 		"""TouchDesigner callback when hovered parameter changes"""
+		self._externalParOverride = None  # Hover always clears the TDMap override
 		if not self.evalActive or self.midiError:
 			return
 
@@ -759,6 +765,8 @@ class HoveredMidiRelativeExt:
 				return
 			
 		elif message == MidiConstants.CONTROL_CHANGE:
+			# Slot knob adjustment takes back control from any TDMap override
+			self._externalParOverride = None
 			# Handle knob control messages
 			if self.midi_handler.handle_knob_message(index, value, active_par):
 				# Don't restart timeout for component's own parameters
