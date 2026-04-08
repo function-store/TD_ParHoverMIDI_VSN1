@@ -176,14 +176,31 @@ class HoveredMidiRelativeExt:
 				# Windows implementation
 				result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq Grid Editor.exe'],
 										capture_output=True, text=True, shell=True)
-				if 'Grid Editor.exe' not in result.stdout:
+				result2 = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq grid-editor.exe'],
+										capture_output=True, text=True, shell=True)
+				if 'Grid Editor.exe' not in result.stdout and 'grid-editor.exe' not in result2.stdout:
 					# Try common Windows installation paths
 					possible_paths = [
 						os.path.expandvars(r"%LOCALAPPDATA%\Programs\grid-editor\Grid Editor.exe"),
+						os.path.expandvars(r"%LOCALAPPDATA%\Programs\grid-editor\grid-editor.exe"),
+						os.path.expandvars(r"%LOCALAPPDATA%\Programs\Grid Editor\Grid Editor.exe"),
+						os.path.expandvars(r"%LOCALAPPDATA%\Programs\Grid Editor\grid-editor.exe"),
 						os.path.expandvars(r"%PROGRAMFILES%\Grid Editor\Grid Editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES%\Grid Editor\grid-editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES%\grid-editor\Grid Editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES%\grid-editor\grid-editor.exe"),
 						os.path.expandvars(r"%PROGRAMFILES(X86)%\Grid Editor\Grid Editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES(X86)%\Grid Editor\grid-editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES(X86)%\grid-editor\Grid Editor.exe"),
+						os.path.expandvars(r"%PROGRAMFILES(X86)%\grid-editor\grid-editor.exe"),
 						r"C:\Program Files\Grid Editor\Grid Editor.exe",
-						r"C:\Program Files (x86)\Grid Editor\Grid Editor.exe"
+						r"C:\Program Files\Grid Editor\grid-editor.exe",
+						r"C:\Program Files\grid-editor\Grid Editor.exe",
+						r"C:\Program Files\grid-editor\grid-editor.exe",
+						r"C:\Program Files (x86)\Grid Editor\Grid Editor.exe",
+						r"C:\Program Files (x86)\Grid Editor\grid-editor.exe",
+						r"C:\Program Files (x86)\grid-editor\Grid Editor.exe",
+						r"C:\Program Files (x86)\grid-editor\grid-editor.exe"
 					]
 					
 					grid_editor_path = None
@@ -202,15 +219,19 @@ class HoveredMidiRelativeExt:
 
 			elif sys.platform == "darwin":
 				# macOS implementation
-				result = subprocess.run(['pgrep', '-f', 'Grid Editor'],
+				result = subprocess.run(['pgrep', '-fi', 'grid.editor'],
 										capture_output=True, text=True)
 				if result.returncode != 0:  # Process not found
 					# Try common macOS application paths
 					possible_paths = [
 						"/Applications/Grid Editor.app",
+						"/Applications/grid-editor.app",
 						os.path.expanduser("~/Applications/Grid Editor.app"),
+						os.path.expanduser("~/Applications/grid-editor.app"),
 						"/Applications/grid-editor/Grid Editor.app",
-						os.path.expanduser("~/Applications/grid-editor/Grid Editor.app")
+						"/Applications/grid-editor/grid-editor.app",
+						os.path.expanduser("~/Applications/grid-editor/Grid Editor.app"),
+						os.path.expanduser("~/Applications/grid-editor/grid-editor.app")
 					]
 
 					app_path = None
