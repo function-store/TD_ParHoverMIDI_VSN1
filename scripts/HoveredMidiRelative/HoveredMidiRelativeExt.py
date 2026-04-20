@@ -1,4 +1,4 @@
-'''Info Header Start
+﻿'''Info Header Start
 Name : HoveredMidiRelativeExt
 Author : Dan@DAN-4090
 SavSaveversion : 2023.12120
@@ -23,6 +23,7 @@ from undo_manager import UndoManager
 from repo_manager import RepoManager
 from zoom_manager import ZoomManager
 from decorators import require_valid_parameter, block_during_invalidation
+from button_state_manager import ButtonStateManager
 
 
 
@@ -62,6 +63,7 @@ class HoveredMidiRelativeExt:
 		self.slot_manager = SlotManager(self)
 		self.undo_manager = UndoManager(self)
 		self.zoom_manager = ZoomManager(self)
+		self.button_state_manager = ButtonStateManager(self)
 
 		self.hover_timeout_run = None  # Run object for hover timeout and empty display
 		self.lastCachedChange = None
@@ -464,8 +466,10 @@ class HoveredMidiRelativeExt:
 
 	@property
 	def knobPushState(self) -> bool:
-		"""Get the current push state from component parameter"""
-		return self.ownerComp.op('null_push')[0].eval()
+		"""Whether the encoder push button is currently held.
+		Tracked from MIDI notes via ButtonStateManager rather than
+		reading a null CHOP, so it works without the node engine."""
+		return self.button_state_manager._push_held
 
 	@property
 	def stepMode(self) -> StepMode:
@@ -763,28 +767,67 @@ class HoveredMidiRelativeExt:
 
 	@require_valid_parameter
 	def onReceiveMidi(self, dat, rowIndex, message, channel, index, value, input, byteData):
-		"""TouchDesigner callback for MIDI input processing"""
+		"""TouchDesigner callback for MIDI input processing.
+
+		All note messages (step, slot, bank, push) are routed here.
+		Hold/combo detection for slot and bank buttons is handled by
+		ButtonStateManager, which fires the appropriate action from
+		onFrameStart when a threshold is reached or on release (tap).
+		"""
 		if channel != self.evalChannel or not self.evalActive:
 			return
-		
+
 		active_par = self.activePar
-		hovered_par = self.hoveredPar
 		index = int(index)
 
-		# Process different message types using helper class
+		# Track push button (encoder press) held state from MIDI notes.
+		# Also detects double-push (two presses within 0.7s window).
+		push_index = self._safe_get_midi_index(self.evalPushindex, default=-1)
+		if index == push_index:
+			if message == MidiConstants.NOTE_ON:
+				self.button_state_manager.update_push_state(value > 0)
+			elif message == MidiConstants.NOTE_OFF:
+				self.button_state_manager.update_push_state(False)
+
+		# â”€â”€ Note On â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 		if message == MidiConstants.NOTE_ON:
-			# Handle pulse messages
+			# Push button: handle immediately (both press and release)
 			if self.midi_handler.handle_push_message(index, value, active_par):
-				# Don't restart timeout for component's own parameters
 				if not self._is_component_parameter():
 					self._start_hover_timeout(restart_if_sticky=True)
 				return
-		
-			# Handle slot selection messages
-			if self.midi_handler.handle_slot_message(index, value):
-				self._cancel_hover_timeout()  # Cancel timeout when changing slots
+
+			if value > 0:
+				# Push-step: encoder push held + step button press
+				# fires immediately, bypasses hold detection.
+				if self.button_state_manager._push_held:
+					if self.midi_handler.handle_step_message(index, value):
+						if not self._is_component_parameter():
+							self._start_hover_timeout(restart_if_sticky=True)
+						return
+
+				# All other note buttons (slot, step/bank): track for
+				# hold / combo / tap detection.
+				if self.button_state_manager.on_note_on(index):
+					return
+			else:
+				# value == 0 acts as release
+				if self.button_state_manager.on_note_off(index):
+					return
+
+		# â”€â”€ Note Off â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+		elif message == MidiConstants.NOTE_OFF:
+			# Push button release
+			if self.midi_handler.handle_push_message(index, 0, active_par):
+				if not self._is_component_parameter():
+					self._start_hover_timeout(restart_if_sticky=True)
 				return
-			
+
+			# All other note buttons release
+			if self.button_state_manager.on_note_off(index):
+				return
+
+		# â”€â”€ Control Change â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 		elif message == MidiConstants.CONTROL_CHANGE:
 			# Slot knob adjustment takes back control from any TDMap override
 			self._externalParOverride = None
@@ -1297,4 +1340,10 @@ class HoveredMidiRelativeExt:
 		"""TouchDesigner callback when project is pre-saved"""
 		# Save runtime storage to tables for persistence
 		self.repo_manager.save_to_tables()
+
+	def onFrameStart(self, frame):
+		"""TouchDesigner callback at the start of each frame"""
+		if not self.evalActive:
+			return
+		self.button_state_manager.on_frame_start()
 # endregion

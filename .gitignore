@@ -68,3 +68,7 @@ photoshop-plugin/ccx
 *.njsproj
 *.sln
 *.sw?
+/.claude
+/.modus
+ParHoverMIDI_VSN1_DEV.code-workspace
+ParHoverMIDI_VSN1_DEV.code-workspace
