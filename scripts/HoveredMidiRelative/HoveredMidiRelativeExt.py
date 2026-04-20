@@ -1,4 +1,4 @@
-﻿'''Info Header Start
+'''Info Header Start
 Name : HoveredMidiRelativeExt
 Author : Dan@DAN-4090
 SavSaveversion : 2023.12120
@@ -789,7 +789,7 @@ class HoveredMidiRelativeExt:
 			elif message == MidiConstants.NOTE_OFF:
 				self.button_state_manager.update_push_state(False)
 
-		# â”€â”€ Note On â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+		# -- Note On --------------------------------------------------
 		if message == MidiConstants.NOTE_ON:
 			# Push button: handle immediately (both press and release)
 			if self.midi_handler.handle_push_message(index, value, active_par):
@@ -815,7 +815,7 @@ class HoveredMidiRelativeExt:
 				if self.button_state_manager.on_note_off(index):
 					return
 
-		# â”€â”€ Note Off â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+		# -- Note Off -------------------------------------------------
 		elif message == MidiConstants.NOTE_OFF:
 			# Push button release
 			if self.midi_handler.handle_push_message(index, 0, active_par):
@@ -827,7 +827,7 @@ class HoveredMidiRelativeExt:
 			if self.button_state_manager.on_note_off(index):
 				return
 
-		# â”€â”€ Control Change â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+		# -- Control Change -------------------------------------------
 		elif message == MidiConstants.CONTROL_CHANGE:
 			# Slot knob adjustment takes back control from any TDMap override
 			self._externalParOverride = None
