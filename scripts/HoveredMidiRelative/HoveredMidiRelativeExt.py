@@ -1346,4 +1346,5 @@ class HoveredMidiRelativeExt:
 		if not self.evalActive:
 			return
 		self.button_state_manager.on_frame_start()
+		self.zoom_manager.on_frame_start()
 # endregion

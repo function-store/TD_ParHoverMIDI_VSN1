@@ -375,13 +375,15 @@ Set `Enable Zoom` toggle to activate network zoom navigation. When enabled and n
 - **Set to 0**: Disables zoom (even if `Enable Zoom` is on)
 - **Negative values**: Reverses zoom direction
 
-**Push for Fast Zoom**: Hold the knob push button while rotating for 5× faster zoom speed.
+**Push for Fast Zoom**: Hold the knob push button while rotating for 3× faster zoom speed.
 
 **Home Network**: Double-click the knob push button to home the network editor (fit all to view).
 
-**Zoom Limit**: Zooming in stops at 3× magnification (configurable in `zoom_manager.py`). You can still:
+**Zoom Limit**: Zooming in stops at 2.5× magnification. You can still:
 - Zoom out from any zoom level
 - Pan around at maximum zoom by continuing to rotate the knob
+
+**Inertia**: When you stop turning the knob, the zoom coasts to a smooth stop rather than halting abruptly. This makes navigation feel more fluid and natural.
 
 ### Zoom Modes
 
@@ -396,10 +398,16 @@ Set `Zoom Mode` parameter to choose targeting behavior:
 **Target Mode**:
 - Camera **locks** to initial cursor position when you start zooming
 - Target stays fixed until you stop zooming (timeout expires)
+- Uses ease-out interpolation (decelerates as it approaches target)
 - Great for precise zooming to a specific point
-- Ideal when you want the zoom center to stay consistent
 
-Both modes use smooth interpolation to prevent sudden camera jumps.
+**Mixed Mode**:
+- Combines Target and Seek behavior
+- **Locks** to cursor position like Target mode while zooming in one direction
+- **Re-captures** cursor position when you reverse direction (zoom in → zoom out or vice versa)
+- Great for exploring: zoom into a spot, then zoom out toward a new spot without waiting for a timeout
+
+All modes use smooth interpolation to prevent sudden camera jumps.
 
 ### Zoom Interpolation
 

@@ -15,23 +15,6 @@ class MidiMessageHandler:
 	def __init__(self, parent_ext):
 		self.parent = parent_ext
 
-	@property
-	def shortcutPressed(self) -> bool:
-		"""Used for checking if a bank off message coincides with a shortcuts
-		since by default these share the same MIDI button
-		"""
-		mode_buttons = [
-			'null_setdefault',
-			'null_midibank', 
-			'null_modesel',
-			'null_resetpar',
-			'null_setnormmin',
-			'null_setnormmax',
-			'null_setclamp',
-			'null_customopen'
-		]
-		return any(self.parent.ownerComp.op(button)[0].eval() for button in mode_buttons)
-	
 
 	def _clear_invalid_parameter_from_slots(self, active_par: Union['Par', 'ParGroup']) -> None:
 		"""Clear invalid parameter from all slots across all banks and show error message"""
@@ -93,8 +76,6 @@ class MidiMessageHandler:
 	def handle_step_message(self, index: int, value: int) -> bool:
 		"""Handle step change messages"""
 		blocks = self.parent._index_to_blocks(index, self.parent.seqSteps)
-		if self.shortcutPressed:
-			return True
 		if not blocks:
 			return False
 			

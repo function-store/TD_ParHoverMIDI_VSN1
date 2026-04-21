@@ -343,12 +343,14 @@ scripts/HoveredMidiRelative/
 ├── formatters.py             # Label and value formatting
 ├── decorators.py             # Common decorators
 ├── handlers.py               # MIDI message processing
+├── button_state_manager.py   # Hold/combo detection for note buttons
 ├── managers/
 │   ├── slot_manager.py       # Slot operations & invalidation
 │   ├── display_manager.py    # Display & VSN1 hardware
 │   ├── ui_manager.py         # Local UI management
 │   ├── undo_manager.py       # Undo/redo system
-│   └── repo_manager.py       # Persistent storage
+│   ├── repo_manager.py       # Persistent storage
+│   └── zoom_manager.py       # Network editor zoom & navigation
 └── HoveredMidiRelativeExt.py # Main extension class
 ```
 
@@ -360,9 +362,21 @@ scripts/HoveredMidiRelative/
 - Mouse hover detection
 
 **MidiMessageHandler**
-- Processes MIDI input (steps, knobs, pulses, slots, banks)
+- Processes MIDI input (knobs, pulses, slots, banks)
 - ParGroup support
 - Type-specific handling
+
+**ButtonStateManager**
+- Hold/combo detection for step, bank, and slot note buttons
+- Per-frame timing checks in `onFrameStart`
+- Step/bank buttons share MIDI indices: exclusive tap = step, hold/combo = bank action
+- Push button state tracking and double-push detection
+
+**ZoomManager**
+- Network editor zoom and pan navigation
+- Three modes: Seek (follow cursor), Target (lock), Mixed (lock until direction reversal)
+- Inertia system with per-frame decay for smooth coast-to-stop
+- Ease-out interpolation for Target/Mixed modes
 
 **DisplayManager**
 - Centralizes display logic

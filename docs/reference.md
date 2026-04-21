@@ -63,9 +63,9 @@ Complete reference for all hardware controls and keyboard shortcuts.
 | Third + fourth button | Clamp to range | Custom parameters only |
 | First + fourth (long-press) | Open component editor | Opens active parameter's operator, or selected COMP if none |
 | **Network Zoom** (when enabled & no active parameter) | | |
-| Twist knob clockwise | Zoom in + pan to cursor | Seek or Target mode (configurable) |
-| Twist knob counter-clockwise | Zoom out + pan | Works until zoom limit (3x) |
-| Push knob + twist | Zoom in fast | Larger zoom increment per twist |
+| Twist knob clockwise | Zoom in + pan to cursor | Seek, Target, or Mixed mode (configurable). Inertia coasts to a stop. |
+| Twist knob counter-clockwise | Zoom out + pan | Works until zoom limit (2.5x) |
+| Push knob + twist | Zoom in fast (3×) | Larger zoom increment per twist |
 | Double-click knob push button | Home network editor | Fit all to view |
 
 > **Button References**: "First" = leftmost, "Second" = second from left, etc. On VSN1: step buttons are under LCD, slot buttons are the 8 clicky keyboard buttons.
@@ -123,7 +123,7 @@ Complete parameter reference organized by TouchDesigner parameter page.
 | Activate Slot on Jump | Activate parameter when jumping to operator | On |
 | Use Current Zoom for Jump | Maintain current zoom level on jump | Off |
 | Enable Knob Zoom (if no Par) | Enable network editor zoom navigation | On |
-| Zoom Mode | "Seek" (follow cursor) or "Target" (lock) | Seek |
+| Zoom Mode | "Seek" (follow cursor), "Target" (lock to initial position), or "Mixed" (lock until direction reverses) | Seek |
 | Zoom Network | Zoom speed per knob increment | 0.015 |
 | Zoom Interpolation | Camera movement smoothness (0.0-1.0) | 0.015 |
 | Disable ScriptChange Popup | Disable the popup showing which script changed the parameter | On |
