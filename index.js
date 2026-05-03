@@ -74,7 +74,12 @@ function clearInactivityTimeout() {
 }
 
 exports.loadPackage = async function (gridController, persistedData) {
-  controller = gridController;
+  controller = gridController;  
+  gridController.sendMessageToEditor({
+    type: "show-message",
+    message: "keys: " + Object.getOwnPropertyNames(gridController).join(", ") + " | proto: " + Object.getOwnPropertyNames(Object.getPrototypeOf(gridController)).join(", "),
+    messageType: "info",
+  });
   let actionIconSvg = fs.readFileSync(
     path.resolve(__dirname, "TouchDesigner-icon.svg"),
     { encoding: "utf-8" },
@@ -328,7 +333,7 @@ function handleWebsocketMessage(message) {
   if (data.type === "execute-code") {
     controller.sendMessageToEditor({
       type: "execute-lua-script",
-      script: data.script,
+      script: `pcall(function() ${data.script} end)`,
       targetDx: data.targetDx,
       targetDy: data.targetDy,
     });
@@ -336,7 +341,7 @@ function handleWebsocketMessage(message) {
   else if (data.type === "queue-code") {
     queUpdateMessage({
       type: "execute-lua-script",
-      script: data.script,
+      script: `pcall(function() ${data.script} end)`,
       targetDx: data.targetDx,
       targetDy: data.targetDy,
     });
@@ -345,14 +350,16 @@ function handleWebsocketMessage(message) {
 
 function executeSetLedForIndices10to17() {
   const luaScript = `
-for i = 10, 17 do
-  set_ledcolmin(i-10,20,0,0,1);
-  set_led(i, 1, 0);
-end
-lcd:ldaf(0,0,319,239,c[1]);
-lcd:ldrr(3,3,317,237,10,c[2]);
-lcd:ldsw();
-clearl();
+pcall(function()
+  for i = 10, 17 do
+    set_ledcolmin(i-10,20,0,0,1);
+    set_led(i, 1, 0);
+  end
+  lcd:ldaf(0,0,319,239,c[1]);
+  lcd:ldrr(3,3,317,237,10,c[2]);
+  lcd:ldsw();
+  clearl();
+end)
 `;
   
   controller.sendMessageToEditor({
@@ -364,7 +371,7 @@ clearl();
 
 function ldsw() {
   const luaScript = `
-lcd:ldsw();
+pcall(function() lcd:ldsw() end)
 `;
   controller.sendMessageToEditor({
     type: "execute-lua-script",
@@ -374,9 +381,11 @@ lcd:ldsw();
 
 function resetLedColorMinOnConnect() {
   const luaScript = `
-for i = 10, 17 do
-  set_ledcolmin(i-10,-1,-1,-1,0.05);
-end
+pcall(function()
+  for i = 10, 17 do
+    set_ledcolmin(i-10,-1,-1,-1,0.05);
+  end
+end)
 `;
   
   controller.sendMessageToEditor({
@@ -391,7 +400,7 @@ function setBlackLight(brightness) {
   let brightnessValue;
   brightnessValue = Math.max(0, Math.min(255, brightness)); // Clamp to 0-255
   
-  const luaScript = `set_l(${brightnessValue});`;
+  const luaScript = `pcall(function() set_l(${brightnessValue}) end)`;
   
   controller.sendMessageToEditor({
     type: "execute-lua-script",
