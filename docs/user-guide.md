@@ -385,6 +385,8 @@ Set `Enable Zoom` toggle to activate network zoom navigation. When enabled and n
 
 **Inertia**: When you stop turning the knob, the zoom coasts to a smooth stop rather than halting abruptly. This makes navigation feel more fluid and natural.
 
+**Input Smoothing**: Zoom speed ramps up gradually as you turn the knob (exponential filter), preventing sudden jumps from fast movements. Direction changes are immediate — reversing the knob snaps to the new direction instantly.
+
 ### Zoom Modes
 
 Set `Zoom Mode` parameter to choose targeting behavior:
@@ -405,6 +407,7 @@ Set `Zoom Mode` parameter to choose targeting behavior:
 - Combines Target and Seek behavior
 - **Locks** to cursor position like Target mode while zooming in one direction
 - **Re-captures** cursor position when you reverse direction (zoom in → zoom out or vice versa)
+- **Seek fallback at zoom limit**: when already at maximum zoom and continuing to zoom in, switches to Seek mode so the camera pans freely with the cursor
 - Great for exploring: zoom into a spot, then zoom out toward a new spot without waiting for a timeout
 
 All modes use smooth interpolation to prevent sudden camera jumps.

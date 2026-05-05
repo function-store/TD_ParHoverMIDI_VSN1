@@ -14,8 +14,9 @@ class ZoomManager:
 		self.target_pos = None  # Target position (behavior depends on mode)
 		self.start_pos = None  # Starting pane position for smooth interpolation
 		self.is_target_locked = False  # Track if target is locked (for "Target" mode)
-		self.timeout_seconds = 0.5 # Timeout in seconds if target is locked
-		self.zoom_limit = 2.5
+		self.timeout_seconds = 0.33 # Timeout in seconds if target is locked
+		self.zoom_limit = 1.5
+		self.zoom_min = 0.1
 		# Inertia state — zoom coasts to a stop after the knob stops moving
 		self._velocity = 0.0  # Current zoom velocity (units/frame)
 		self._decay = 0.9    # Per-frame decay factor (0 = instant stop, 1 = no decay)
@@ -23,6 +24,9 @@ class ZoomManager:
 		self._knob_this_frame = False  # True if handle_zoom_knob ran this frame
 		self._last_zoom_pos = None  # Last position used for zoom (for inertia frames)
 		self._mixed_direction = 0  # Last zoom direction for Mixed mode (1=in, -1=out)
+		# Exponential filter on delta — smooths responsiveness while knob is turning
+		self._filtered_delta = 0.0
+		self._delta_alpha = 0.05  # EMA factor (0 = max smooth, 1 = no filter)
 
 	def capture_target_locked(self):
 		"""Capture and lock to initial mouse position (Target mode)"""
@@ -77,6 +81,7 @@ class ZoomManager:
 		self.start_pos = None
 		self.is_target_locked = False
 		self._velocity = 0.0
+		self._filtered_delta = 0.0
 		self._last_zoom_pos = None
 		self._mixed_direction = 0
 		self.cancel_timeout()
@@ -173,14 +178,16 @@ class ZoomManager:
 
 		current_zoom = _jumpExt.currentZoom
 		_zoom_limit = self.zoom_limit
+		_zoom_min = self.zoom_min
 
 		# Apply velocity (inertia coast)
 		if current_zoom >= _zoom_limit and self._velocity > 0:
 			new_zoom = current_zoom
+		elif current_zoom <= _zoom_min and self._velocity < 0:
+			new_zoom = current_zoom
 		else:
 			new_zoom = current_zoom + self._velocity
-			if self._velocity > 0:
-				new_zoom = min(new_zoom, _zoom_limit)
+			new_zoom = max(_zoom_min, min(new_zoom, _zoom_limit))
 
 		# Zoom toward the same position the knob was using
 		if self._last_zoom_pos:
@@ -219,34 +226,41 @@ class ZoomManager:
 
 		current_zoom = _jumpExt.currentZoom
 		direction = 1 if value > MidiConstants.MIDI_CENTER_VALUE else -1
+		_zoom_limit = self.zoom_limit
+		_zoom_min = self.zoom_min
+		at_limit = current_zoom >= _zoom_limit and direction > 0
+		at_min = current_zoom <= _zoom_min and direction < 0
 
-		# Update target based on mode (after direction is known for Mixed)
-		if zoom_mode == 'Target':
+		# Mixed falls back to Seek when already at the zoom limit (pan follows cursor freely)
+		effective_mode = 'Seek' if (zoom_mode == 'Mixed' and at_limit) else zoom_mode
+
+		# Update target based on effective mode (after direction is known for Mixed)
+		if effective_mode == 'Target':
 			self.capture_target_locked()
-		elif zoom_mode == 'Mixed':
+		elif effective_mode == 'Mixed':
 			self.capture_target_mixed(direction)
 		else:
 			self.update_target_seeking()
 
-		zoom_delta = direction * self.parent.evalZoomnetwork * (3 if self.parent.knobPushState else 1)
-		_zoom_limit = self.zoom_limit
-		# Check if we've hit the zoom limit
-		if current_zoom >= _zoom_limit and direction > 0:
-			# At max zoom and trying to zoom in further - just adjust x/y position, don't change zoom
+		raw_delta = direction * self.parent.evalZoomnetwork * (3 if self.parent.knobPushState else 1)
+		if raw_delta * self._filtered_delta < 0:  # direction reversed — start fresh
+			self._filtered_delta = 0.0
+		self._filtered_delta = self._delta_alpha * raw_delta + (1 - self._delta_alpha) * self._filtered_delta
+		zoom_delta = self._filtered_delta
+
+		# Check if we've hit either zoom boundary
+		if at_limit or at_min:
 			new_zoom = current_zoom
 		else:
-			# Normal zoom behavior (can always zoom out, can zoom in up to 2.5)
 			new_zoom = current_zoom + zoom_delta
-			# Clamp to max zoom of zoom_limit when zooming in
-			if direction > 0:
-				new_zoom = min(new_zoom, _zoom_limit)
+			new_zoom = max(_zoom_min, min(new_zoom, _zoom_limit))
 
 		# Feed inertia — fraction of delta so the coast is gentle, not a replay
 		self._velocity = zoom_delta * 0.4
 		self._knob_this_frame = True
 
-		# Use interpolated position (behavior depends on mode)
-		interpolated_pos = self.get_interpolated_position(mode=zoom_mode)
+		# Use interpolated position (behavior depends on effective mode)
+		interpolated_pos = self.get_interpolated_position(mode=effective_mode)
 		if interpolated_pos:
 			self._last_zoom_pos = interpolated_pos
 			_jumpExt.setZoom(new_zoom, target_pos=interpolated_pos)

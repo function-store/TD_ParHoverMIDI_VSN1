@@ -374,7 +374,8 @@ scripts/HoveredMidiRelative/
 
 **ZoomManager**
 - Network editor zoom and pan navigation
-- Three modes: Seek (follow cursor), Target (lock), Mixed (lock until direction reversal)
+- Three modes: Seek (follow cursor), Target (lock), Mixed (lock until direction reversal; falls back to Seek at zoom limit)
+- Exponential delta filter for smooth ramp-up during knob input; direction changes snap immediately
 - Inertia system with per-frame decay for smooth coast-to-stop
 - Ease-out interpolation for Target/Mixed modes
 

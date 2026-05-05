@@ -123,7 +123,7 @@ Complete parameter reference organized by TouchDesigner parameter page.
 | Activate Slot on Jump | Activate parameter when jumping to operator | On |
 | Use Current Zoom for Jump | Maintain current zoom level on jump | Off |
 | Enable Knob Zoom (if no Par) | Enable network editor zoom navigation | On |
-| Zoom Mode | "Seek" (follow cursor), "Target" (lock to initial position), or "Mixed" (lock until direction reverses) | Seek |
+| Zoom Mode | "Seek" (follow cursor), "Target" (lock to initial position), or "Mixed" (lock until direction reverses; falls back to Seek at zoom limit) | Seek |
 | Zoom Network | Zoom speed per knob increment | 0.015 |
 | Zoom Interpolation | Camera movement smoothness (0.0-1.0) | 0.015 |
 | Disable ScriptChange Popup | Disable the popup showing which script changed the parameter | On |
