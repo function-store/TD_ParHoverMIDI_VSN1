@@ -14,11 +14,11 @@ class ZoomManager:
 		self.target_pos = None  # Target position (behavior depends on mode)
 		self.start_pos = None  # Starting pane position for smooth interpolation
 		self.is_target_locked = False  # Track if target is locked (for "Target" mode)
-		self.timeout_seconds = 0.33 # Timeout in seconds if target is locked
+		self.timeout_seconds = 0.5 # Timeout in seconds if target is locked
 		self.zoom_limit = 2.5
 		# Inertia state — zoom coasts to a stop after the knob stops moving
 		self._velocity = 0.0  # Current zoom velocity (units/frame)
-		self._decay = 0.75    # Per-frame decay factor (0 = instant stop, 1 = no decay)
+		self._decay = 0.9    # Per-frame decay factor (0 = instant stop, 1 = no decay)
 		self._velocity_threshold = 0.0005  # Below this, snap to zero
 		self._knob_this_frame = False  # True if handle_zoom_knob ran this frame
 		self._last_zoom_pos = None  # Last position used for zoom (for inertia frames)

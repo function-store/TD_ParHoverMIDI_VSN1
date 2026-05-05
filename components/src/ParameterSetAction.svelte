@@ -25,7 +25,6 @@
       if (match) {
         parameterId = match[1] ?? "";
         parameterValue = match[2] ?? "";
-        console.log({ parameterId, parameterValue });
         isInitialized = true;
       }
     }

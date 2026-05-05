@@ -75,11 +75,7 @@ function clearInactivityTimeout() {
 
 exports.loadPackage = async function (gridController, persistedData) {
   controller = gridController;  
-  gridController.sendMessageToEditor({
-    type: "show-message",
-    message: "keys: " + Object.getOwnPropertyNames(gridController).join(", ") + " | proto: " + Object.getOwnPropertyNames(Object.getPrototypeOf(gridController)).join(", "),
-    messageType: "info",
-  });
+
   let actionIconSvg = fs.readFileSync(
     path.resolve(__dirname, "TouchDesigner-icon.svg"),
     { encoding: "utf-8" },

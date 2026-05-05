@@ -141,6 +141,9 @@ class HoveredMidiRelativeExt:
 
 		self._set_last_script_change(not self.evalDisablehoverscriptchangepopup)
 
+		# Initialize screen, ensure after all
+		run("args[0]._initialize_VSN1()", self, delayFrames = 20)
+
 		run("args[0].onMidiError(args[1])", self, self.midiError, delayRef=op.TDResources, delayFrames=5)
 
 	def onStart(self):
