@@ -1,6 +1,6 @@
 # TouchDesigner Par Hover Control for VSN1
 
-A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r&affiliatePartnerCode=functionstore)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. While optimized for VSN1, it can be made compatible with other endless relative MIDI controllers.
+A [TouchDesigner](https://derivative.ca) component designed for the **[Intech Studio VSN1](https://intech.studio/se/shop/vsn1?sku=grid3-vsn1-r&affiliatePartnerCode=functionstore)** that provides intuitive parameter control using **endless relative MIDI encoders** and mouse hover interactions. Please check out **[TDMap](https://tdmap.functionstore.xyz)** for a generalized MIDI mapping approach in TouchDesigner, for any device and any situation.
 
 ![VSN1 Hardware](https://github.com/function-store/TD_ParHoverMIDI_VSN1/blob/main/docs/images/hoveredvsn1.jpg)
 
@@ -66,8 +66,7 @@ Or browse the docs directly:
 - **Intech Studio VSN1** - Full support with screen updates and LED feedback
 
 **Alternative Hardware:**
-- Generic MIDI controllers with endless encoders in relative mode (no visual feedback)
-- Turn off `VSN1 Support` parameter for non-VSN1 controllers
+- Please check out **[TDMap](https://tdmap.functionstore.xyz)** for a generalized MIDI mapping approach in TouchDesigner, for any device and any situation.
 
 **Requirements:**
 - TouchDesigner 2023.12120+ *(or 2025.+ for controlling ParGroups)*
