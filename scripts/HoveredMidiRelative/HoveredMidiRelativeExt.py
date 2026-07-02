@@ -171,6 +171,24 @@ class HoveredMidiRelativeExt:
 
 		
 
+	def _launch_grid_editor_windows(self, grid_editor_path):
+		"""Launch Grid Editor without attaching a visible console on Windows."""
+		import subprocess
+		import os
+
+		# ShellExecute (Explorer double-click) avoids subprocess console inheritance.
+		try:
+			os.startfile(grid_editor_path)
+			return
+		except OSError:
+			pass
+
+		subprocess.Popen(
+			[grid_editor_path],
+			creationflags=subprocess.CREATE_NO_WINDOW,
+			close_fds=True,
+		)
+
 	def _start_grid_editor(self):
 		import subprocess
 		import os
@@ -187,28 +205,24 @@ class HoveredMidiRelativeExt:
 					['tasklist', '/FI', 'IMAGENAME eq grid-editor.exe'],
 					capture_output=True, text=True, **hidden)
 				if 'Grid Editor.exe' not in result.stdout and 'grid-editor.exe' not in result2.stdout:
-					# Try common Windows installation paths
+					# Prefer the GUI launcher over any CLI-style grid-editor.exe binary.
+					install_roots = [
+						os.path.expandvars(r"%LOCALAPPDATA%\Programs\grid-editor"),
+						os.path.expandvars(r"%LOCALAPPDATA%\Programs\Grid Editor"),
+						os.path.expandvars(r"%PROGRAMFILES%\Grid Editor"),
+						os.path.expandvars(r"%PROGRAMFILES%\grid-editor"),
+						os.path.expandvars(r"%PROGRAMFILES(X86)%\Grid Editor"),
+						os.path.expandvars(r"%PROGRAMFILES(X86)%\grid-editor"),
+						r"C:\Program Files\Grid Editor",
+						r"C:\Program Files\grid-editor",
+						r"C:\Program Files (x86)\Grid Editor",
+						r"C:\Program Files (x86)\grid-editor",
+					]
+					exe_names = ("Grid Editor.exe", "grid-editor.exe")
 					possible_paths = [
-						os.path.expandvars(r"%LOCALAPPDATA%\Programs\grid-editor\Grid Editor.exe"),
-						os.path.expandvars(r"%LOCALAPPDATA%\Programs\grid-editor\grid-editor.exe"),
-						os.path.expandvars(r"%LOCALAPPDATA%\Programs\Grid Editor\Grid Editor.exe"),
-						os.path.expandvars(r"%LOCALAPPDATA%\Programs\Grid Editor\grid-editor.exe"),
-						os.path.expandvars(r"%PROGRAMFILES%\Grid Editor\Grid Editor.exe"),
-						os.path.expandvars(r"%PROGRAMFILES%\Grid Editor\grid-editor.exe"),
-						os.path.expandvars(r"%PROGRAMFILES%\grid-editor\Grid Editor.exe"),
-						os.path.expandvars(r"%PROGRAMFILES%\grid-editor\grid-editor.exe"),
-						os.path.expandvars(r"%PROGRAMFILES(X86)%\Grid Editor\Grid Editor.exe"),
-						os.path.expandvars(r"%PROGRAMFILES(X86)%\Grid Editor\grid-editor.exe"),
-						os.path.expandvars(r"%PROGRAMFILES(X86)%\grid-editor\Grid Editor.exe"),
-						os.path.expandvars(r"%PROGRAMFILES(X86)%\grid-editor\grid-editor.exe"),
-						r"C:\Program Files\Grid Editor\Grid Editor.exe",
-						r"C:\Program Files\Grid Editor\grid-editor.exe",
-						r"C:\Program Files\grid-editor\Grid Editor.exe",
-						r"C:\Program Files\grid-editor\grid-editor.exe",
-						r"C:\Program Files (x86)\Grid Editor\Grid Editor.exe",
-						r"C:\Program Files (x86)\Grid Editor\grid-editor.exe",
-						r"C:\Program Files (x86)\grid-editor\Grid Editor.exe",
-						r"C:\Program Files (x86)\grid-editor\grid-editor.exe"
+						os.path.join(root, exe_name)
+						for exe_name in exe_names
+						for root in install_roots
 					]
 					
 					grid_editor_path = None
@@ -218,7 +232,7 @@ class HoveredMidiRelativeExt:
 							break
 					
 					if grid_editor_path:
-						subprocess.Popen([grid_editor_path])
+						self._launch_grid_editor_windows(grid_editor_path)
 						debug("Grid Editor started from:", grid_editor_path)
 					else:
 						debug("Grid Editor executable not found. Tried paths:", possible_paths)
