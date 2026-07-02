@@ -178,11 +178,14 @@ class HoveredMidiRelativeExt:
 
 		try:
 			if sys.platform == "win32":
-				# Windows implementation
-				result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq Grid Editor.exe'],
-										capture_output=True, text=True, shell=True)
-				result2 = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq grid-editor.exe'],
-										capture_output=True, text=True, shell=True)
+				# Avoid shell=True — it spawns a visible cmd.exe window on Windows.
+				hidden = {"creationflags": subprocess.CREATE_NO_WINDOW}
+				result = subprocess.run(
+					['tasklist', '/FI', 'IMAGENAME eq Grid Editor.exe'],
+					capture_output=True, text=True, **hidden)
+				result2 = subprocess.run(
+					['tasklist', '/FI', 'IMAGENAME eq grid-editor.exe'],
+					capture_output=True, text=True, **hidden)
 				if 'Grid Editor.exe' not in result.stdout and 'grid-editor.exe' not in result2.stdout:
 					# Try common Windows installation paths
 					possible_paths = [
