@@ -171,23 +171,64 @@ class HoveredMidiRelativeExt:
 
 		
 
+	def _is_grid_editor_running_windows(self):
+		"""Check for Grid Editor without subprocess (avoids allocating a TD console)."""
+		import ctypes
+		from ctypes import wintypes
+
+		TH32CS_SNAPPROCESS = 0x00000002
+		target_names = {'grid editor.exe', 'grid-editor.exe'}
+
+		class PROCESSENTRY32W(ctypes.Structure):
+			_fields_ = [
+				('dwSize', wintypes.DWORD),
+				('cntUsage', wintypes.DWORD),
+				('th32ProcessID', wintypes.DWORD),
+				('th32DefaultHeapID', ctypes.POINTER(ctypes.c_ulong)),
+				('th32ModuleID', wintypes.DWORD),
+				('cntThreads', wintypes.DWORD),
+				('th32ParentProcessID', wintypes.DWORD),
+				('pcPriClassBase', ctypes.c_long),
+				('dwFlags', wintypes.DWORD),
+				('szExeFile', wintypes.WCHAR * 260),
+			]
+
+		kernel32 = ctypes.windll.kernel32
+		snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+		if snapshot == -1:
+			return False
+
+		try:
+			entry = PROCESSENTRY32W()
+			entry.dwSize = ctypes.sizeof(PROCESSENTRY32W)
+			if not kernel32.Process32FirstW(snapshot, ctypes.byref(entry)):
+				return False
+
+			while True:
+				if entry.szExeFile.lower() in target_names:
+					return True
+				if not kernel32.Process32NextW(snapshot, ctypes.byref(entry)):
+					break
+			return False
+		finally:
+			kernel32.CloseHandle(snapshot)
+
 	def _launch_grid_editor_windows(self, grid_editor_path):
-		"""Launch Grid Editor without attaching a visible console on Windows."""
-		import subprocess
+		"""Launch Grid Editor without subprocess (avoids allocating a TD console)."""
+		import ctypes
 		import os
 
-		# ShellExecute (Explorer double-click) avoids subprocess console inheritance.
+		# ShellExecute (Explorer double-click) — no subprocess, no console on TD.
 		try:
 			os.startfile(grid_editor_path)
 			return
 		except OSError:
 			pass
 
-		subprocess.Popen(
-			[grid_editor_path],
-			creationflags=subprocess.CREATE_NO_WINDOW,
-			close_fds=True,
-		)
+		result = ctypes.windll.shell32.ShellExecuteW(
+			None, "open", grid_editor_path, None, None, 1)
+		if result <= 32:
+			raise OSError(f"ShellExecuteW failed with code {result}")
 
 	def _start_grid_editor(self):
 		import subprocess
@@ -196,15 +237,7 @@ class HoveredMidiRelativeExt:
 
 		try:
 			if sys.platform == "win32":
-				# Avoid shell=True — it spawns a visible cmd.exe window on Windows.
-				hidden = {"creationflags": subprocess.CREATE_NO_WINDOW}
-				result = subprocess.run(
-					['tasklist', '/FI', 'IMAGENAME eq Grid Editor.exe'],
-					capture_output=True, text=True, **hidden)
-				result2 = subprocess.run(
-					['tasklist', '/FI', 'IMAGENAME eq grid-editor.exe'],
-					capture_output=True, text=True, **hidden)
-				if 'Grid Editor.exe' not in result.stdout and 'grid-editor.exe' not in result2.stdout:
+				if not self._is_grid_editor_running_windows():
 					# Prefer the GUI launcher over any CLI-style grid-editor.exe binary.
 					install_roots = [
 						os.path.expandvars(r"%LOCALAPPDATA%\Programs\grid-editor"),
